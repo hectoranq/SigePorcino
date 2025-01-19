@@ -1,4 +1,4 @@
-@tailwind base;
+/* @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -74,4 +74,49 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
+} */
+@font-face {
+  font-family: 'Murecho';
+  font-weight: 600;
+  font-style: normal;
+  src: url('./assets/fonts/Murecho-SemiBold.ttf') format('truetype');
 }
+
+@font-face {
+  font-family: 'Nunito';
+  font-weight: 600;
+  font-style: normal;
+  src: url('./assets/fonts/Nunito-SemiBold.ttf') format('truetype');
+}
+
+.button {
+  text-transform: none;
+  font-family: Murecho;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20.27px;
+  text-align: center;
+  text-underline-position: from-font;
+  text-decoration-skip-ink: none;
+  border-radius: 7px;
+  padding: 9.5px 16px;
+}
+
+.button-1 {
+  text-transform: none;
+  font-family: Murecho;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20.27px;
+  text-align: center;
+  text-underline-position: from-font;
+  text-decoration-skip-ink: none;
+  border-radius: 7px;
+  padding: 9.5px 16px;
+  background-color: white;
+  color: #004E64; 
+  border: 1px solid #004E64; 
+}
+
+
+
