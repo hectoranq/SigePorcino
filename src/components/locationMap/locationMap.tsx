@@ -60,7 +60,7 @@ const LocationSelector = () => {
             boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.1)',
           }}
         >
-          <LoadScript googleMapsApiKey="AIzaSyA3CQQ6fazJiog3a3xpx8-UoXDHBVbAAsk">
+          <LoadScript googleMapsApiKey="YOUR_GOOGLE_MAPS_API_KEY">
             <GoogleMap
               mapContainerStyle={{ width: '100%', height: '100%' }}
               center={{ lat: 19.432608, lng: -99.133209 }}
