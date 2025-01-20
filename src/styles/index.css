@@ -79,28 +79,28 @@ button:focus-visible {
   font-family: 'Murecho';
   font-weight: 600;
   font-style: normal;
-  src: url('./assets/fonts/Murecho-SemiBold.ttf') format('truetype');
+  src: url('../assets/fonts/Murecho-SemiBold.ttf') format('truetype');
 }
 
 @font-face {
   font-family: 'Murecho';
-  font-weight: 400; /* Peso regular */
+  font-weight: 400;
   font-style: normal;
-  src: url('./assets/fonts/Murecho-Regular.ttf') format('truetype'); 
+  src: url('../assets/fonts/Murecho-Regular.ttf') format('truetype'); 
 }
 
 @font-face {
   font-family: 'Nunito';
   font-weight: 600;
   font-style: normal;
-  src: url('./assets/fonts/Nunito-SemiBold.ttf') format('truetype');
+  src: url('../assets/fonts/Nunito-SemiBold.ttf') format('truetype');
 }
 
 @font-face {
   font-family: 'Nunito';
-  font-weight: 400; /* Peso regular */
+  font-weight: 400;
   font-style: normal;
-  src: url('./assets/fonts/Nunito-Regular.ttf') format('truetype'); 
+  src: url('../assets/fonts/Nunito-Regular.ttf') format('truetype'); 
 }
 
 

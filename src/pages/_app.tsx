@@ -1,4 +1,4 @@
-import '../index.css';  
+import '../styles/index.css';  
 import { AppProps } from 'next/app';
 import { ThemeProvider } from '@mui/material/styles';
 import theme from '../components/theme';
