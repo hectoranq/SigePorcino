@@ -1,16 +1,12 @@
-
 import '../index.css';  
-
+import { AppProps } from 'next/app';
 import { ThemeProvider } from '@mui/material/styles';
 import theme from '../components/theme';
-import Home from '.';
 
-
-function MyApp() {
+function MyApp({ Component, pageProps }: AppProps) {
   return (
-      <ThemeProvider theme={theme}>
-          <Home />
-      {/* <Component {...pageProps} /> */}
+    <ThemeProvider theme={theme}>
+      <Component {...pageProps} />
     </ThemeProvider>
   );
 }
