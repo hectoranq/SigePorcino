@@ -9,7 +9,7 @@ const PaymentMethod = () => {
   const router = useRouter();
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null); // Estado para el plan seleccionado
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadPlans = async () => {
@@ -35,7 +35,7 @@ const PaymentMethod = () => {
   };
 
   const handleCardSelect = (planId: string) => {
-    setSelectedPlanId(planId); // Establece el id del plan seleccionado
+    setSelectedPlanId(planId);
   };
 
   return (

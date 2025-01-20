@@ -10,11 +10,11 @@ const LocationSelector = () => {
   const [lng, setLng] = useState(null);
 
   const handleClick = () => {
-    setOpenModal(true); // Abre el modal al hacer clic en el TextField
+    setOpenModal(true);
   };
 
   const handleClose = () => {
-    setOpenModal(false); // Cierra el modal
+    setOpenModal(false);
   };
 
   const onMapClick = (event) => {
@@ -23,7 +23,7 @@ const LocationSelector = () => {
     setLat(lat);
     setLng(lng);
     setLocation({ lat, lng });
-    setOpenModal(false); // Cierra el modal automáticamente al seleccionar la ubicación
+    setOpenModal(false); 
   };
 
   return (
@@ -49,8 +49,8 @@ const LocationSelector = () => {
       <Modal open={openModal} onClose={handleClose}>
         <div
           style={{
-            width: '80%', // Tamaño mediano para el modal
-            height: '60%', // Tamaño del mapa
+            width: '80%',
+            height: '60%',
             position: 'absolute',
             top: '50%',
             left: '50%',
@@ -63,7 +63,7 @@ const LocationSelector = () => {
           <LoadScript googleMapsApiKey="AIzaSyA3CQQ6fazJiog3a3xpx8-UoXDHBVbAAsk">
             <GoogleMap
               mapContainerStyle={{ width: '100%', height: '100%' }}
-              center={{ lat: 19.432608, lng: -99.133209 }} // Coordenadas iniciales
+              center={{ lat: 19.432608, lng: -99.133209 }}
               zoom={10}
               onClick={onMapClick}
             >

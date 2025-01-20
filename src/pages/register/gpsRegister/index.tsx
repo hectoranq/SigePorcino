@@ -47,7 +47,7 @@ const GpsRegister = () => {
       <LoadScript googleMapsApiKey="AIzaSyA3CQQ6fazJiog3a3xpx8-UoXDHBVbAAsk">
         <GoogleMap
           mapContainerStyle={{ width: '100%', height: '400px', marginBottom: '30px'}}
-          center={{ lat: 19.432608, lng: -99.133209 }} // Coordenadas iniciales
+          center={{ lat: 19.432608, lng: -99.133209 }}
           zoom={10}
           onClick={onMapClick}
         >
@@ -76,7 +76,6 @@ const GpsRegister = () => {
             className="button"
             onClick={() => {
               if (lat && lng) {
-                // Aquí puedes guardar las coordenadas lat y lng
                 handlePaymentMethod();
               } else {
                 alert('Por favor, selecciona una ubicación');
