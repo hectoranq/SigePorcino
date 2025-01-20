@@ -7,6 +7,7 @@ declare module '@mui/material/styles' {
     buttontext: React.CSSProperties;
     buttontext1: React.CSSProperties;
     inputtext: React.CSSProperties;
+    bodySRegular: React.CSSProperties;
   }
 
   interface TypographyVariantsOptions {
@@ -15,6 +16,7 @@ declare module '@mui/material/styles' {
     buttontext?: React.CSSProperties;
     buttontext1?: React.CSSProperties;
     inputtext?: React.CSSProperties;
+    bodySRegular?: React.CSSProperties;
   }
 }
 
@@ -25,5 +27,6 @@ declare module '@mui/material/Typography' {
     buttontext: true;
     buttontext1: true;
     inputtext: true;
+    bodySRegular: true;
   }
 }

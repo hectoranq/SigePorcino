@@ -83,11 +83,26 @@ button:focus-visible {
 }
 
 @font-face {
+  font-family: 'Murecho';
+  font-weight: 400; /* Peso regular */
+  font-style: normal;
+  src: url('./assets/fonts/Murecho-Regular.ttf') format('truetype'); 
+}
+
+@font-face {
   font-family: 'Nunito';
   font-weight: 600;
   font-style: normal;
   src: url('./assets/fonts/Nunito-SemiBold.ttf') format('truetype');
 }
+
+@font-face {
+  font-family: 'Nunito';
+  font-weight: 400; /* Peso regular */
+  font-style: normal;
+  src: url('./assets/fonts/Nunito-Regular.ttf') format('truetype'); 
+}
+
 
 .button {
   text-transform: none;
@@ -100,6 +115,7 @@ button:focus-visible {
   text-decoration-skip-ink: none;
   border-radius: 7px;
   padding: 9.5px 16px;
+  box-shadow: none;
 }
 
 .button-1 {
@@ -115,8 +131,120 @@ button:focus-visible {
   padding: 9.5px 16px;
   background-color: white;
   color: #004E64; 
-  border: 1px solid #004E64; 
+  border: 1px solid #004E64;
+  box-shadow: none; 
 }
+.container {
+  width: 100%; /* Asegura que ocupe el 100% del ancho disponible */
+  max-width: 100%; /* Limita el ancho para que no se desborde */
+  height: calc(100vh - 64px); /* Ajusta la altura restando el padding superior */
+  padding: 64px 149px;
+  box-sizing: border-box; /* Asegura que el padding no afecte el tamaño total */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  overflow-y: auto; /* Permite el scroll vertical si es necesario */
+}
+
+/* Estilo para el grid principal */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 2 columnas */
+  gap: 24px; /* Espacio entre los campos */
+  width: 100%; /* Asegura que ocupe todo el ancho disponible */
+  margin-bottom: 40px; /* Espacio inferior */
+}
+
+/* Estilo para los TextField dentro del grid */
+.form-grid .MuiTextField-root {
+  width: 100%; /* Asegura que cada TextField ocupe todo el ancho de su celda */
+  height: auto; /* Ajusta la altura de los TextField según su contenido */
+  box-sizing: border-box; /* Asegura que el padding y los bordes no causen desbordamiento */
+}
+
+/* Estilo para el contenedor principal */
+.form-grid-main {
+  display: grid;
+  grid-template-columns: 1fr; /* Una columna */
+  gap: 24px; /* Espacio entre los campos */
+  width: 100%; /* Asegura que ocupe todo el ancho disponible */
+  margin-bottom: 40px; /* Espacio inferior */
+  box-sizing: border-box; /* Asegura que el padding y los bordes no causen desbordamiento */
+}
+
+/* Estilo para los TextField dentro del grid */
+.form-grid-main .MuiTextField-root {
+  width: 100%; /* Asegura que cada TextField ocupe todo el ancho de su celda */
+  height: auto; /* Ajusta la altura de los TextField según su contenido */
+  box-sizing: border-box; /* Asegura que el padding y los bordes no causen desbordamiento */
+}
+
+/* Estilo para el segundo grid que tendrá 2 columnas */
+.form-grid-2-cols {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 2 columnas */
+  gap: 24px; /* Espacio entre los campos */
+  width: 100%; /* Asegura que ocupe todo el ancho disponible */
+  box-sizing: border-box; /* Asegura que el padding y los bordes no causen desbordamiento */
+}
+
+/* Estilo para el tercer grid que tendrá 1 columna */
+.form-grid-1-col {
+  display: grid;
+  grid-template-columns: 1fr; /* Una columna */
+  gap: 24px; /* Espacio entre los campos */
+  width: 100%; /* Asegura que ocupe todo el ancho disponible */
+  box-sizing: border-box; /* Asegura que el padding y los bordes no causen desbordamiento */
+}
+
+.form-grid-3-cols {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 2 columnas */
+  gap: 24px; /* Espacio entre los campos */
+  width: 100%; /* Asegura que ocupe todo el ancho disponible */
+  box-sizing: border-box; /* Asegura que el padding y los bordes no causen desbordamiento */
+}
+/* RadioCard.module.css */
+.card {
+  width: 365px;
+  height: 184px;
+  padding: 16px 0px 0px 0px;
+  gap: 24px;
+  border-radius: 16px 0px 0px 0px;
+  border: 1px solid;
+  opacity: 0.9;
+}
+
+.cardContent {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.textAdd {
+  font-size: 12px;
+  color: #757575; /* color text.secondary */
+}
+
+.textSmall {
+  margin-bottom: 1.5rem;
+  color: #757575; /* color text.secondary */
+}
+
+.description {
+  font-size: 14px;
+  color: #000; /* color text.primary */
+}
+
+
+
 
 
 
