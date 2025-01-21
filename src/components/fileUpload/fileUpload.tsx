@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { TextField, Typography, InputAdornment, IconButton } from '@mui/material';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 
-const FileUpload = () => {
+const FileUpload = ({ onFileChange }) => { 
   const [file, setFile] = useState(null);
 
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
     setFile(selectedFile);
+    onFileChange(selectedFile);
   };
 
   const handleClick = () => {

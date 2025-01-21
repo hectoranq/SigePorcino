@@ -1,99 +1,135 @@
+import React, { useState } from "react";
 import { TextField, MenuItem } from "@mui/material";
 import LocationSelector from "../../components/locationMap/locationMap";
-import { useState } from "react";
 
-const FarmInfo = () => {
-    const [selectedCountry, setSelectedCountry] = useState('');
-    const [selectedCity, setSelectedCity] = useState('');
-    const [countryCode, setCountryCode] = useState('');
-    const [cities, setCities] = useState([]);
+const FarmInfo = ({ onChange }) => {
+  const [formData, setFormData] = useState({
+    farm_name: "",
+    country: "",
+    city: "",
+    address: "",
+    phone_code: "",
+    phone_number: "",
+    latitud: null,
+    longitud: null,
+  });
 
-    const data = [
-        {
-            country: { value: 'US', label: 'United States', code: '+1' },
-            cities: ['New York', 'Los Angeles', 'Chicago', 'Houston', 'Miami'],
-        },
-        {
-            country: { value: 'ES', label: 'Spain', code: '+34' },
-            cities: ['Madrid', 'Barcelona', 'Valencia', 'Seville', 'Bilbao'],
-        },
-        {
-            country: { value: 'FR', label: 'France', code: '+33' },
-            cities: ['Paris', 'Marseille', 'Lyon', 'Toulouse', 'Nice'],
-        },
-        {
-            country: { value: 'DE', label: 'Germany', code: '+49' },
-            cities: ['Berlin', 'Munich', 'Hamburg', 'Frankfurt', 'Cologne'],
-        },
-        {
-            country: { value: 'JP', label: 'Japan', code: '+81' },
-            cities: ['Tokyo', 'Osaka', 'Kyoto', 'Yokohama', 'Sapporo'],
-        },
-    ];
+  const data = [
+    { country: { value: "BO", label: "Bolivia", code: "+591" }, cities: ["La Paz", "Santa Cruz", "Cochabamba"] },
+    { country: { value: "PE", label: "Perú", code: "+51" }, cities: ["Lima", "Cusco", "Arequipa"] },
+  ];
 
-    const handleCountryChange = (event) => {
-        const countryValue = event.target.value;
-        setSelectedCountry(countryValue);
-        const countryData = data.find((item) => item.country.value === countryValue);
-        setCities(countryData ? countryData.cities : []);
-        setCountryCode(countryData ? countryData.country.code : '');
-        setSelectedCity('');
-    };
+  const handleInputChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((prevData) => ({ ...prevData, [name]: value }));
+    onChange({ ...formData, [name]: value });
+  };
 
-    const handleCityChange = (event) => {
-        setSelectedCity(event.target.value);
-    };
+  const handleCountryChange = (event) => {
+    const countryValue = event.target.value;
+    const countryData = data.find((item) => item.country.value === countryValue);
+    setFormData((prevData) => ({
+      ...prevData,
+      country: countryValue,
+      phone_code: countryData ? countryData.country.code : "",
+      city: "",
+    }));
+    onChange({
+      ...formData,
+      country: countryValue,
+      phoneCode: countryData ? countryData.country.code : "",
+      city: "",
+    });
+  };
 
-    return (
-        <section className="form-grid-main" style={{ marginBottom: '2px' }}>
-            <TextField label="Nombre de la granja" variant="filled" style={{ marginBottom: '2px' }} />
-            <section className="form-grid-2-cols">
-                <TextField
-                    variant="filled"
-                    select
-                    label="País"
-                    value={selectedCountry}
-                    onChange={handleCountryChange}
-                >
-                    {data.map((item) => (
-                        <MenuItem key={item.country.value} value={item.country.value}>
-                            {item.country.label}
-                        </MenuItem>
-                    ))}
-                </TextField>
-                <TextField
-                    variant="filled"
-                    select
-                    label="Ciudad"
-                    value={selectedCity}
-                    onChange={handleCityChange}
-                >
-                    {cities.map((city, index) => (
-                        <MenuItem key={index} value={city}>
-                            {city}
-                        </MenuItem>
-                    ))}
-                </TextField>
-            </section>
-            <section className="form-grid-1-col">
-                <TextField label="Dirección" variant="filled" style={{ marginBottom: '2px' }} />
-            </section>
-            <section className="form-grid-2-cols">
-                <TextField
-                    variant="filled"
-                    label="Código de país"
-                    value={countryCode}
-                    InputProps={{
-                        readOnly: true,
-                    }}
-                />
-                <TextField label="Número de celular" variant="filled" style={{ marginBottom: '2px' }} />
-            </section>
-            <section className="form-grid-1-col">
-                <LocationSelector />
-            </section>
-        </section>
-    );
-}
+  const handleCityChange = (event) => {
+    const cityValue = event.target.value;
+    setFormData((prevData) => ({ ...prevData, city: cityValue }));
+    onChange({ ...formData, city: cityValue });
+  };
+
+  const handleLocationChange = ({ lat, lng }) => {
+    setFormData((prevData) => ({
+      ...prevData,
+      latitud: lat, 
+      longitud: lng,
+    }));
+    onChange({
+      ...formData,
+      latitud: lat, 
+      longitud: lng,
+    });
+  };
+  
+
+  return (
+    <section className="form-grid-main">
+      <TextField
+        label="Nombre de la granja"
+        variant="filled"
+        name="farm_name"
+        value={formData.farm_name}
+        onChange={handleInputChange}
+      />
+      <section className="form-grid-2-cols">
+        <TextField
+          variant="filled"
+          select
+          label="País"
+          name="country"
+          value={formData.country}
+          onChange={handleCountryChange}
+        >
+          {data.map((item) => (
+            <MenuItem key={item.country.value} value={item.country.value}>
+              {item.country.label}
+            </MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          variant="filled"
+          select
+          label="Ciudad"
+          name="city"
+          value={formData.city}
+          onChange={handleCityChange}
+        //   disabled={!formData.country}
+        >
+          {data
+            .find((item) => item.country.value === formData.country)
+            ?.cities.map((city, index) => (
+              <MenuItem key={index} value={city}>
+                {city}
+              </MenuItem>
+            ))}
+        </TextField>
+      </section>
+      <TextField
+        label="Dirección"
+        variant="filled"
+        name="address"
+        value={formData.address}
+        onChange={handleInputChange}
+      />
+      <section className="form-grid-2-cols">
+        <TextField
+          label="Código de país"
+          variant="filled"
+          name="phone_code"
+          value={formData.phone_code}
+          InputProps={{ readOnly: true }}
+        />
+        <TextField
+          label="Número de celular"
+          variant="filled"
+          name="phone_number"
+          value={formData.phone_number}
+          onChange={handleInputChange}
+        />
+      </section>
+      <LocationSelector onLocationChange={handleLocationChange} />
+    </section>
+  );
+};
 
 export default FarmInfo;
