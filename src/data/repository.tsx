@@ -22,3 +22,57 @@ export const fetchPlans = async (): Promise<Plan[]> => {
   }
 };
 
+export const registerUser = async (data) => {
+  try {
+    const response = await api.post('/collections/users/records', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error al registrar al usuario:', error);
+    throw error;
+  }
+};
+
+export const saveFarm = async (data) => {
+  try {
+    const response = await api.post('/collections/farms/records', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error al guardar la granja:', error);
+    throw error;
+  }
+};
+
+export const saveRega = async (data) => {
+  try {
+    const response = await api.post('/collections/rega/records', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error al guardar el REGA:', error);
+    throw error;
+  }
+};
+
+export const postPaymentRecord = async (data) => {
+  try {
+    const response = await api.post('/collections/payments/records', data, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error al hacer guardar los planes:', error);
+    throw error;
+  }
+};
+
+export const login = async (data) => {
+  try {
+    const response = await api.post('/collections/users/auth-with-password', data, {
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error al autenticar usuario:', error);
+    throw new Error('Autenticación fallida');
+  }
+};

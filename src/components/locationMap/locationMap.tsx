@@ -3,7 +3,7 @@ import { TextField, InputAdornment, IconButton, Modal } from '@mui/material';
 import MapIcon from '@mui/icons-material/Map';
 import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
 
-const LocationSelector = () => {
+const LocationSelector = ({ onLocationChange }) => {
   const [location, setLocation] = useState(null);
   const [openModal, setOpenModal] = useState(false);
   const [lat, setLat] = useState(null);
@@ -23,7 +23,9 @@ const LocationSelector = () => {
     setLat(lat);
     setLng(lng);
     setLocation({ lat, lng });
-    setOpenModal(false); 
+    setOpenModal(false);
+
+    onLocationChange({ lat, lng });
   };
 
   return (
@@ -44,8 +46,6 @@ const LocationSelector = () => {
           ),
         }}
       />
-
-      {/* Modal con el mapa */}
       <Modal open={openModal} onClose={handleClose}>
         <div
           style={{
