@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { TextField, Typography, InputAdornment, IconButton } from '@mui/material';
-import AttachFileIcon from '@mui/icons-material/AttachFile';
+import DescriptionIcon from '@mui/icons-material/Description';
 
 const FileUpload = ({ onFileChange }) => { 
   const [file, setFile] = useState(null);
@@ -27,7 +27,7 @@ const FileUpload = ({ onFileChange }) => {
           endAdornment: (
             <InputAdornment position="end">
               <IconButton>
-                <AttachFileIcon />
+                <DescriptionIcon />
               </IconButton>
             </InputAdornment>
           ),

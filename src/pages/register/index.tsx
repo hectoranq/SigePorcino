@@ -1,10 +1,10 @@
-import { Button, Divider, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useState } from "react";
 import PersonalInfo from "./personalInfo";
 import FarmInfo from "./farmInfo";
 import RegaInfo from "./regaInfo";
 import { registerUser, saveFarm, saveRega } from "../../data/repository";
+import { Snackbar, Alert, Typography, Divider, Button } from "@mui/material";
 
 const Register = () => {
   const router = useRouter();
@@ -12,6 +12,8 @@ const Register = () => {
   const [personalData, setPersonalData] = useState({});
   const [farmData, setFarmData] = useState({});
   const [regaData, setRegaData] = useState({});
+  const [errorMessage, setErrorMessage] = useState("");
+  const [openSnackbar, setOpenSnackbar] = useState(false);
 
   const handleRegister = async () => {
     try {
@@ -29,12 +31,25 @@ const Register = () => {
       });
     } catch (error) {
       console.error("Error en el registro:", error);
-      alert("Ocurrió un error durante el registro. Por favor, intenta nuevamente.");
+
+      if (
+        error.response?.data?.data?.email?.code === "validation_not_unique"
+      ) {
+        setErrorMessage("El correo electrónico ya se encuentra registrado.");
+      } else {
+        setErrorMessage("Ocurrió un error durante el registro. Por favor, intenta nuevamente.");
+      }
+
+      setOpenSnackbar(true);
     }
   };
 
   const handleLogin = () => {
     router.push("/");
+  };
+
+  const handleCloseSnackbar = () => {
+    setOpenSnackbar(false);
   };
 
   return (
@@ -71,7 +86,7 @@ const Register = () => {
       <section className="form-grid-2-cols">
         <Button
           variant="contained"
-          color="primary"
+          color="secondary"
           className="button-1"
           onClick={handleLogin}
         >
@@ -86,6 +101,20 @@ const Register = () => {
           Siguiente
         </Button>
       </section>
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity="error"
+          sx={{ width: "100%" }}
+        >
+          {errorMessage}
+        </Alert>
+      </Snackbar>
     </section>
   );
 };

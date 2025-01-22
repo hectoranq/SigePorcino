@@ -67,7 +67,7 @@ const theme = createTheme({
           lineHeight: '24px',
           letterSpacing: '0.5px',
           textAlign: 'left',
-          color: '#004E64', 
+          color: '#5E6D8E', 
         },
       },
     },
@@ -80,7 +80,7 @@ const theme = createTheme({
           lineHeight: '24px',
           letterSpacing: '0.5px',
           textAlign: 'left',
-          color: '#004E64', 
+          color: '#5E6D8E', 
         },
       },
     },
@@ -93,7 +93,35 @@ const theme = createTheme({
           },
           '&.Mui-focused': {
             backgroundColor: '#F6F7F9', 
-            borderColor: '#004E64',
+            borderColor: '#5E6D8E',
+          },
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          fontFamily: 'Murecho',
+          fontSize: '14px',
+          fontWeight: 500,
+          lineHeight: '20px',
+          borderRadius: '8px',
+          padding: '8px 16px',
+        },
+        containedPrimary: {
+          backgroundColor: '#004E64',
+          color: '#ffffff',
+          '&:hover': {
+            backgroundColor: '#003E54',
+          },
+        },
+        containedSecondary: {
+          backgroundColor: '#FFFFFF',
+          color: '#004E64',
+          border: '1px solid #004E64',
+          '&:hover': {
+            backgroundColor: '#F6F7F9',
           },
         },
       },
