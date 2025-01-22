@@ -103,37 +103,6 @@ button:focus-visible {
   src: url('../assets/fonts/Nunito-Regular.ttf') format('truetype'); 
 }
 
-
-.button {
-  text-transform: none;
-  font-family: Murecho;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 20.27px;
-  text-align: center;
-  text-underline-position: from-font;
-  text-decoration-skip-ink: none;
-  border-radius: 7px;
-  padding: 9.5px 16px;
-  box-shadow: none;
-}
-
-.button-1 {
-  text-transform: none;
-  font-family: Murecho;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 20.27px;
-  text-align: center;
-  text-underline-position: from-font;
-  text-decoration-skip-ink: none;
-  border-radius: 7px;
-  padding: 9.5px 16px;
-  background-color: white;
-  color: #004E64; 
-  border: 1px solid #004E64;
-  box-shadow: none; 
-}
 .container {
   width: 100%; 
   max-width: 100%; 

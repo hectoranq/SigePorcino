@@ -1,8 +1,8 @@
-import { Button, CircularProgress, Divider, Typography } from "@mui/material";
+import { Button, CircularProgress, Divider, Typography, Snackbar, Alert } from "@mui/material";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import RadioCard from "../../../../components/card/radioCard";
-import { fetchPlans, postPaymentRecord } from "../../../../data/repository"; // Asegúrate de que la función postPaymentRecord esté en tu repositorio
+import { fetchPlans, postPaymentRecord } from "../../../../data/repository";
 import FileUpload from "../../../../components/fileUpload/fileUpload";
 
 const PaymentMethod = () => {
@@ -10,9 +10,11 @@ const PaymentMethod = () => {
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null); // Estado para el archivo
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [openSnackbar, setOpenSnackbar] = useState(false);
 
-  const { userId } = router.query; // Obtenemos el userId de la URL
+  const { userId } = router.query;
 
   useEffect(() => {
     const loadPlans = async () => {
@@ -42,7 +44,7 @@ const PaymentMethod = () => {
   };
 
   const handleFileChange = (file: File) => {
-    setSelectedFile(file); // Guardamos el archivo seleccionado en el estado
+    setSelectedFile(file);
   };
 
   const handleSubmit = async () => {
@@ -51,28 +53,30 @@ const PaymentMethod = () => {
       return;
     }
   
-    // Asegúrate de que userId sea una cadena
     if (typeof userId !== 'string') {
       console.error('El userId debe ser una cadena de texto.');
       return;
     }
   
     const data = new FormData();
-    data.append("user_id", userId); // Agregamos el user_id
-    data.append("plan_id", selectedPlanId); // Agregamos el plan_id
-    data.append("file", selectedFile); // Agregamos el archivo
+    data.append("user_id", userId);
+    data.append("plan_id", selectedPlanId); 
+    data.append("file", selectedFile); 
   
     try {
-      const response = await postPaymentRecord(data); // Llamamos a la función para hacer el POST
+      const response = await postPaymentRecord(data);
       console.log('Respuesta del servidor:', response);
-      // Después de la respuesta exitosa, navegas al login
       handleLogin();
     } catch (error) {
       console.error('Error al enviar la solicitud:', error);
+      setErrorMessage("Ocurrió un error al registrar tu plan. Por favor, intenta nuevamente.");
+      setOpenSnackbar(true); 
     }
   };
-  
-  
+
+  const handleCloseSnackbar = () => {
+    setOpenSnackbar(false);
+  };
 
   return (
     <section className="container">
@@ -120,11 +124,11 @@ const PaymentMethod = () => {
         <span style={{ fontWeight: 'bold' }}> Juan José Torrez Galindo </span> 
         y cargar el comprobante.
       </Typography>
-      <FileUpload onFileChange={handleFileChange}/> {/* Pasamos la función de cambio de archivo */}
+      <FileUpload onFileChange={handleFileChange}/>
 
       <section className="form-grid-main">
         <section className="form-grid-2-cols">
-          <Button variant="contained" color="primary" className="button-1" onClick={handleRegister}>
+          <Button variant="contained" color="secondary" className="button-1" onClick={handleRegister}>
             Atrás
           </Button>
           <Button variant="contained" color="primary" className="button" onClick={handleSubmit}>
@@ -132,6 +136,20 @@ const PaymentMethod = () => {
           </Button>
         </section>
       </section>
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity="error"
+          sx={{ width: "100%" }}
+        >
+          {errorMessage}
+        </Alert>
+      </Snackbar>
     </section>
   );
 };

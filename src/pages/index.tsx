@@ -1,15 +1,19 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
-import { TextField, Button, Typography, Divider, InputAdornment, IconButton, Checkbox, FormControlLabel } from '@mui/material';
+import { TextField, Button, Typography, Divider, InputAdornment, IconButton, Checkbox, FormControlLabel, Snackbar, Alert } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import MainIcon from '../assets/svgs/mainIcon.svg';
 import { login } from '../data/repository';
+import Image from 'next/image';
+import PigImage from '../assets/img/pig2.jpg';
 
 const Login = () => {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
 
   const handleLogin = async () => {
     try {
@@ -18,6 +22,8 @@ const Login = () => {
       router.push('/home');
     } catch (error) {
       console.error('Error de autenticación', error);
+      setErrorMessage('Inicio de sesión incorrecto. Por favor, verifica tus credenciales.');
+      setSnackbarOpen(true);
     }
   };
 
@@ -29,17 +35,19 @@ const Login = () => {
     setShowPassword(!showPassword);
   };
 
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false);
+  };
+
   return (
     <section style={{ display: 'flex', flex: 1 }}>
       <article style={{ display: 'flex', flex: 2, height: '100vh', position: 'relative' }}>
-        <img
-          src="https://s3-alpha-sig.figma.com/img/da13/45c1/3da60dd48a5b6aab7298c7e487c814f3?Expires=1737331200&Key-Pair-Id=APKAQ4GOSFWCVNEHN3O4&Signature=D-BYhChS5HdGdFpiQxrjj-t7VOT-3scycC0zs1FQNGLSX6tN26i7LSPr4156b5j58SHr5Tpv0dbD~S5MxX4QwDe9QdOFghfz~uIzwebPFJuNaBgqqrCkQgnxptih9kAi8Pd9PToC8byhnyLse5XIAqPULMzbWt1J6OjnMkpLO7rwFUT~75I6sbxPLA-eipsFwa5moSuEOE7bmlMH9SPhoE-ysYBN7e-yS5eq2PrHayE6XAJ86-zwA06x6yLuSIijwH8AdLHtEKpN6FKoaswXCwAFz1ls0q0EU0Kx4ug-3KQF-Y9ACWFwhAIO3HwfVIsVgPdokHrLEcmXHJ8Ms0LG0w__"
-          style={{
-            objectFit: 'cover',
-            objectPosition: 'center left',
-            width: '100%',
-            height: '100%',
-          }}
+      <Image
+          src={PigImage}
+          alt="Pig"
+          layout="fill"
+          objectFit="cover"
+          objectPosition="center left"
         />
         <div
           style={{
@@ -111,10 +119,15 @@ const Login = () => {
         <Button variant="contained" color="primary" className="button" onClick={handleLogin} style={{ marginBottom: '16px' }}>
           Iniciar sesión
         </Button>
-        <Button variant="contained" color="primary" className="button-1" onClick={handleLogin1}>
+        <Button variant="contained" color="secondary" className="button-1" onClick={handleLogin1}>
           Registrarme
         </Button>
       </section>
+      <Snackbar open={snackbarOpen} autoHideDuration={6000} onClose={handleSnackbarClose}>
+        <Alert onClose={handleSnackbarClose} severity="error" sx={{ width: '100%' }}>
+          {errorMessage}
+        </Alert>
+      </Snackbar>
     </section>
   );
 };
