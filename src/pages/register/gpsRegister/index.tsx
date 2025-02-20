@@ -24,8 +24,8 @@ const FarmRegister = () => {
       router.push("/register/gpsRegister/paymentMethod");
     };
   return (
-    <section style={{ display: 'flex', height: '100vh' }}>
-      <article style={{ flex: 0.75, position: 'relative' }}>
+    <section style={{ display: 'flex', height: '100vh', flexDirection: 'row' }}>
+      <article className="image-container" style={{ flex: 0.75, position: 'relative' }}>
         <Image
           src={RegisterImage}
           alt="Pig"
@@ -51,9 +51,11 @@ const FarmRegister = () => {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'center',
-          padding: '5% 2%',
+          justifyContent: 'flex-start',
+          padding: '2% 2%',
           backgroundColor: 'white',
+          overflowY: 'auto',
+          height: '100vh',
         }}
       >
         <Typography

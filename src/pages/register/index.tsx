@@ -2,7 +2,7 @@ import Image from 'next/image';
 import RegisterImage from '../../assets/img/sigeRegister.jpg';
 
 import { Divider, Typography, Radio, RadioGroup, FormControlLabel, FormControl } from '@mui/material';
-import { useState } from 'react';
+import {useState } from 'react';
 import PersonalInfoBox from './personalInfoBox';
 import EmpresaInfoBox from './empresaInfo';
 
@@ -14,8 +14,8 @@ const Register = () => {
   };
 
   return (
-    <section style={{ display: 'flex', height: '100vh' }}>
-      <article style={{ flex: 0.75, position: 'relative' }}>
+    <section style={{ display: 'flex', height: '100vh', flexDirection: 'row' }}>
+      <article className="image-container" style={{ flex: 0.75, position: 'relative' }}>
         <Image
           src={RegisterImage}
           alt="Pig"
@@ -35,15 +35,16 @@ const Register = () => {
           }}
         />
       </article>
-
       <section
         style={{
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'center',
-          padding: '5% 2%',
+          justifyContent: 'flex-start',
+          padding: '2% 2%',
           backgroundColor: 'white',
+          overflowY: 'auto',
+          height: '100vh', 
         }}
       >
         <Typography
