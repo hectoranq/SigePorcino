@@ -1,120 +1,97 @@
-import { useRouter } from "next/router";
-import { useState } from "react";
-import PersonalInfo from "./personalInfo";
-import FarmInfo from "./farmInfo";
-import RegaInfo from "./regaInfo";
-import { registerUser, saveFarm, saveRega } from "../../data/repository";
-import { Snackbar, Alert, Typography, Divider, Button } from "@mui/material";
+import Image from 'next/image';
+import RegisterImage from '../../assets/img/sigeRegister.jpg';
+
+import { Divider, Typography, Radio, RadioGroup, FormControlLabel, FormControl } from '@mui/material';
+import { useState } from 'react';
+import PersonalInfoBox from './personalInfoBox';
+import EmpresaInfoBox from './empresaInfo';
 
 const Register = () => {
-  const router = useRouter();
-
-  const [personalData, setPersonalData] = useState({});
-  const [farmData, setFarmData] = useState({});
-  const [regaData, setRegaData] = useState({});
-  const [errorMessage, setErrorMessage] = useState("");
-  const [openSnackbar, setOpenSnackbar] = useState(false);
-
-  const handleRegister = async () => {
-    try {
-      const userResponse = await registerUser(personalData);
-      const userId = userResponse.id;
-
-      const farmResponse = await saveFarm({ ...farmData, owner: userId });
-      const farmId = farmResponse.id;
-
-      await saveRega({ ...regaData, farm: farmId });
-
-      router.push({
-        pathname: "/register/gpsRegister/paymentMethod",
-        query: { userId: userId },
-      });
-    } catch (error) {
-      console.error("Error en el registro:", error);
-
-      if (
-        error.response?.data?.data?.email?.code === "validation_not_unique"
-      ) {
-        setErrorMessage("El correo electrónico ya se encuentra registrado.");
-      } else {
-        setErrorMessage("Ocurrió un error durante el registro. Por favor, intenta nuevamente.");
-      }
-
-      setOpenSnackbar(true);
-    }
-  };
-
-  const handleLogin = () => {
-    router.push("/");
-  };
-
-  const handleCloseSnackbar = () => {
-    setOpenSnackbar(false);
+  const [selectedOption, setSelectedOption] = useState('persona_fisica');
+  const [setPersonalData] = useState({});
+  const handleRadioChange = (event) => {
+    setSelectedOption(event.target.value);
   };
 
   return (
-    <section className="container">
-      <Typography
-        variant="logintitle"
-        gutterBottom
-        style={{ marginBottom: "2px" }}
-      >
-        Registro
-      </Typography>
-      <Divider
+    <section style={{ display: 'flex', height: '100vh' }}>
+      <article style={{ flex: 0.75, position: 'relative' }}>
+        <Image
+          src={RegisterImage}
+          alt="Pig"
+          layout="fill"
+          objectFit="cover"
+          objectPosition="center left"
+        />
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: '#3E3F7233',
+            zIndex: 1,
+          }}
+        />
+      </article>
+
+      <section
         style={{
-          borderBottom: "6px solid #00A5CF",
-          width: "6%",
-          marginBottom: "32px",
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          padding: '5% 2%',
+          backgroundColor: 'white',
         }}
-      />
-      <Typography variant="bodySRegular" style={{ fontSize: 20 }} gutterBottom>
-        ¡Juntos vamos a llevar la gestión de tu granja a otro nivel!
-      </Typography>
-      <Typography variant="logintitle" gutterBottom style={{ fontSize: 20 }}>
-        Cuéntanos sobre ti
-      </Typography>
-      <PersonalInfo onChange={setPersonalData} />
-      <Typography variant="logintitle" gutterBottom style={{ fontSize: 20 }}>
-        Cuéntanos sobre tu granja
-      </Typography>
-      <FarmInfo onChange={setFarmData} />
-      <Typography variant="logintitle" gutterBottom style={{ fontSize: 20 }}>
-        Registra tu primer REGA
-      </Typography>
-      <RegaInfo onChange={setRegaData} />
-      <section className="form-grid-2-cols">
-        <Button
-          variant="contained"
-          color="secondary"
-          className="button-1"
-          onClick={handleLogin}
-        >
-          Atrás
-        </Button>
-        <Button
-          variant="contained"
-          color="primary"
-          className="button"
-          onClick={handleRegister}
-        >
-          Siguiente
-        </Button>
-      </section>
-      <Snackbar
-        open={openSnackbar}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity="error"
-          sx={{ width: "100%" }}
+        <Typography
+          variant="logintitle"
+          gutterBottom
+          style={{ marginBottom: "2px" }}
         >
-          {errorMessage}
-        </Alert>
-      </Snackbar>
+          Registro
+        </Typography>
+        <Divider
+          style={{
+            borderBottom: "6px solid #00A5CF",
+            width: "10%",
+            marginBottom: "5px",
+          }}
+        />
+        <Typography variant="logintitle" gutterBottom style={{ fontSize: 24 }}>
+          ¡Juntos vamos a llevar la gestión de tu granja a otro nivel!
+        </Typography>
+        <Typography variant="bodySRegular" style={{ fontSize: 14, fontWeight: 'bold' }} gutterBottom>
+          Quiero registrarme como:
+        </Typography>
+        <FormControl component="fieldset">
+          <RadioGroup
+            row
+            name="registro_tipo"
+            value={selectedOption}
+            onChange={handleRadioChange}
+            style={{ marginBottom: '2px' }}
+          >
+            <FormControlLabel
+              value="empresa"
+              control={<Radio />}
+              label="Empresa"
+            />
+            <FormControlLabel
+              value="persona_fisica"
+              control={<Radio />}
+              label="Persona Física"
+            />
+          </RadioGroup>
+        </FormControl>
+        {selectedOption === 'persona_fisica' ? (
+          <PersonalInfoBox onChange={setPersonalData} />
+        ) : (
+          <EmpresaInfoBox onChange={setPersonalData} />
+        )}
+      </section>
     </section>
   );
 };

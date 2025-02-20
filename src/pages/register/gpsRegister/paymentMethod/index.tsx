@@ -1,9 +1,11 @@
-import { Button, CircularProgress, Divider, Typography, Snackbar, Alert } from "@mui/material";
+import { Button, CircularProgress, Divider, Typography, Snackbar, Alert, TextField } from "@mui/material";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import RadioCard from "../../../../components/card/radioCard";
 import { fetchPlans, postPaymentRecord } from "../../../../data/repository";
 import FileUpload from "../../../../components/fileUpload/fileUpload";
+import Image from 'next/image';
+import RegisterImage from '../../../../assets/img/sigeRegister.jpg';
 
 const PaymentMethod = () => {
   const router = useRouter();
@@ -32,7 +34,7 @@ const PaymentMethod = () => {
   }, []);
 
   const handleRegister = () => {
-    router.push('/register');
+    router.push('/register/gpsRegister');
   };
 
   const handleLogin = () => {
@@ -79,24 +81,54 @@ const PaymentMethod = () => {
   };
 
   return (
-    <section className="container">
-      <Typography variant="logintitle" gutterBottom style={{ marginBottom: '2px' }}>
+    <section style={{ display: 'flex', height: '100vh' }}>
+      <article style={{ flex: 0.75, position: 'relative' }}>
+        <Image
+          src={RegisterImage}
+          alt="Pig"
+          layout="fill"
+          objectFit="cover"
+          objectPosition="center left"
+        />
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: '#3E3F7233',
+            zIndex: 1,
+          }}
+        />
+      </article>
+      <section
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          padding: '5% 2%',
+          backgroundColor: 'white',
+        }}
+      >
+        <Typography variant="logintitle" gutterBottom style={{ marginBottom: '2px' }}>
         Registro
       </Typography>
       <Divider 
         style={{ 
           borderBottom: '6px solid #00A5CF', 
           width: '6%',
-          marginBottom: '32px'
+          marginBottom: '5px'
         }} 
       />
-      <Typography variant="bodySRegular" style={{ fontSize: 20 }} gutterBottom>
-        ¡Ya casi terminamos! Elige un plan y el método de pago de tu preferencia
-      </Typography>
-      <Typography variant="logintitle" gutterBottom style={{ fontSize: 20 }}>
-        Selecciona un plan
-      </Typography>
 
+      <Typography variant="logintitle" gutterBottom style={{ fontSize: 24 }}>
+        ¡Ya casi terminamos! Elige un plan y el método de pago que prefieras
+      </Typography>
+      <Typography variant="bodySRegular" style={{ fontSize: 16 ,marginBottom: '20px' }} gutterBottom>
+        Selecciona un plan de tu preferencia
+      </Typography>
       {loading ? (
         <Typography variant="bodySRegular" style={{ fontSize: 18 }}>
           <CircularProgress color="secondary" />
@@ -114,10 +146,10 @@ const PaymentMethod = () => {
         </section>
       )}
 
-      <Typography variant="logintitle" gutterBottom style={{ fontSize: 20, marginTop: '24px' }}>
+      <Typography variant="logintitle" gutterBottom style={{ fontSize: 20 }}>
         Método de pago
       </Typography>
-      <Typography variant="bodySRegular" style={{ fontSize: 20, marginBottom: '25px' }} gutterBottom>
+      <Typography variant="bodySRegular" style={{ fontSize: 20, marginBottom: '20px',lineHeight: 1.5 }} gutterBottom>
         Debes realizar una transferencia a la cuenta 
         <span style={{ fontWeight: 'bold' }}> 15133364884 </span> 
         del Banco Santander al Nombre 
@@ -125,14 +157,23 @@ const PaymentMethod = () => {
         y cargar el comprobante.
       </Typography>
       <FileUpload onFileChange={handleFileChange}/>
-
+      <Typography variant="bodySRegular" style={{ fontSize: 16 ,marginBottom: '20px' }} gutterBottom>
+        ¿Tienes un cupón de descuento? (Opcional)
+      </Typography>
+      <TextField
+        label="Código de cupón"
+        variant="filled"
+        name="farm_name"
+        // value={formData.farm_name}
+        // onChange={handleInputChange}
+      />
       <section className="form-grid-main">
         <section className="form-grid-2-cols">
           <Button variant="contained" color="secondary" className="button-1" onClick={handleRegister}>
             Atrás
           </Button>
           <Button variant="contained" color="primary" className="button" onClick={handleSubmit}>
-            Finalizar
+            Finalizar registro
           </Button>
         </section>
       </section>
@@ -150,6 +191,8 @@ const PaymentMethod = () => {
           {errorMessage}
         </Alert>
       </Snackbar>
+
+      </section>
     </section>
   );
 };

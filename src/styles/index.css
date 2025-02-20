@@ -118,7 +118,7 @@ button:focus-visible {
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
+  gap: 16px;
   width: 100%;
   margin-bottom: 40px;
 }
@@ -132,9 +132,9 @@ button:focus-visible {
 .form-grid-main {
   display: grid;
   grid-template-columns: 1fr; 
-  gap: 24px; 
+  gap: 6px; 
   width: 100%; 
-  margin-bottom: 40px; 
+  margin-bottom: 10 px; 
   box-sizing: border-box; 
 }
 
@@ -147,7 +147,7 @@ button:focus-visible {
 .form-grid-2-cols {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
+  gap: 16px;
   width: 100%;
   box-sizing: border-box;
 }
@@ -155,15 +155,15 @@ button:focus-visible {
 .form-grid-1-col {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 24px;
+  gap: 16px;
   width: 100%;
   box-sizing: border-box;
 }
 
 .form-grid-3-cols {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px; 
+  grid-template-columns: 1fr; /* Cambia a una sola columna */
+  gap: 16px; 
   width: 100%;
   box-sizing: border-box;
 }
@@ -206,8 +206,14 @@ button:focus-visible {
   color: #000;
 }
 
+.form-grid-main .MuiTextField-root {
+  margin-bottom: 6px;
+}
 
+.form-grid-2-cols {
+  gap: 16px;
+}
 
-
-
-
+.MuiFormControlLabel-root {
+  margin-bottom: 12px;
+}

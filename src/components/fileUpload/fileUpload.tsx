@@ -20,7 +20,7 @@ const FileUpload = ({ onFileChange }) => {
       <TextField
         label="Comprobante"
         variant="filled"
-        style={{ marginBottom: '25px', width: '100%' }}
+        style={{ marginBottom: '5px', width: '100%' }}
         value={file ? file.name : ''}
         onClick={handleClick}
         InputProps={{
@@ -35,7 +35,7 @@ const FileUpload = ({ onFileChange }) => {
       />
 
       {file && (
-        <Typography variant="body2" color="text.primary" style={{ marginBottom: '25px' }}>
+        <Typography variant="body2" color="text.primary" style={{ marginBottom: '10px' }}>
           Archivo seleccionado: {file.name}
         </Typography>
       )}
