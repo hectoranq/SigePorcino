@@ -3,7 +3,7 @@ import Plan, { PlanData } from '../models/plans';
 
 
 const api = axios.create({
-  baseURL: 'http://38.242.147.212:8090/api',
+  baseURL: 'https://api.appsphere.pro/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
