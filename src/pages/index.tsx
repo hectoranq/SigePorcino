@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { TextField, Button, Typography, Divider, InputAdornment, IconButton, Checkbox, FormControlLabel, Snackbar, Alert } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
-import MainIcon from '../assets/svgs/mainIcon.svg';
+import MainIcon from '../assets/svgs/mainIconOne.svg';
 import { login } from '../data/repository';
 import Image from 'next/image';
-import PigImage from '../assets/img/pig2.jpg';
+import PigImage from '../assets/img/sigeonline.jpg';
 
 const Login = () => {
   const router = useRouter();
@@ -56,7 +56,7 @@ const Login = () => {
             left: 0,
             width: '100%',
             height: '100%',
-            backgroundColor: '#3E3F7266',
+            backgroundColor: '#3E3F7233',
             zIndex: 1,
           }}
         />
@@ -81,10 +81,10 @@ const Login = () => {
         <Typography variant="bodytext" gutterBottom>
           Para ingresar al sistema de gestión de porcinos debes ingresar tu usuario y contraseña.
         </Typography>
-        <MainIcon width={151} height={184.65} style={{ alignSelf: 'center', marginTop: '40px', marginBottom: '30px' }} />
+        <MainIcon width={175} height={184.65} style={{ alignSelf: 'center', marginTop: '40px', marginBottom: '30px' }} />
         <TextField
           id="filled-basic"
-          label="Usuario"
+          label="Correo electrónico"
           variant="filled"
           style={{ marginBottom: '16px' }}
           value={email}
@@ -113,7 +113,7 @@ const Login = () => {
             ¿Olvidaste tu contraseña?
           </Typography>
         </section>
-        <section style={{ display: 'flex', alignSelf: 'center', marginBottom: '16px' }}>
+        <section style={{ display: 'flex', alignSelf: 'start', marginBottom: '16px' }}>
           <FormControlLabel control={<Checkbox defaultChecked />} label={<Typography variant="bodySRegular">Recordar usuario y contraseña</Typography>} />
         </section>
         <Button variant="contained" color="primary" className="button" onClick={handleLogin} style={{ marginBottom: '16px' }}>
