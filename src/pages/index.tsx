@@ -41,7 +41,7 @@ const Login = () => {
 
   return (
     <section style={{ display: 'flex', flex: 1 }}>
-      <article style={{ display: 'flex', flex: 2, height: '100vh', position: 'relative' }}>
+      <article className="image-container" style={{ display: 'flex', flex: 2, height: '100vh', position: 'relative' }}>
       <Image
           src={PigImage}
           alt="Pig"

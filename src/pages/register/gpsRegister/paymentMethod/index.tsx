@@ -81,8 +81,8 @@ const PaymentMethod = () => {
   };
 
   return (
-    <section style={{ display: 'flex', height: '100vh' }}>
-      <article style={{ flex: 0.75, position: 'relative' }}>
+    <section style={{ display: 'flex', height: '100vh', flexDirection: 'row'}}>
+      <article className="image-container" style={{ flex: 0.75, position: 'relative' }}>
         <Image
           src={RegisterImage}
           alt="Pig"
@@ -107,9 +107,11 @@ const PaymentMethod = () => {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'center',
-          padding: '5% 2%',
+          justifyContent: 'flex-start',
+          padding: '2% 2%',
           backgroundColor: 'white',
+          overflowY: 'auto',
+          height: '100vh', 
         }}
       >
         <Typography variant="logintitle" gutterBottom style={{ marginBottom: '2px' }}>
@@ -157,7 +159,7 @@ const PaymentMethod = () => {
         y cargar el comprobante.
       </Typography>
       <FileUpload onFileChange={handleFileChange}/>
-      <Typography variant="bodySRegular" style={{ fontSize: 16 ,marginBottom: '20px' }} gutterBottom>
+      <Typography variant="bodySRegular" style={{ fontSize: 16 ,marginBottom: '10px', marginTop:'10px' }} gutterBottom>
         ¿Tienes un cupón de descuento? (Opcional)
       </Typography>
       <TextField
