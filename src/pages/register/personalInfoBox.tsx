@@ -1,29 +1,43 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { TextField, MenuItem, FormControlLabel, Checkbox, Typography, Button } from "@mui/material";
 import { useRouter } from "next/router";
+import { getProvincesAndLocalities } from "../../action/parametersPocket";
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import InputAdornment from '@mui/material/InputAdornment';
+import IconButton from '@mui/material/IconButton';
+import usePersonalStore from "../../_store/personal"; // Ajusta la ruta si es necesario
 
-const PersonalInfoBox = ({ onChange }) => {
+const PersonalInfoBox = () => {
   const router = useRouter();
+  const setPersonalFormData = usePersonalStore((state) => state.setFormData);
+
   const [formData, setFormData] = useState({
-    farm_name: "",
-    country: "",
-    city: "",
+    dni: "",
+    name: "",
+    surname: "",
+    locality: "",
+    province: "",
     address: "",
+    postal_code: "",
     phone_code: "",
-    phone_number: "",
-    latitud: null,
-    longitud: null,
+    email: "",
+    password: "",
+    passwordConfirm: "",
+    accept_terms: false
   });
 
-  const data = [
-    { country: { value: "BO", label: "Bolivia", code: "+591" }, cities: ["La Paz", "Santa Cruz", "Cochabamba"] },
-    { country: { value: "PE", label: "Perú", code: "+51" }, cities: ["Lima", "Cusco", "Arequipa"] },
-  ];
+    const [data, setData] = useState([]);
+    useEffect(() => {
+        // Llama a la función para traer provincias y localidades
+        getProvincesAndLocalities().then(setData);
+      }, []);
+    
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
     setFormData((prevData) => ({ ...prevData, [name]: value }));
-    onChange({ ...formData, [name]: value });
+    
   };
 
   const handleCountryChange = (event) => {
@@ -35,49 +49,69 @@ const PersonalInfoBox = ({ onChange }) => {
       phone_code: countryData ? countryData.country.code : "",
       city: "",
     }));
-    onChange({
-      ...formData,
-      country: countryValue,
-      phoneCode: countryData ? countryData.country.code : "",
-      city: "",
-    });
+    
   };
 
   const handleCityChange = (event) => {
     const cityValue = event.target.value;
     setFormData((prevData) => ({ ...prevData, city: cityValue }));
-    onChange({ ...formData, city: cityValue });
+    
     };
   const handleLogin = () => {
     router.push("/");
   };
   const handleFarmRegister = () => {
+    setPersonalFormData(formData); // Guarda en Zustand
     router.push("/register/gpsRegister");
   };
+
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordConfirmError, setPasswordConfirmError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+
+  const validatePassword = (password: string) => {
+    // Al menos una mayúscula, un caracter especial y mínimo 8 caracteres
+    const regex = /^(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])(?=.{8,})/;
+    return regex.test(password);
+  };
+
+  useEffect(() => {
+    if (formData.password && !validatePassword(formData.password)) {
+      setPasswordError("La contraseña debe tener al menos 8 caracteres, una mayúscula y un carácter especial.");
+    } else {
+      setPasswordError("");
+    }
+    if (formData.passwordConfirm && formData.password !== formData.passwordConfirm) {
+      setPasswordConfirmError("Las contraseñas no coinciden.");
+    } else {
+      setPasswordConfirmError("");
+    }
+  }, [formData.password, formData.passwordConfirm]);
 
   return (
     <section className="form-grid-main" >
       <TextField
         label="DNI"
         variant="filled"
-        name="farm_name"
-        value={formData.farm_name}
+        name="dni"
+        value={formData.dni}
         onChange={handleInputChange}
       />
       <section className="form-grid-2-cols">
         <TextField
-            label="Nombres del propietario"
-            variant="filled"
-            name="phone_code"
-            value={formData.phone_code}
-            InputProps={{ readOnly: true }}
+          label="Nombres"
+          variant="filled"
+          name="name"
+          value={formData.name}
+          onChange={handleInputChange}
         />
         <TextField
-            label="Apellidos del propietario"
-            variant="filled"
-            name="phone_number"
-            value={formData.phone_number}
-            onChange={handleInputChange}
+          label="Apellidos"
+          variant="filled"
+          name="surname"
+          value={formData.surname}
+          onChange={handleInputChange}
         />
       </section>
       <section className="form-grid-2-cols">
@@ -85,9 +119,9 @@ const PersonalInfoBox = ({ onChange }) => {
           variant="filled"
           select
           label="Localidad"
-          name="country"
-          value={formData.country}
-          onChange={handleCountryChange}
+          name="locality"
+          value={formData.locality}
+          onChange={handleInputChange}
         >
           {data.map((item) => (
             <MenuItem key={item.country.value} value={item.country.value}>
@@ -99,66 +133,100 @@ const PersonalInfoBox = ({ onChange }) => {
           variant="filled"
           select
           label="Provincia"
-          name="city"
-          value={formData.city}
-          onChange={handleCityChange}
-        //   disabled={!formData.country}
+          name="province"
+          value={formData.province}
+          onChange={handleInputChange}
+          disabled={!formData.locality}
         >
-          {data
-            .find((item) => item.country.value === formData.country)
-            ?.cities.map((city, index) => (
-              <MenuItem key={index} value={city}>
-                {city}
-              </MenuItem>
-            ))}
+          {(data.find((item) => item.country.value === formData.locality)?.cities || []).map((city) => (
+            <MenuItem key={city.value} value={city.value}>
+              {city.label}
+            </MenuItem>
+          ))}
         </TextField>
       </section>
       <TextField
         label="Dirección"
         variant="filled"
-        name="farm_name"
-        value={formData.farm_name}
+        name="address"
+        value={formData.address}
         onChange={handleInputChange}
       />
       <section className="form-grid-2-cols" style={{ display: 'grid', gridTemplateColumns: '0.8fr 2fr', gap: '16px', width: '100%', boxSizing: 'border-box' }}>
         <TextField
-            label="Código postal"
-            variant="filled"
-            name="phone_code"
-            value={formData.phone_code}
-            InputProps={{ readOnly: true }}
+          label="Código postal"
+          variant="filled"
+          name="postal_code"
+          value={formData.postal_code}
+          onChange={handleInputChange}
         />
         <TextField
-            label="Número de teléfono"
-            variant="filled"
-            name="phone_number"
-            value={formData.phone_number}
-            onChange={handleInputChange}
+          label="Código de teléfono"
+          variant="filled"
+          name="phone_code"
+          value={formData.phone_code}
+          onChange={handleInputChange}
         />
       </section>
       <TextField
         label="Correo electrónico"
         variant="filled"
-        name="farm_name"
-        value={formData.farm_name}
+        name="email"
+        value={formData.email}
         onChange={handleInputChange}
       />
       <TextField
         label="Contraseña"
         variant="filled"
-        name="farm_name"
-        value={formData.farm_name}
+        type={showPassword ? "text" : "password"}
+        name="password"
+        value={formData.password}
         onChange={handleInputChange}
+        error={!!passwordError}
+        helperText={passwordError}
+        InputProps={{
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton
+                onClick={() => setShowPassword((prev) => !prev)}
+                edge="end"
+              >
+                {showPassword ? <VisibilityOff /> : <Visibility />}
+              </IconButton>
+            </InputAdornment>
+          ),
+        }}
       />
       <TextField
         label="Confirmar contraseña"
         variant="filled"
-        name="farm_name"
-        value={formData.farm_name}
+        type={showPasswordConfirm ? "text" : "password"}
+        name="passwordConfirm"
+        value={formData.passwordConfirm}
         onChange={handleInputChange}
+        error={!!passwordConfirmError}
+        helperText={passwordConfirmError}
+        InputProps={{
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton
+                onClick={() => setShowPasswordConfirm((prev) => !prev)}
+                edge="end"
+              >
+                {showPasswordConfirm ? <VisibilityOff /> : <Visibility />}
+              </IconButton>
+            </InputAdornment>
+          ),
+        }}
       />
       <FormControlLabel
-        control={<Checkbox defaultChecked />}
+        control={
+          <Checkbox
+            name="accept_terms"
+            checked={formData.accept_terms || false}
+            onChange={e => setFormData(prev => ({ ...prev, accept_terms: e.target.checked }))}
+          />
+        }
         label={<Typography variant="bodySRegular">Acepto los términos y condiciones</Typography>}
         style={{ display: 'flex', justifyContent: 'center', width: '100%' }}
       />
