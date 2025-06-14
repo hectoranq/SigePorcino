@@ -6,6 +6,8 @@ import MainIcon from '../assets/svgs/mainIconOne.svg';
 import { login } from '../data/repository';
 import Image from 'next/image';
 import PigImage from '../assets/img/sigeonline.jpg';
+import { validateUserPassword } from '../action/validateUserPocket';
+import useUserStore from '../_store/user'; // Asegúrate de importar el store
 
 const Login = () => {
   const router = useRouter();
@@ -15,10 +17,35 @@ const Login = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [snackbarOpen, setSnackbarOpen] = useState(false);
 
+  const validateEmailFormat = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
   const handleLogin = async () => {
+    if (!email || !password) {
+      setErrorMessage('Por favor, ingresa tu correo electrónico y contraseña.');
+      setSnackbarOpen(true);
+      return;
+    }
+    if (!validateEmailFormat(email)) {
+      setErrorMessage('Por favor, ingresa un correo electrónico válido.');
+      setSnackbarOpen(true);
+      return;
+    }
     try {
-      const response = await login({ identity: email, password });
-      console.log('Login exitoso', response);
+      const isValid = await validateUserPassword(email, password);
+      if (!isValid) {
+        setErrorMessage('Inicio de sesión incorrecto. Por favor, verifica tus credenciales.');
+        setSnackbarOpen(true);
+        return;
+      }
+      // Traer los datos del usuario desde el store
+      const user = useUserStore.getState().record;
+      if (!user.verified) {
+        setErrorMessage('Tu cuenta aún no ha sido verificada.');
+        setSnackbarOpen(true);
+        return;
+      }
       router.push('/home');
     } catch (error) {
       console.error('Error de autenticación', error);

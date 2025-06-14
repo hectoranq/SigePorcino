@@ -11,6 +11,7 @@ const Register = () => {
   const [setPersonalData] = useState({});
   const handleRadioChange = (event) => {
     setSelectedOption(event.target.value);
+     localStorage.setItem('registro_tipo', event.target.value);
   };
 
   return (
@@ -88,7 +89,7 @@ const Register = () => {
           </RadioGroup>
         </FormControl>
         {selectedOption === 'persona_fisica' ? (
-          <PersonalInfoBox onChange={setPersonalData} />
+          <PersonalInfoBox  />
         ) : (
           <EmpresaInfoBox onChange={setPersonalData} />
         )}
