@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import { registerCompany } from '../../action/registerCompany'; // Asegúrate de importar bien la acción
 import useUserFormStore from "../../_store";
 import { getProvincesAndLocalities } from "../../action/parametersPocket";
+import { emailExists } from "../../action/emailExistPocket"; // Asegúrate de que esta función esté definida en tu archivo action/parametersPocket.js
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import InputAdornment from '@mui/material/InputAdornment';
@@ -33,6 +34,7 @@ const EmpresaInfoBox = ({ onChange }) => {
   const [passwordConfirmError, setPasswordConfirmError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+  const [emailError, setEmailError] = useState(""); // <-- Aquí está el nuevo estado para el error de email
 
   useEffect(() => {
     // Llama a la función para traer provincias y localidades
@@ -56,6 +58,24 @@ const EmpresaInfoBox = ({ onChange }) => {
       setPasswordConfirmError("");
     }
   }, [formData.password, formData.passwordConfirm]);
+
+  const validateEmailFormat = (email: string) => {
+    // Expresión regular simple para validar email
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  const handleEmailBlur = async () => {
+    if (!validateEmailFormat(formData.email)) {
+      setEmailError("El correo no es válido.");
+      return;
+    }
+    const exists = await emailExists(formData.email);
+    if (exists) {
+      setEmailError("El correo ya está registrado.");
+    } else {
+      setEmailError("");
+    }
+  };
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
@@ -114,15 +134,18 @@ const EmpresaInfoBox = ({ onChange }) => {
        useUserFormStore.getState().setFormData({
         email: formData.email,
         password: formData.password,
-        companyName: formData.company_name,
+        company_name: formData.company_name,
         cif: formData.cif,
-        city: formData.city,
+        locality: formData.locality,
         province: formData.province,
         address: formData.address,
-        postalCode: formData.postal_code,
-        phoneNumber: formData.phone_number,
-        acceptTerms: formData.accept_terms,
+        postal_code: formData.postal_code,
+        phone_number: formData.phone_number,
+        accept_terms: formData.accept_terms,
+        emailVisibility: true,
+        passwordConfirm: formData.passwordConfirm,
       });
+       localStorage.setItem('registro_tipo', 'empresa');
       console.log('/register/gpsRegister');
         router.push('/register/gpsRegister');
       } catch (error) {
@@ -152,6 +175,7 @@ const EmpresaInfoBox = ({ onChange }) => {
         allFilled &&
         !passwordError &&
         !passwordConfirmError &&
+        !emailError &&
         formData.accept_terms
       );
     };
@@ -232,6 +256,9 @@ const EmpresaInfoBox = ({ onChange }) => {
         name="email"
         value={formData.email}
         onChange={handleInputChange}
+        onBlur={handleEmailBlur}
+        error={!!emailError}
+        helperText={emailError}
       />
       <TextField
         label="Contraseña"

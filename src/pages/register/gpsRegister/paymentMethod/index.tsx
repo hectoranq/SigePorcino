@@ -6,6 +6,12 @@ import { fetchPlans, postPaymentRecord } from "../../../../data/repository";
 import FileUpload from "../../../../components/fileUpload/fileUpload";
 import Image from 'next/image';
 import RegisterImage from '../../../../assets/img/sigeRegister.jpg';
+import useUserFormStore from "../../../../_store/index"; // Ajusta la ruta si es necesario
+import usePersonalInfoStore from "../../../../_store/personal"; // Ajusta la ruta si es necesario
+import useFarmFormStore from "../../../../_store/farm"; // Ajusta la ruta si es necesario
+import { registerCompany } from "../../../../action/registerCompany"; // Ajusta la ruta si es necesario
+import { registerFarm } from "../../../../action/registerFarm";
+import { registerPayment } from "../../../../action/registerPayment";
 
 const PaymentMethod = () => {
   const router = useRouter();
@@ -15,6 +21,8 @@ const PaymentMethod = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [openSuccessSnackbar, setOpenSuccessSnackbar] = useState(false);
 
   const { userId } = router.query;
 
@@ -49,30 +57,69 @@ const PaymentMethod = () => {
     setSelectedFile(file);
   };
 
+  localStorage.removeItem('last_user_id');
+
   const handleSubmit = async () => {
-    if (!selectedPlanId || !selectedFile) {
-      alert("Por favor, selecciona un plan y un archivo.");
-      return;
-    }
-  
-    if (typeof userId !== 'string') {
-      console.error('El userId debe ser una cadena de texto.');
-      return;
-    }
-  
-    const data = new FormData();
-    data.append("user_id", userId);
-    data.append("plan_id", selectedPlanId); 
-    data.append("file", selectedFile); 
-  
-    try {
-      const response = await postPaymentRecord(data);
-      console.log('Respuesta del servidor:', response);
-      handleLogin();
-    } catch (error) {
-      console.error('Error al enviar la solicitud:', error);
-      setErrorMessage("Ocurrió un error al registrar tu plan. Por favor, intenta nuevamente.");
-      setOpenSnackbar(true); 
+    const registroTipo = localStorage.getItem('registro_tipo');
+    console.log("Tipo:", registroTipo);
+
+    if (registroTipo === "empresa") {
+     
+
+      if (!selectedPlanId || !selectedFile) {
+        alert("Por favor, selecciona un plan y un archivo.");
+        return;
+      }
+       const companyData = useUserFormStore.getState().formData;
+      console.log("Datos de empresa:", companyData);
+      // Convertir companyData a FormData
+      const formData = new FormData();
+      Object.entries(companyData).forEach(([key, value]) => {
+        formData.append(key, value as string);
+      });
+
+      const farmData = useFarmFormStore.getState().formData;
+      console.log("Datos de granja:", farmData);
+      const formDataFarm = new FormData();
+      Object.entries(farmData).forEach(([key, value]) => {
+        formDataFarm.append(key, value as string);
+      });
+      // Llamar a registerCompany
+
+      let userId = localStorage.getItem('last_user_id');
+      let user = null;
+
+      try {
+
+        if (!userId) {
+            user = await registerCompany(formData);
+            if (!user.success) {
+              console.error("Error al registrar la empresa:", user.message);
+              setOpenSnackbar(true);
+              setErrorMessage("Error al guardar datos:"+user.message || "Error al registrar la empresa");
+              return;
+            }
+            userId = user.data.id;
+            localStorage.setItem('last_user_id', userId);
+        }
+      
+        await registerFarm(formDataFarm, user.data.id);
+        // Aquí puedes continuar con el flujo (por ejemplo, mostrar éxito o navegar)
+        const file = selectedFile;
+        await registerPayment({ user_id: userId, plan_id: selectedPlanId, file });
+        setSuccessMessage("¡Registro exitoso!");
+        setOpenSuccessSnackbar(true);
+        router.push('/'); // Si quieres redirigir después, puedes poner un setTimeout
+      } catch (error) {
+        console.error("Error al registrar empresa:", error);
+      }
+
+
+    } else if (registroTipo === "persona_fisica") {
+      const personData = usePersonalInfoStore.getState().formData;
+      console.log("Datos de persona física:", personData);
+    } else {
+      console.log("Tipo de registro no definido en localStorage.");
     }
   };
 
@@ -191,6 +238,20 @@ const PaymentMethod = () => {
           sx={{ width: "100%" }}
         >
           {errorMessage}
+        </Alert>
+      </Snackbar>
+      <Snackbar
+        open={openSuccessSnackbar}
+        autoHideDuration={6000}
+        onClose={() => setOpenSuccessSnackbar(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setOpenSuccessSnackbar(false)}
+          severity="success"
+          sx={{ width: "100%" }}
+        >
+          {successMessage}
         </Alert>
       </Snackbar>
 

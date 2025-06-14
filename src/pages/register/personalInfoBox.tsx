@@ -62,6 +62,7 @@ const PersonalInfoBox = () => {
   };
   const handleFarmRegister = () => {
     setPersonalFormData(formData); // Guarda en Zustand
+     localStorage.setItem('registro_tipo', 'persona_fisica');
     router.push("/register/gpsRegister");
   };
 
