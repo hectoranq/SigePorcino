@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { TextField, MenuItem, FormControlLabel, Checkbox, Typography, Button } from "@mui/material";
 import { useRouter } from "next/router";
-import { getProvincesAndLocalities } from "../../action/parametersPocket";
+import { fetchParameters, emailExistsValidate } from "../../data/repository"; // Cambia la importación
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import InputAdornment from '@mui/material/InputAdornment';
@@ -30,7 +30,7 @@ const PersonalInfoBox = () => {
     const [data, setData] = useState([]);
     useEffect(() => {
         // Llama a la función para traer provincias y localidades
-        getProvincesAndLocalities().then(setData);
+        fetchParameters().then(setData);
       }, []);
     
 
@@ -40,23 +40,7 @@ const PersonalInfoBox = () => {
     
   };
 
-  const handleCountryChange = (event) => {
-    const countryValue = event.target.value;
-    const countryData = data.find((item) => item.country.value === countryValue);
-    setFormData((prevData) => ({
-      ...prevData,
-      country: countryValue,
-      phone_code: countryData ? countryData.country.code : "",
-      city: "",
-    }));
-    
-  };
 
-  const handleCityChange = (event) => {
-    const cityValue = event.target.value;
-    setFormData((prevData) => ({ ...prevData, city: cityValue }));
-    
-    };
   const handleLogin = () => {
     router.push("/");
   };
@@ -70,11 +54,16 @@ const PersonalInfoBox = () => {
   const [passwordConfirmError, setPasswordConfirmError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+  const [emailError, setEmailError] = useState(""); // <-- Aquí está el cambio
 
   const validatePassword = (password: string) => {
     // Al menos una mayúscula, un caracter especial y mínimo 8 caracteres
-    const regex = /^(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])(?=.{8,})/;
+    const regex = /^(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?])(?=.{8,})/;
     return regex.test(password);
+  };
+
+  const validateEmailFormat = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
   useEffect(() => {
@@ -89,6 +78,19 @@ const PersonalInfoBox = () => {
       setPasswordConfirmError("");
     }
   }, [formData.password, formData.passwordConfirm]);
+
+  const handleEmailBlur = async () => {
+    if (!validateEmailFormat(formData.email)) {
+      setEmailError("El correo no es válido.");
+      return;
+    }
+    const exists = await emailExistsValidate(formData.email);
+    if (exists) {
+      setEmailError("El correo ya está registrado.");
+    } else {
+      setEmailError("");
+    }
+  };
 
   return (
     <section className="form-grid-main" >
@@ -175,6 +177,9 @@ const PersonalInfoBox = () => {
         name="email"
         value={formData.email}
         onChange={handleInputChange}
+        onBlur={handleEmailBlur}
+        error={!!emailError}
+        helperText={emailError}
       />
       <TextField
         label="Contraseña"

@@ -8,7 +8,7 @@ import EmpresaInfoBox from './empresaInfo';
 
 const Register = () => {
   const [selectedOption, setSelectedOption] = useState('persona_fisica');
-  const [setPersonalData] = useState({});
+
   const handleRadioChange = (event) => {
     setSelectedOption(event.target.value);
      localStorage.setItem('registro_tipo', event.target.value);
@@ -91,7 +91,7 @@ const Register = () => {
         {selectedOption === 'persona_fisica' ? (
           <PersonalInfoBox  />
         ) : (
-          <EmpresaInfoBox onChange={setPersonalData} />
+          <EmpresaInfoBox />
         )}
       </section>
     </section>

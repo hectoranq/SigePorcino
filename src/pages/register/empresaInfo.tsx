@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { TextField, MenuItem, FormControlLabel, Checkbox, Typography, Button } from "@mui/material";
 import { useRouter } from "next/router";
-import { registerCompany } from '../../action/registerCompany'; // Asegúrate de importar bien la acción
 import useUserFormStore from "../../_store";
-import { getProvincesAndLocalities } from "../../action/parametersPocket";
-import { emailExists } from "../../action/emailExistPocket"; // Asegúrate de que esta función esté definida en tu archivo action/parametersPocket.js
+import { emailExistsValidate, fetchParameters } from "../../data/repository"; // Cambia la importación
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import InputAdornment from '@mui/material/InputAdornment';
 import IconButton from '@mui/material/IconButton';
 
-const EmpresaInfoBox = ({ onChange }) => {
+const EmpresaInfoBox = () => {
   const router = useRouter();
   const [formData, setFormData] = useState({
     tipo_usuario: "empresa",
@@ -38,7 +36,7 @@ const EmpresaInfoBox = ({ onChange }) => {
 
   useEffect(() => {
     // Llama a la función para traer provincias y localidades
-    getProvincesAndLocalities().then(setData);
+     fetchParameters().then(setData);
   }, []);
 
   const validatePassword = (password: string) => {
@@ -69,7 +67,7 @@ const EmpresaInfoBox = ({ onChange }) => {
       setEmailError("El correo no es válido.");
       return;
     }
-    const exists = await emailExists(formData.email);
+    const exists = await emailExistsValidate(formData.email);
     if (exists) {
       setEmailError("El correo ya está registrado.");
     } else {
@@ -83,17 +81,7 @@ const EmpresaInfoBox = ({ onChange }) => {
     //onChange({ ...formData, [name]: value });
   };
 
-  const handleCountryChange = (event) => {
-    const countryValue = event.target.value;
-    const countryData = data.find((item) => item.country.value === countryValue);
-    setFormData((prevData) => ({
-      ...prevData,
-      country: countryValue,
-      phone_code: countryData ? countryData.country.code : "",
-      city: "",
-    }));
-  };
-
+ 
   const handleProvinceChange = (event) => {
     const provinceValue = event.target.value;
     setFormData((prevData) => ({
@@ -111,20 +99,8 @@ const EmpresaInfoBox = ({ onChange }) => {
     }));
   };
 
-  const FormDataObject = (data: Record<string, string | number | boolean | Blob>) => {
-    const formData = new FormData();
-    Object.entries(data).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        formData.append(key, value as string);
-      }
-    });
-    return formData;
-  };
 
-  const handleCityChange = (event) => {
-    const cityValue = event.target.value;
-    setFormData((prevData) => ({ ...prevData, city: cityValue }));
-  };
+
     const handleLogin = () => {
       router.push("/");
     };
@@ -236,7 +212,7 @@ const EmpresaInfoBox = ({ onChange }) => {
           onChange={handleLocalityChange}
           disabled={!formData.province}
         >
-          {(data.find((item) => item.country.value === formData.province)?.cities || []).map((city, index) => (
+          {(data.find((item) => item.country.value === formData.province)?.cities || []).map((city) => (
     <MenuItem key={city.value} value={city.value}>
       {city.label}
     </MenuItem>
