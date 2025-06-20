@@ -17,7 +17,7 @@ export async function getProvincesAndLocalities() {
     const cities = records.filter(r => r.type === 'locality');
     console.log(`🏙️ Total de ciudades encontradas: ${cities.length}`);
     // Agrupar las ciudades por ID de país
-    const citiesByCountry: Record<string, any[]> = {};
+    const citiesByCountry: Record<string, object[]> = {};
     for (const city of cities) {
       const parentId = city.parent;
       if (!parentId) continue;
@@ -28,20 +28,8 @@ export async function getProvincesAndLocalities() {
       citiesByCountry[parentId].push(city);
     }
 
-    // Construir objeto final
-    const data = countries.map(country => ({
-      country: {
-        value: country.id,
-        label: country.value
-      },
-      cities: (citiesByCountry[country.id] || []).map(city => ({
-        value: city.id,
-        label: city.value
-      }))
-    }));
 
-    console.log("✅ Resultado:", data);
-    return data;
+    return records;
   } catch (error) {
     console.error("❌ Error:", (error as Error).message);
     return [];

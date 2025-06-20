@@ -10,6 +10,14 @@ const api = axios.create({
   },
 });
 
+interface ParameterRecord {
+  id: string;
+  value: string;
+  type: string;
+  parent?: string;
+  [key: string]: string | number | undefined; // Si tienes más campos opcionales
+}
+
 
 export const fetchParameters = async () => {
   try {
@@ -22,16 +30,16 @@ export const fetchParameters = async () => {
         expand: 'parent',
       },
     });
-    const records = response.data.items;
+    const records = response.data.items as ParameterRecord[];
 
     // Separar países y ciudades
-    const countries = records.filter((r: any) => r.type === 'province');
+    const countries = records.filter((r) => r.type === 'province');
     console.log(`🌍 Total de países encontrados: ${countries.length}`);
-    const cities = records.filter((r: any) => r.type === 'locality');
+    const cities = records.filter((r) => r.type === 'locality');
     console.log(`🏙️ Total de ciudades encontradas: ${cities.length}`);
 
     // Agrupar las ciudades por ID de país
-    const citiesByCountry: Record<string, any[]> = {};
+    const citiesByCountry: Record<string, ParameterRecord[]> = {};
     for (const city of cities) {
       const parentId = city.parent;
       if (!parentId) continue;
@@ -43,12 +51,12 @@ export const fetchParameters = async () => {
     }
 
     // Construir objeto final
-    const data = countries.map((country: any) => ({
+    const data = countries.map((country) => ({
       country: {
         value: country.id,
         label: country.value
       },
-      cities: (citiesByCountry[country.id] || []).map((city: any) => ({
+      cities: (citiesByCountry[country.id] || []).map((city) => ({
         value: city.id,
         label: city.value
       }))
@@ -74,7 +82,7 @@ export const emailExistsValidate = async (email: string): Promise<boolean> => {
       console.log(`🌍 Total de países encontrados: ${response}`);
     // PocketBase responde con { items: [...], totalItems: N }
     return response.data.totalItems > 0;
-  } catch (error: any) {
+  } catch (error) {
     console.error("❌ Error al validar email:", error.message);
     return false;
   }
@@ -129,7 +137,7 @@ export const registerPersonData = async (formData: FormData) => {
       success: true,
       data: response.data,
     };
-  } catch (error: any) {
+  } catch (error) {
     const errorDetails = error?.response?.data?.data || null;
     let message = error?.response?.data?.message || 'Error al registrar la persona';
 
@@ -185,7 +193,7 @@ export const registerCompanyData = async (formData: FormData) => {
       success: true,
       data: response.data,
     };
-  } catch (error: any) {
+  } catch (error) {
     const errorDetails = error?.response?.data?.data || null;
     let message = error?.response?.data?.message || 'Error al registrar la empresa';
 
@@ -262,16 +270,16 @@ export const parametersGroupsAndSpeciesGrouped = async () => {
         sort: 'sort_order',
       },
     });
-    const records = response.data.items;
+    const records = response.data.items as ParameterRecord[];
 
     // Filtrar groups y species
-    const groups = records.filter((r: any) => r.type === 'groups');
+    const groups = records.filter((r: ParameterRecord) => r.type === 'groups');
     console.log(`🌍 Total de groups encontrados: ${groups.length}`);
-    const species = records.filter((r: any) => r.type === 'species');
+    const species = records.filter((r: ParameterRecord) => r.type === 'species');
     console.log(`🌍 Total de species encontrados: ${species.length}`);
 
     // Agrupar species por ID de group (parent)
-    const speciesByGroup: Record<string, any[]> = {};
+    const speciesByGroup: Record<string, ParameterRecord[]> = {};
     for (const specie of species) {
       const parentId = specie.parent;
       if (!parentId) continue;
@@ -283,12 +291,12 @@ export const parametersGroupsAndSpeciesGrouped = async () => {
     }
 
     // Construir objeto final
-    const data = groups.map((group: any) => ({
+    const data = groups.map((group: ParameterRecord) => ({
       group: {
         value: group.id,
         label: group.value
       },
-      species: (speciesByGroup[group.id] || []).map((specie: any) => ({
+      species: (speciesByGroup[group.id] || []).map((specie: ParameterRecord) => ({
         value: specie.id,
         label: specie.value
       }))
@@ -296,7 +304,7 @@ export const parametersGroupsAndSpeciesGrouped = async () => {
 
     console.log("✅ Resultado agrupado groups-species:", data);
     return data;
-  } catch (error: any) {
+  } catch (error) {
     console.error("❌ Error:", error.message);
     return [];
   }
