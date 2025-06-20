@@ -4,9 +4,8 @@ import RegisterImage from '../../../assets/img/sigeRegister.jpg';
 import { Button, Divider, TextField, Typography, MenuItem } from '@mui/material';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { getProvincesAndLocalities } from "../../../action/parametersPocket";
-import { getGroupsAndSpeciesGrouped } from "../../../action/parametersSpecies"; // Asegúrate de que esta función esté definida en tu archivo action/parametersPocket.js
 import useFarmFormStore from '../../../_store/farm';
+import { fetchParameters, parametersGroupsAndSpeciesGrouped } from '../../../data/repository';
 
 const FarmRegister = () => {
   const router = useRouter();
@@ -25,14 +24,14 @@ const FarmRegister = () => {
   const [groupSpeciesData, setGroupSpeciesData] = useState([]);
 
   useEffect(() => {
-    getProvincesAndLocalities().then((result) => {
+    fetchParameters().then((result) => {
       setData(result);
       console.log("Provincias y localidades cargadas:", result);
     });
   }, []);
 
   useEffect(() => {
-    getGroupsAndSpeciesGrouped().then((result) => {
+    parametersGroupsAndSpeciesGrouped().then((result) => {
       setGroupSpeciesData(result);
       console.log("Grupos y especies cargados:", result);
     });

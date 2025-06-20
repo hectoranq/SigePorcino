@@ -3,15 +3,13 @@ import PocketBase from 'pocketbase';
 const pb = new PocketBase("https://api.appsphere.pro");
 
 export async function getProvincesAndLocalities() {
-  
-    
   try {
-    const records = await pb.collection('parameters').getFullList({
+    const result = await pb.collection('parameters').getList(1, 500, {
+      skipTotal: true,
       sort: 'sort_order',
-      expand: 'parent', // Necesario si quieres que `parent` contenga el país completo
+      expand: 'parent',
     });
-
-    console.log(`📊 Total de registros obtenidos: ${records.length}`);
+    const records = result.items;
 
     // Separar países y ciudades
     const countries = records.filter(r => r.type === 'province');
@@ -19,7 +17,7 @@ export async function getProvincesAndLocalities() {
     const cities = records.filter(r => r.type === 'locality');
     console.log(`🏙️ Total de ciudades encontradas: ${cities.length}`);
     // Agrupar las ciudades por ID de país
-    const citiesByCountry = {};
+    const citiesByCountry: Record<string, any[]> = {};
     for (const city of cities) {
       const parentId = city.parent;
       if (!parentId) continue;
@@ -32,20 +30,20 @@ export async function getProvincesAndLocalities() {
 
     // Construir objeto final
     const data = countries.map(country => ({
-    country: {
+      country: {
         value: country.id,
         label: country.value
-    },
-    cities: (citiesByCountry[country.id] || []).map(city => ({
+      },
+      cities: (citiesByCountry[country.id] || []).map(city => ({
         value: city.id,
         label: city.value
-    }))
+      }))
     }));
 
     console.log("✅ Resultado:", data);
     return data;
   } catch (error) {
-    console.error("❌ Error:", error.message);
+    console.error("❌ Error:", (error as Error).message);
     return [];
   }
 

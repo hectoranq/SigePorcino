@@ -10,7 +10,7 @@ export async function validateUserPassword(email: string, password: string): Pro
     // Guardar los datos en el store si la autenticación es exitosa
     useUserStore.getState().setUser(authData.record, authData.token);
     return true;
-  } catch (error) {
+  } catch {
     return false;
   }
 }

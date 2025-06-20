@@ -3,7 +3,6 @@ import { useRouter } from 'next/router';
 import { TextField, Button, Typography, Divider, InputAdornment, IconButton, Checkbox, FormControlLabel, Snackbar, Alert } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import MainIcon from '../assets/svgs/mainIconOne.svg';
-import { login } from '../data/repository';
 import Image from 'next/image';
 import PigImage from '../assets/img/sigeonline.jpg';
 import { validateUserPassword } from '../action/validateUserPocket';
