@@ -1,4 +1,3 @@
-
 import { useState } from "react"
 import {
   Box,
@@ -62,8 +61,14 @@ const Home = () => {
       { name: "Prevención de enfermedades", hours: 10 },
     ];
     
-    const handleLogin = () => {
-        router.push('/');
+
+    const handleLogout = () => {
+      // Limpia datos de sesión si los tienes
+      localStorage.clear(); // O elimina solo los datos necesarios
+      // Si usas Zustand o algún store, también resetea aquí
+      // useUserStore.getState().resetUser(); // si tienes esta función
+
+      router.push('/');
     };
      return (
     <ThemeProvider theme={theme}>
@@ -192,7 +197,7 @@ const Home = () => {
                 </ListItemButton>
               </ListItem>
               <ListItem disablePadding>
-                <ListItemButton sx={{ borderRadius: 2 }}>
+                <ListItemButton onClick={handleLogout} sx={{ borderRadius: 2 }}>
                   <ListItemIcon>
                     <ExitToApp />
                   </ListItemIcon>
