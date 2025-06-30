@@ -33,7 +33,7 @@ import {
   TrendingUp,
   Assessment,
 } from "@mui/icons-material"
-import { theme } from "./theme"
+import theme from "../../components/theme"
 import { useRouter } from "next/router";
 import MainIcon from '../../assets/svgs/mainIconOne.svg';
 const drawerWidth = 320
