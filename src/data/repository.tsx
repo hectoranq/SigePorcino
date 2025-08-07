@@ -1,5 +1,6 @@
 import axios from 'axios';
 import Plan, { PlanData } from '../models/plans';
+import useFarmFormStore from '../_store/farm'; // Asegúrate de que la ruta sea correcta
 
 
 const api = axios.create({
@@ -309,3 +310,122 @@ export const parametersGroupsAndSpeciesGrouped = async () => {
     return [];
   }
 };
+
+export interface FarmDetails {
+  collectionId: string;
+  collectionName: string;
+  id: string;
+  anio_construccion: number;
+  anio_renovacion: number;
+  superficie_autorizada: number;
+  superficie_util: number;
+  capacidad_autorizada: number;
+  observaciones_superficie: string;
+  orientacion_naves: string;
+  delimitacion_perimetral: string;
+  observaciones_delimitacion: string;
+  tipo_aislamiento: string;
+  numero_trabajadores: number;
+  suelo_hormigon: boolean;
+  suelo_metalico: boolean;
+  suelo_plastico: boolean;
+  empanillado_hormigon: boolean;
+  empanillado_metalico: boolean;
+  empanillado_plastico: boolean;
+  luxometro: string;
+  termometro: string;
+  medidores_gases: string;
+  sonometro: string;
+  higrometro: string;
+  rampa_carga_descarga: string;
+  desplazamiento_tableros: boolean;
+  desplazamiento_puertas: boolean;
+  sistema_eliminacion_cadaveres: string;
+  otros_carro_contenedor: boolean;
+  frams: string;
+  created: string;
+  updated: string;
+}
+
+export const fetchFarmDetails = async (id: string, token: string): Promise<FarmDetails | undefined> => {
+  try {
+    console.log("TOKEN:", token);
+    console.log("ID:", id);
+
+    const filter = encodeURIComponent(`frams="${id}"`);
+
+    const response = await api.get<{ items: FarmDetails[] }>(`/collections/farm_details/records?filter=${filter}`);
+    console.log(`🌍 Total de detalles de granja encontrados: ${response.data.items.length}`);
+    return response.data.items[0];
+  } catch (error) {
+    console.error('Error al obtener los detalles de la granja:', error);
+    throw error;
+  }
+};
+
+export interface FarmRecord {
+  collectionId: string;
+  collectionName: string;
+  id: string;
+  REGA: string;
+  farm_name: string;
+  locality: string;
+  province: string;
+  address: string;
+  groups: string;
+  species: string;
+  zootechnical_classification: string;
+  health_qualification: string;
+  user: string;
+  created: string;
+  updated: string;
+}
+
+export const fetchFarmsByUserId = async (userId: string, token: string): Promise<FarmRecord[]> => {
+  try {
+    console.log("TOKEN:", token);
+    const response = await api.get<{ items: FarmRecord[] }>(`/collections/farms/records`, {
+      params: {
+        filter: `user="${userId}"`,
+      },
+    });
+    console.log(`🌍 Total de granjas encontradas para el usuario ${userId}: ${response.data.items}`);
+    // Opcional: guardar en zustand si quieres
+    useFarmFormStore.getState().setFormData(response.data.items[0]); // o guardar todos
+
+    return response.data.items;
+  } catch (error) {
+    console.error('Error al obtener granjas del usuario:', error);
+    throw error;
+  }
+};
+
+export const saveFarmDetails = async (data: Partial<FarmDetails>, token: string) => {
+  try {
+    const response = await api.post('/collections/farm_details/records', data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error al guardar los detalles de la granja:', error);
+    throw error;
+  }
+};
+
+export const updateFarmDetails = async (
+  id: string,
+  data: Partial<FarmDetails>
+) => {
+  try {
+    const response = await api.patch(`/collections/farm_details/records/${id}`, data);
+    return response.data;
+  } catch (error) {
+    console.error('Error al actualizar los detalles de la granja:', error);
+    throw error;
+  }
+};
+
+
+

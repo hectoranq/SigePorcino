@@ -1,15 +1,22 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
-interface FarmFormData {
+export interface FarmFormData {
+  collectionId: string;
+  collectionName: string;
+  id: string;
   rega: string;
   farm_name: string;
   locality: string;
   province: string;
   address: string;
+  groups: string;
   species: string;
-  group: string;
   zootechnical_classification: string;
   health_qualification: string;
+  user: string;
+  created: string;
+  updated: string;
 }
 
 interface FarmFormStore {
@@ -18,39 +25,58 @@ interface FarmFormStore {
   resetForm: () => void;
 }
 
-const useFarmFormStore = create<FarmFormStore>((set) => ({
-  formData: {
-    rega: "",
-    farm_name: "",
-    locality: "",
-    province: "",
-    address: "",
-    species: "",
-    group: "",
-    zootechnical_classification: "",
-    health_qualification: "",
-  },
-  setFormData: (data) =>
-    set((state) => ({
+const useFarmFormStore = create<FarmFormStore>()(
+  persist(
+    (set) => ({
       formData: {
-        ...state.formData,
-        ...data,
-      },
-    })),
-  resetForm: () =>
-    set({
-      formData: {
+        collectionId: "",
+        collectionName: "",
+        id: "",
         rega: "",
         farm_name: "",
         locality: "",
         province: "",
         address: "",
+        groups: "",
         species: "",
-        group: "",
         zootechnical_classification: "",
         health_qualification: "",
+        user: "",
+        created: "",
+        updated: "",
       },
+      setFormData: (data) =>
+        set((state) => ({
+          formData: {
+            ...state.formData,
+            ...data,
+          },
+        })),
+      resetForm: () =>
+        set({
+          formData: {
+            collectionId: "",
+            collectionName: "",
+            id: "",
+            rega: "",
+            farm_name: "",
+            locality: "",
+            province: "",
+            address: "",
+            groups: "",
+            species: "",
+            zootechnical_classification: "",
+            health_qualification: "",
+            user: "",
+            created: "",
+            updated: "",
+          },
+        }),
     }),
-}));
+    {
+      name: "farm-form-storage", // clave en localStorage
+    }
+  )
+);
 
 export default useFarmFormStore;
