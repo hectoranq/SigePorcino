@@ -8,9 +8,7 @@ import {
   ListItemIcon,
   ListItemText,
   Typography,
-  Button,
   Paper,
-  TableContainer,
   Breadcrumbs,
   Link,
   Collapse,
@@ -24,7 +22,6 @@ import {
   ExpandMore,
   Settings,
   ExitToApp,
-  Add,
   NavigateNext,
   Agriculture,
   People,
@@ -43,6 +40,9 @@ import MainSection from "../../components/sections/MainSection";
 import useUserStore from "../../_store/user"; // Ajusta la ruta según tu proyecto
 import { fetchFarmsByUserId } from "../../data/repository";
 import MainDescriptionFarm from "../../components/sections/MainDescriptionFarm";
+import TrainingCoursesPage from "../../components/sections/TrainingCoursesSection";
+import { PersonalRegisterSection } from "../../components/sections/PersonalRegisterSection";
+import LinkedCompaniesManagersPage from "../../components/sections/LinkedCompaniesManagersSection";
 
 const drawerWidth = 320
 
@@ -53,11 +53,7 @@ const Home = () => {
     const [mobileOpen, setMobileOpen] = useState(false);
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-    const [courses] = useState([
-      { name: "Bienestar animal", hours: 20 },
-      { name: "Manejo de residuos", hours: 10 },
-      { name: "Bioseguridad", hours: 15 },
-    ]);
+    
     const [activeSection, setActiveSection] = useState<string>("main"); // valor por defecto
     const handleToggle = (section: string) => {
       if (section === "personal") {
@@ -361,113 +357,7 @@ const Home = () => {
             </Breadcrumbs>
 
             {/* Renderizado condicional del contenido */}
-            {activeSection === "cursos_formacion" && (
-              <>
-                {/* Header y tabla de cursos */}
-                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3 }}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                    <Box
-                      sx={{
-                        width: 4,
-                        height: 32,
-                        bgcolor: "secondary.light",
-                        borderRadius: 2,
-                      }}
-                    />
-                    <Typography variant="h4" sx={{ color: "secondary.main" }}>
-                      Cursos de formación
-                    </Typography>
-                  </Box>
-                  <Button
-                    variant="contained"
-                    startIcon={<Add />}
-                    sx={{
-                      bgcolor: "success.main",
-                      "&:hover": { bgcolor: "success.dark" },
-                      px: 3,
-                    }}
-                  >
-                    Agregar nuevo
-                  </Button>
-                </Box>
-                <TableContainer component={Paper} elevation={1}>
-                  {/* Table Header */}
-                  <Box sx={{ bgcolor: "grey.100", p: 2, borderBottom: "1px solid", borderColor: "grey.200" }}>
-                    <Box sx={{ display: "grid", gridTemplateColumns: "1fr 200px 200px", gap: 2, alignItems: "center" }}>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 500, color: "grey.700" }}>
-                          Curso
-                        </Typography>
-                        <ExpandMore sx={{ fontSize: 16, color: "grey.400" }} />
-                      </Box>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 500, color: "grey.700" }}>
-                          Horas lectivas
-                        </Typography>
-                        <ExpandMore sx={{ fontSize: 16, color: "grey.400" }} />
-                      </Box>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 500, color: "grey.700" }}>
-                          Acciones
-                        </Typography>
-                        <ExpandMore sx={{ fontSize: 16, color: "grey.400" }} />
-                      </Box>
-                    </Box>
-                  </Box>
-                  {/* Table Rows */}
-                  <Box>
-                    {courses.map((course, index) => (
-                      <Box
-                        key={index}
-                        sx={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr 200px 200px",
-                          gap: 2,
-                          alignItems: "center",
-                          p: 2,
-                          borderBottom: index < courses.length - 1 ? "1px solid" : "none",
-                          borderColor: "grey.200",
-                          "&:hover": { bgcolor: "grey.50" },
-                        }}
-                      >
-                        <Typography variant="body1" sx={{ color: "grey.900" }}>
-                          {course.name}
-                        </Typography>
-                        <Typography variant="body1" sx={{ color: "grey.900" }}>
-                          {course.hours}
-                        </Typography>
-                        <Box sx={{ display: "flex", gap: 1 }}>
-                          <Button
-                            size="small"
-                            variant="contained"
-                            sx={{
-                              bgcolor: "warning.main",
-                              color: "black",
-                              "&:hover": { bgcolor: "warning.dark" },
-                              minWidth: 70,
-                            }}
-                          >
-                            Editar
-                          </Button>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            sx={{
-                              borderColor: "info.light",
-                              color: "info.main",
-                              "&:hover": { bgcolor: "info.light", borderColor: "info.main" },
-                              minWidth: 80,
-                            }}
-                          >
-                            Ver más
-                          </Button>
-                        </Box>
-                      </Box>
-                    ))}
-                  </Box>
-                </TableContainer>
-              </>
-            )}
+            {activeSection === "cursos_formacion" && <TrainingCoursesPage />}
 
             {activeSection === "main" && <MainSection />}
 
@@ -481,12 +371,8 @@ const Home = () => {
             {activeSection === "gestion_rega" && (
               <Typography variant="h5">Aquí va la gestión de REGA</Typography>
             )}
-            {activeSection === "empresas_vinculadas" && (
-              <Typography variant="h5">Aquí van las empresas vinculadas y gestores autorizados</Typography>
-            )}
-            {activeSection === "registro_personal" && (
-              <Typography variant="h5">Aquí va el registro de personal</Typography>
-            )}
+            {activeSection === "empresas_vinculadas" && <LinkedCompaniesManagersPage />}
+            {activeSection === "registro_personal" && <PersonalRegisterSection />}
             {activeSection === "registro_veterinario" && (
               <Typography variant="h5">Aquí va el registro de veterinario de explotación</Typography>
             )}
