@@ -8,9 +8,7 @@ import {
   ListItemIcon,
   ListItemText,
   Typography,
-  Button,
   Paper,
-  TableContainer,
   Breadcrumbs,
   Link,
   Collapse,
@@ -24,7 +22,6 @@ import {
   ExpandMore,
   Settings,
   ExitToApp,
-  Add,
   NavigateNext,
   Agriculture,
   People,
@@ -44,6 +41,8 @@ import useUserStore from "../../_store/user"; // Ajusta la ruta según tu proyec
 import { fetchFarmsByUserId } from "../../data/repository";
 import MainDescriptionFarm from "../../components/sections/MainDescriptionFarm";
 import TrainingCoursesPage from "../../components/sections/TrainingCoursesSection";
+import { PersonalRegisterSection } from "../../components/sections/PersonalRegisterSection";
+import LinkedCompaniesManagersPage from "../../components/sections/LinkedCompaniesManagersSection";
 
 const drawerWidth = 320
 
@@ -54,11 +53,7 @@ const Home = () => {
     const [mobileOpen, setMobileOpen] = useState(false);
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-    const [courses] = useState([
-      { name: "Bienestar animal", hours: 20 },
-      { name: "Manejo de residuos", hours: 10 },
-      { name: "Bioseguridad", hours: 15 },
-    ]);
+    
     const [activeSection, setActiveSection] = useState<string>("main"); // valor por defecto
     const handleToggle = (section: string) => {
       if (section === "personal") {
@@ -376,12 +371,8 @@ const Home = () => {
             {activeSection === "gestion_rega" && (
               <Typography variant="h5">Aquí va la gestión de REGA</Typography>
             )}
-            {activeSection === "empresas_vinculadas" && (
-              <Typography variant="h5">Aquí van las empresas vinculadas y gestores autorizados</Typography>
-            )}
-            {activeSection === "registro_personal" && (
-              <Typography variant="h5">Aquí va el registro de personal</Typography>
-            )}
+            {activeSection === "empresas_vinculadas" && <LinkedCompaniesManagersPage />}
+            {activeSection === "registro_personal" && <PersonalRegisterSection />}
             {activeSection === "registro_veterinario" && (
               <Typography variant="h5">Aquí va el registro de veterinario de explotación</Typography>
             )}

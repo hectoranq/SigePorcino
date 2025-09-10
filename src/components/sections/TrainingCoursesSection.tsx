@@ -41,7 +41,7 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
   },
 }))
 
-const CancelButton = styled(Button)(({ theme }) => ({
+const CancelButton = styled(Button)(() => ({
   borderColor: "#d1d5db",
   color: "#6b7280",
   "&:hover": {
@@ -50,7 +50,7 @@ const CancelButton = styled(Button)(({ theme }) => ({
   },
 }))
 
-const RegisterButton = styled(Button)(({ theme }) => ({
+const RegisterButton = styled(Button)(() => ({
   backgroundColor: "#10b981",
   "&:hover": {
     backgroundColor: "#059669",
