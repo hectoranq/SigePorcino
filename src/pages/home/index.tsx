@@ -31,7 +31,6 @@ import {
   Restaurant,
   Pets,
   TrendingUp,
-  Assessment,
 } from "@mui/icons-material"
 import theme from "../../components/theme"
 import { useRouter } from "next/router";
@@ -43,6 +42,13 @@ import MainDescriptionFarm from "../../components/sections/MainDescriptionFarm";
 import TrainingCoursesPage from "../../components/sections/TrainingCoursesSection";
 import { PersonalRegisterSection } from "../../components/sections/PersonalRegisterSection";
 import LinkedCompaniesManagersPage from "../../components/sections/LinkedCompaniesManagersSection";
+import { DesratizacionSection } from "../../components/sections/DesratizacionSection";
+import { DesinsectacionSection } from "../../components/sections/DesinsectacionSection";
+import { LimpiezaDesinfeccionSection } from "../../components/sections/LimpiezaDesinfeccionSection";
+import { LimpiezaDesinfeccionTuberiasSection } from "../../components/sections/LimpiezaDesinfeccionTuberiasSection";
+import { ArcoDesinfeccionSection } from "../../components/sections/ArcoDesinfeccionSection";
+import { RecogidaCadaveresSection } from "../../components/sections/RecogidaCadaveresSection";
+import { RecogidaResiduosSection } from "../../components/sections/RecogidaResiduosSection";
 
 const drawerWidth = 320
 
@@ -186,32 +192,103 @@ const Home = () => {
 
             {/* Other menu items */}
             {[
-              { key: "planes", icon: Assignment, text: "Desarrollo de planes" },
-              { key: "control", icon: EventNote, text: "Control diario" },
-              { key: "limpieza", icon: CleaningServices, text: "Limpieza y mantenimiento" },
-              { key: "alimentacion", icon: Restaurant, text: "Alimentación y consumo" },
-              { key: "bienestar", icon: Pets, text: "Bienestar animal" },
-              { key: "altas", icon: TrendingUp, text: "Altas y bajas" },
-            ].map(({ key, icon: Icon, text }) => (
-              <ListItem key={key} disablePadding>
-                <ListItemButton onClick={() => handleToggle(key)} sx={{ borderRadius: 2, mb: 0.5 }}>
-                  <ListItemIcon>
-                    <Icon sx={{ color: "primary" }} />
-                  </ListItemIcon>
-                  <ListItemText primary={text} />
-                  {openOtherSections[key] ? <ExpandLess /> : <ExpandMore />}
-                </ListItemButton>
-              </ListItem>
-            ))}
+  { key: "planes", icon: Assignment, text: "Desarrollo de planes" },
+  { key: "control", icon: EventNote, text: "Control diario" },
+].map(({ key, icon: Icon, text }) => (
+  <ListItem key={key} disablePadding>
+    <ListItemButton onClick={() => handleToggle(key)} sx={{ borderRadius: 2, mb: 0.5 }}>
+      <ListItemIcon>
+        <Icon sx={{ color: "primary" }} />
+      </ListItemIcon>
+      <ListItemText primary={text} />
+      {openOtherSections[key] ? <ExpandLess /> : <ExpandMore />}
+    </ListItemButton>
+  </ListItem>
+))}
 
-            <ListItem disablePadding>
-              <ListItemButton sx={{ borderRadius: 2, mb: 0.5 }}>
-                <ListItemIcon>
-                  <Assessment sx={{ color: "primary" }} />
-                </ListItemIcon>
-                <ListItemText primary="Reportes" />
-              </ListItemButton>
-            </ListItem>
+{/* Limpieza y mantenimiento con submenús */}
+<ListItem disablePadding>
+  <Paper elevation={0} sx={{ width: "100%", bgcolor: "grey.50", borderRadius: 2, mb: 0.5 }}>
+    <ListItemButton onClick={() => handleToggle("limpieza")} sx={{ borderRadius: 2 }}>
+      <ListItemIcon>
+        <CleaningServices sx={{ color: "primary" }} />
+      </ListItemIcon>
+      <ListItemText primary="Limpieza y mantenimiento" />
+      {openOtherSections.limpieza ? <ExpandLess /> : <ExpandMore />}
+    </ListItemButton>
+    <Collapse in={openOtherSections.limpieza} timeout="auto" unmountOnExit>
+      <List component="div" disablePadding sx={{ pl: 4, pb: 1 }}>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("desratizacion")}>
+          <ListItemText
+            primary="Desratización"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("desinsectacion")}>
+          <ListItemText
+            primary="Desinsectación"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+       
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("arco_desinfeccion")}>
+          <ListItemText
+            primary="Arco o vado de desinfección"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("limpieza_silos")}>
+          <ListItemText
+            primary="Limpieza de silos"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("limpieza_tuberias")}>
+          <ListItemText
+            primary="Limpieza de tuberías de agua"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("mantenimiento_equipos")}>
+          <ListItemText
+            primary="Mantenimiento de equipos"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("recogida_cadaveres")}>
+          <ListItemText
+            primary="Recogida de cadáveres y SANDACH"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("recogida_residuos")}>
+          <ListItemText
+            primary="Recogida de residuos peligrosos"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+      </List>
+    </Collapse>
+  </Paper>
+</ListItem>
+
+{/* Resto de menús sin submenús */}
+{[
+  { key: "alimentacion", icon: Restaurant, text: "Alimentación y consumo" },
+  { key: "bienestar", icon: Pets, text: "Bienestar animal" },
+  { key: "altas", icon: TrendingUp, text: "Altas y bajas" },
+].map(({ key, icon: Icon, text }) => (
+  <ListItem key={key} disablePadding>
+    <ListItemButton onClick={() => handleToggle(key)} sx={{ borderRadius: 2, mb: 0.5 }}>
+      <ListItemIcon>
+        <Icon sx={{ color: "primary" }} />
+      </ListItemIcon>
+      <ListItemText primary={text} />
+      {openOtherSections[key] ? <ExpandLess /> : <ExpandMore />}
+    </ListItemButton>
+  </ListItem>
+))}
+
           </List>
         </Box>
 
@@ -309,7 +386,15 @@ const Home = () => {
                 {activeSection === "registro_veterinario" && "Información del personal"}
                 {activeSection === "planes" && "Desarrollo de planes"}
                 {activeSection === "control" && "Control diario"}
-                {activeSection === "limpieza" && "Limpieza y mantenimiento"}
+                {(activeSection === "desratizacion" || 
+      activeSection === "desinsectacion" || 
+      activeSection === "limpieza_desinfeccion" || 
+      activeSection === "arco_desinfeccion" || 
+      activeSection === "limpieza_silos" || 
+      activeSection === "limpieza_tuberias" || 
+      activeSection === "mantenimiento_equipos" ||
+      activeSection === "recogida_cadaveres" ||
+      activeSection === "recogida_residuos") && "Limpieza y mantenimiento"}
                 {activeSection === "alimentacion" && "Alimentación y consumo"}
                 {activeSection === "bienestar" && "Bienestar animal"}
                 {activeSection === "altas" && "Altas y bajas"}
@@ -339,8 +424,24 @@ const Home = () => {
                       return "Desarrollo de planes";
                     case "control":
                       return "Control diario";
-                    case "limpieza":
-                      return "Limpieza y mantenimiento";
+                    case "desratizacion":
+                      return "Desratización";
+                    case "desinsectacion":
+                      return "Desinsectación";
+                    case "limpieza_desinfeccion":
+                      return "Limpieza y desinfección";
+                    case "arco_desinfeccion":
+                      return "Arco o vado de desinfección";
+                    case "limpieza_silos":
+                      return "Limpieza de silos";
+                    case "limpieza_tuberias":
+                      return "Limpieza de tuberías de agua";
+                    case "mantenimiento_equipos":
+                      return "Mantenimiento de equipos";
+                    case "recogida_cadaveres":
+                      return "Recogida de cadáveres y SANDACH";
+                    case "recogida_residuos":
+                      return "Recogida de residuos peligrosos";
                     case "alimentacion":
                       return "Alimentación y consumo";
                     case "bienestar":
@@ -376,6 +477,19 @@ const Home = () => {
             {activeSection === "registro_veterinario" && (
               <Typography variant="h5">Aquí va el registro de veterinario de explotación</Typography>
             )}
+
+            {/* Nuevas secciones de Limpieza y mantenimiento */}
+            {activeSection === "desratizacion" &&  <DesratizacionSection />}
+{activeSection === "desinsectacion" && <DesinsectacionSection />}
+
+{activeSection === "arco_desinfeccion" && <ArcoDesinfeccionSection />}
+{activeSection === "limpieza_silos" && <LimpiezaDesinfeccionSection />}
+{activeSection === "limpieza_tuberias" && <LimpiezaDesinfeccionTuberiasSection />}
+{activeSection === "mantenimiento_equipos" && (
+  <Typography variant="h5">Aquí va la sección de Mantenimiento de equipos</Typography>
+)}
+{activeSection === "recogida_cadaveres" && <RecogidaCadaveresSection />}
+{activeSection === "recogida_residuos" && <RecogidaResiduosSection />}
           </Box>
         </Box>
       </ThemeProvider>
