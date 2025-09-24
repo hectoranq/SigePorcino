@@ -49,6 +49,10 @@ import { LimpiezaDesinfeccionTuberiasSection } from "../../components/sections/L
 import { ArcoDesinfeccionSection } from "../../components/sections/ArcoDesinfeccionSection";
 import { RecogidaCadaveresSection } from "../../components/sections/RecogidaCadaveresSection";
 import { RecogidaResiduosSection } from "../../components/sections/RecogidaResiduosSection";
+import { MantenimientoEquiposSection } from "../../components/sections/MantenimientoEquiposSection";
+import { EntradaLechonesSection } from "../../components/sections/EntradaLechonesSection";
+import { SalidaMataderoSection } from "../../components/sections/SalidaMataderoSection";
+import { BajaAnimalesSection } from "../../components/sections/BajaAnimalesSection";
 
 const drawerWidth = 320
 
@@ -272,11 +276,45 @@ const Home = () => {
   </Paper>
 </ListItem>
 
+{/* Altas y bajas con submenús */}
+<ListItem disablePadding>
+  <Paper elevation={0} sx={{ width: "100%", bgcolor: "grey.50", borderRadius: 2, mb: 0.5 }}>
+    <ListItemButton onClick={() => handleToggle("altas")} sx={{ borderRadius: 2 }}>
+      <ListItemIcon>
+        <TrendingUp sx={{ color: "primary" }} />
+      </ListItemIcon>
+      <ListItemText primary="Altas y bajas" />
+      {openOtherSections.altas ? <ExpandLess /> : <ExpandMore />}
+    </ListItemButton>
+    <Collapse in={openOtherSections.altas} timeout="auto" unmountOnExit>
+      <List component="div" disablePadding sx={{ pl: 4, pb: 1 }}>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("entrada_lechones")}>
+          <ListItemText
+            primary="Entrada de lechones"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("salida_matadero")}>
+          <ListItemText
+            primary="Salida a matadero"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("baja_animales")}>
+          <ListItemText
+            primary="Baja de animales"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+      </List>
+    </Collapse>
+  </Paper>
+</ListItem>
+
 {/* Resto de menús sin submenús */}
 {[
   { key: "alimentacion", icon: Restaurant, text: "Alimentación y consumo" },
   { key: "bienestar", icon: Pets, text: "Bienestar animal" },
-  { key: "altas", icon: TrendingUp, text: "Altas y bajas" },
 ].map(({ key, icon: Icon, text }) => (
   <ListItem key={key} disablePadding>
     <ListItemButton onClick={() => handleToggle(key)} sx={{ borderRadius: 2, mb: 0.5 }}>
@@ -397,7 +435,9 @@ const Home = () => {
       activeSection === "recogida_residuos") && "Limpieza y mantenimiento"}
                 {activeSection === "alimentacion" && "Alimentación y consumo"}
                 {activeSection === "bienestar" && "Bienestar animal"}
-                {activeSection === "altas" && "Altas y bajas"}
+                {(activeSection === "entrada_lechones" ||
+      activeSection === "salida_matadero" ||
+      activeSection === "baja_animales") && "Altas y bajas"}
                 {activeSection === "reportes" && "Reportes"}
                 {activeSection === "main" && ""}
               </Link>
@@ -446,8 +486,12 @@ const Home = () => {
                       return "Alimentación y consumo";
                     case "bienestar":
                       return "Bienestar animal";
-                    case "altas":
-                      return "Altas y bajas";
+                    case "entrada_lechones":
+                      return "Entrada de lechones";
+                    case "salida_matadero":
+                      return "Salida a matadero";
+                    case "baja_animales":
+                      return "Baja de animales";
                     case "reportes":
                       return "Reportes";
                     default:
@@ -485,11 +529,14 @@ const Home = () => {
 {activeSection === "arco_desinfeccion" && <ArcoDesinfeccionSection />}
 {activeSection === "limpieza_silos" && <LimpiezaDesinfeccionSection />}
 {activeSection === "limpieza_tuberias" && <LimpiezaDesinfeccionTuberiasSection />}
-{activeSection === "mantenimiento_equipos" && (
-  <Typography variant="h5">Aquí va la sección de Mantenimiento de equipos</Typography>
-)}
+{activeSection === "mantenimiento_equipos" && <MantenimientoEquiposSection />}
 {activeSection === "recogida_cadaveres" && <RecogidaCadaveresSection />}
 {activeSection === "recogida_residuos" && <RecogidaResiduosSection />}
+
+{/* Secciones de Altas y bajas */}
+{activeSection === "entrada_lechones" && <EntradaLechonesSection />}
+{activeSection === "salida_matadero" && <SalidaMataderoSection />}
+{activeSection === "baja_animales" && <BajaAnimalesSection />}
           </Box>
         </Box>
       </ThemeProvider>

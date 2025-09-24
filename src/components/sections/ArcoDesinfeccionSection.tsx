@@ -17,6 +17,7 @@ import {
   TextField,
   Grid,
   MenuItem,
+  Checkbox,
 } from "@mui/material"
 import { Add, KeyboardArrowDown } from "@mui/icons-material"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
@@ -38,25 +39,16 @@ interface ArcoDesinfeccionData {
   cantidadEmpleada: string
   responsable: string
   fecha: string
-  operario: string
-  supervisadoPor: string
-  nroSilo: string
-  observaciones: string
+  sistemaEmpleado: {
+    arco: boolean
+    vado: boolean
+    mochila: boolean
+  }
   fechaCreacion: string
   fechaUltimaActualizacion: string
 }
 
 const RESPONSABLES = [
-  "Juan Carlos Martínez",
-  "María Elena González",
-  "Pedro Antonio López",
-  "Ana Isabel Rodríguez",
-  "José Manuel Fernández",
-  "Carmen Rosa Torres",
-  "Francisco Javier Silva"
-]
-
-const SUPERVISORES = [
   "Juan Carlos Martínez",
   "María Elena González",
   "Pedro Antonio López",
@@ -77,47 +69,39 @@ export function ArcoDesinfeccionSection() {
     cantidadEmpleada: "",
     responsable: "",
     fecha: "",
-    operario: "",
-    supervisadoPor: "",
-    nroSilo: "",
-    observaciones: "",
+    sistemaEmpleado: {
+      arco: false,
+      vado: false,
+      mochila: false,
+    },
   })
 
   // Estado para la tabla de arco de desinfección
   const [arcoDesinfeccionData, setArcoDesinfeccionData] = useState<ArcoDesinfeccionData[]>([
     {
       productoEmpleado: "Solución desinfectante vehicular",
-      cantidadEmpleada: "50 litros",
+      cantidadEmpleada: "5000",
       responsable: "Juan Carlos Martínez",
       fecha: "2023-11-14",
-      operario: "Gabriel Eduardo Salinas Mora",
-      supervisadoPor: "María Elena González",
-      nroSilo: "ARCO-001",
-      observaciones: "Desinfección de vehículos de transporte, presión adecuada",
+      sistemaEmpleado: { arco: true, vado: false, mochila: false },
       fechaCreacion: "14/11/2023",
       fechaUltimaActualizacion: "15/11/2023",
     },
     {
       productoEmpleado: "Desinfectante de amplio espectro",
-      cantidadEmpleada: "75 litros",
+      cantidadEmpleada: "3500",
       responsable: "Pedro Antonio López",
       fecha: "2024-09-08",
-      operario: "Isabella Cristina Mendoza Paz",
-      supervisadoPor: "Carmen Rosa Torres",
-      nroSilo: "ARCO-002",
-      observaciones: "Mantenimiento preventivo del sistema, cambio de boquillas",
+      sistemaEmpleado: { arco: false, vado: true, mochila: false },
       fechaCreacion: "08/09/2024",
       fechaUltimaActualizacion: "09/09/2024",
     },
     {
       productoEmpleado: "Hipoclorito de sodio al 12%",
-      cantidadEmpleada: "30 litros",
+      cantidadEmpleada: "1200",
       responsable: "Ana Isabel Rodríguez",
       fecha: "2023-06-25",
-      operario: "Alejandro José Herrera Vega",
-      supervisadoPor: "Francisco Javier Silva",
-      nroSilo: "ARCO-003",
-      observaciones: "Calibración de dosificación, tiempo de exposición 60 segundos",
+      sistemaEmpleado: { arco: false, vado: false, mochila: true },
       fechaCreacion: "25/06/2023",
       fechaUltimaActualizacion: "27/06/2023",
     },
@@ -139,10 +123,11 @@ export function ArcoDesinfeccionSection() {
       cantidadEmpleada: item.cantidadEmpleada,
       responsable: item.responsable,
       fecha: item.fecha,
-      operario: item.operario,
-      supervisadoPor: item.supervisadoPor,
-      nroSilo: item.nroSilo,
-      observaciones: item.observaciones,
+      sistemaEmpleado: {
+        arco: item.sistemaEmpleado.arco,
+        vado: item.sistemaEmpleado.vado,
+        mochila: item.sistemaEmpleado.mochila,
+      },
     })
     
     setEditMode(true)
@@ -160,10 +145,11 @@ export function ArcoDesinfeccionSection() {
       cantidadEmpleada: item.cantidadEmpleada,
       responsable: item.responsable,
       fecha: item.fecha,
-      operario: item.operario,
-      supervisadoPor: item.supervisadoPor,
-      nroSilo: item.nroSilo,
-      observaciones: item.observaciones,
+      sistemaEmpleado: {
+        arco: item.sistemaEmpleado.arco,
+        vado: item.sistemaEmpleado.vado,
+        mochila: item.sistemaEmpleado.mochila,
+      },
     })
     
     setEditMode(false)
@@ -171,8 +157,6 @@ export function ArcoDesinfeccionSection() {
     setEditIndex(index)
     setOpen(true)
   }
-
- 
 
   // Función para convertir fecha de YYYY-MM-DD a DD/MM/YYYY
   const formatDateToDisplay = (dateString: string) => {
@@ -195,10 +179,11 @@ export function ArcoDesinfeccionSection() {
       cantidadEmpleada: "",
       responsable: "",
       fecha: "",
-      operario: "",
-      supervisadoPor: "",
-      nroSilo: "",
-      observaciones: "",
+      sistemaEmpleado: {
+        arco: false,
+        vado: false,
+        mochila: false,
+      },
     })
   }
 
@@ -206,7 +191,7 @@ export function ArcoDesinfeccionSection() {
     console.log("Datos de arco de desinfección:", formData)
 
     // Validar que los campos requeridos estén llenos
-    if (!formData.productoEmpleado || !formData.operario || !formData.fecha) {
+    if (!formData.productoEmpleado || !formData.responsable || !formData.fecha) {
       alert("Por favor, completa todos los campos requeridos")
       return
     }
@@ -216,10 +201,11 @@ export function ArcoDesinfeccionSection() {
       cantidadEmpleada: formData.cantidadEmpleada,
       responsable: formData.responsable,
       fecha: formData.fecha,
-      operario: formData.operario,
-      supervisadoPor: formData.supervisadoPor,
-      nroSilo: formData.nroSilo,
-      observaciones: formData.observaciones,
+      sistemaEmpleado: {
+        arco: formData.sistemaEmpleado.arco,
+        vado: formData.sistemaEmpleado.vado,
+        mochila: formData.sistemaEmpleado.mochila,
+      },
       fechaCreacion: editMode 
         ? arcoDesinfeccionData[editIndex!].fechaCreacion 
         : formatDateToDisplay(formData.fecha),
@@ -296,7 +282,7 @@ export function ArcoDesinfeccionSection() {
                       </TableCell>
                       <TableCell>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          Cantidad empleada
+                          Cantidad empleada (ml)
                           <KeyboardArrowDown fontSize="small" color="disabled" />
                         </Box>
                       </TableCell>
@@ -309,24 +295,6 @@ export function ArcoDesinfeccionSection() {
                       <TableCell>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                           Fecha
-                          <KeyboardArrowDown fontSize="small" color="disabled" />
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          Operario
-                          <KeyboardArrowDown fontSize="small" color="disabled" />
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          Supervisado por
-                          <KeyboardArrowDown fontSize="small" color="disabled" />
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          Nro de Silo
                           <KeyboardArrowDown fontSize="small" color="disabled" />
                         </Box>
                       </TableCell>
@@ -349,12 +317,9 @@ export function ArcoDesinfeccionSection() {
                         }}
                       >
                         <TableCell>{item.productoEmpleado}</TableCell>
-                        <TableCell>{item.cantidadEmpleada}</TableCell>
+                        <TableCell>{item.cantidadEmpleada} ml</TableCell>
                         <TableCell>{item.responsable}</TableCell>
                         <TableCell>{formatDateToDisplay(item.fecha)}</TableCell>
-                        <TableCell>{item.operario}</TableCell>
-                        <TableCell>{item.supervisadoPor}</TableCell>
-                        <TableCell>{item.nroSilo}</TableCell>
                         <TableCell>
                           <Box sx={{ display: "flex", gap: 1 }}>
                             <Button
@@ -403,7 +368,7 @@ export function ArcoDesinfeccionSection() {
         <Dialog 
           open={open} 
           onClose={handleClose} 
-          maxWidth="lg" 
+          maxWidth="md" 
           fullWidth
           PaperProps={{
             sx: { borderRadius: 2 }
@@ -412,7 +377,7 @@ export function ArcoDesinfeccionSection() {
           <DialogContent sx={{ p: 0 }}>
             <ThemeProvider theme={theme}>
               <Box sx={{ minHeight: "auto", bgcolor: "#f9fafb", p: 3 }}>
-                <Paper sx={{ maxWidth: 1200, mx: "auto", borderRadius: 2, overflow: "hidden" }}>
+                <Paper sx={{ maxWidth: 1024, mx: "auto", borderRadius: 2, overflow: "hidden" }}>
                   {/* Header dinámico según el modo */}
                   <Box sx={{ 
                     bgcolor: viewMode ? "#64748b" : editMode ? "#f59e0b" : "#22d3ee", 
@@ -456,8 +421,9 @@ export function ArcoDesinfeccionSection() {
                       <Grid item xs={6}>
                         <TextField
                           fullWidth
-                          placeholder="Cantidad empleada"
+                          placeholder="Cantidad empleada (ml)"
                           variant="standard"
+                          type="number"
                           value={formData.cantidadEmpleada}
                           onChange={(e) => setFormData((prev) => ({ ...prev, cantidadEmpleada: e.target.value }))}
                           InputProps={{
@@ -521,88 +487,86 @@ export function ArcoDesinfeccionSection() {
                       </Grid>
                     </Grid>
 
-                    {/* Operario y Supervisado por */}
-                    <Grid container spacing={3} sx={{ mb: 3 }}>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          placeholder="Operario"
-                          variant="standard"
-                          value={formData.operario}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, operario: e.target.value }))}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
-                        />
+                    {/* Sistema empleado - Checkboxes */}
+                    <Box sx={{ mb: 3 }}>
+                      <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 500, color: "text.primary" }}>
+                        Sistema empleado
+                      </Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={4}>
+                          <Box sx={{ display: "flex", alignItems: "center" }}>
+                            <Checkbox
+                              checked={formData.sistemaEmpleado.arco}
+                              onChange={(e) => setFormData((prev) => ({
+                                ...prev,
+                                sistemaEmpleado: {
+                                  ...prev.sistemaEmpleado,
+                                  arco: e.target.checked
+                                }
+                              }))}
+                              disabled={viewMode}
+                              sx={{ 
+                                color: "primary.main",
+                                "&.Mui-checked": {
+                                  color: "primary.main",
+                                },
+                              }}
+                            />
+                            <Typography variant="body2" sx={{ color: viewMode ? "text.secondary" : "text.primary" }}>
+                              Arco
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={4}>
+                          <Box sx={{ display: "flex", alignItems: "center" }}>
+                            <Checkbox
+                              checked={formData.sistemaEmpleado.vado}
+                              onChange={(e) => setFormData((prev) => ({
+                                ...prev,
+                                sistemaEmpleado: {
+                                  ...prev.sistemaEmpleado,
+                                  vado: e.target.checked
+                                }
+                              }))}
+                              disabled={viewMode}
+                              sx={{ 
+                                color: "primary.main",
+                                "&.Mui-checked": {
+                                  color: "primary.main",
+                                },
+                              }}
+                            />
+                            <Typography variant="body2" sx={{ color: viewMode ? "text.secondary" : "text.primary" }}>
+                              Vado
+                            </Typography>
+                          </Box>
+                        </Grid>
+                        <Grid item xs={4}>
+                          <Box sx={{ display: "flex", alignItems: "center" }}>
+                            <Checkbox
+                              checked={formData.sistemaEmpleado.mochila}
+                              onChange={(e) => setFormData((prev) => ({
+                                ...prev,
+                                sistemaEmpleado: {
+                                  ...prev.sistemaEmpleado,
+                                  mochila: e.target.checked
+                                }
+                              }))}
+                              disabled={viewMode}
+                              sx={{ 
+                                color: "primary.main",
+                                "&.Mui-checked": {
+                                  color: "primary.main",
+                                },
+                              }}
+                            />
+                            <Typography variant="body2" sx={{ color: viewMode ? "text.secondary" : "text.primary" }}>
+                              Mochila
+                            </Typography>
+                          </Box>
+                        </Grid>
                       </Grid>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          select={!viewMode}
-                          label="Supervisado por"
-                          variant="standard"
-                          value={formData.supervisadoPor}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, supervisadoPor: e.target.value }))}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
-                        >
-                          {!viewMode && SUPERVISORES.map((supervisor) => (
-                            <MenuItem key={supervisor} value={supervisor}>
-                              {supervisor}
-                            </MenuItem>
-                          ))}
-                        </TextField>
-                      </Grid>
-                    </Grid>
-
-                    {/* Nro de Silo */}
-                    <TextField
-                      fullWidth
-                      placeholder="Nro de Silo"
-                      variant="standard"
-                      value={formData.nroSilo}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, nroSilo: e.target.value }))}
-                      sx={{ 
-                        mb: 3,
-                        "& .MuiInputBase-input": {
-                          color: viewMode ? "text.secondary" : "text.primary",
-                        },
-                      }}
-                      InputProps={{
-                        readOnly: viewMode,
-                      }}
-                    />
-
-                    {/* Observaciones */}
-                    <TextField
-                      fullWidth
-                      placeholder="Observaciones"
-                      variant="standard"
-                      multiline
-                      rows={3}
-                      value={formData.observaciones}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, observaciones: e.target.value }))}
-                      sx={{ 
-                        mb: 3,
-                        "& .MuiInputBase-input": {
-                          color: viewMode ? "text.secondary" : "text.primary",
-                        },
-                      }}
-                      InputProps={{
-                        readOnly: viewMode,
-                      }}
-                    />
+                    </Box>
 
                     {/* Botones dinámicos según el modo */}
                     <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
