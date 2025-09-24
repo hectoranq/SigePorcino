@@ -53,6 +53,12 @@ import { MantenimientoEquiposSection } from "../../components/sections/Mantenimi
 import { EntradaLechonesSection } from "../../components/sections/EntradaLechonesSection";
 import { SalidaMataderoSection } from "../../components/sections/SalidaMataderoSection";
 import { BajaAnimalesSection } from "../../components/sections/BajaAnimalesSection";
+import { EtiquetasPiensoSection } from "../../components/sections/EtiquetasPiensoSection";
+import { DescargaSacosPiensoSection } from "../../components/sections/DescargaSacosPiensoSection";
+import { DescargaPiensoGranelSection } from "../../components/sections/DescargaPiensoGranelSection";
+import { ConsumoAguaSection } from "../../components/sections/ConsumoAguaSection";
+import { ConsumoElectricidadSection } from "../../components/sections/ConsumoElectricidadSection";
+import { EntradasCombustibleSection } from "../../components/sections/EntradasCombustibleSection";
 
 const drawerWidth = 320
 
@@ -311,9 +317,61 @@ const Home = () => {
   </Paper>
 </ListItem>
 
+{/* Alimentación y consumo con submenús */}
+<ListItem disablePadding>
+  <Paper elevation={0} sx={{ width: "100%", bgcolor: "grey.50", borderRadius: 2, mb: 0.5 }}>
+    <ListItemButton onClick={() => handleToggle("alimentacion")} sx={{ borderRadius: 2 }}>
+      <ListItemIcon>
+        <Restaurant sx={{ color: "primary" }} />
+      </ListItemIcon>
+      <ListItemText primary="Alimentación y consumo" />
+      {openOtherSections.alimentacion ? <ExpandLess /> : <ExpandMore />}
+    </ListItemButton>
+    <Collapse in={openOtherSections.alimentacion} timeout="auto" unmountOnExit>
+      <List component="div" disablePadding sx={{ pl: 4, pb: 1 }}>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("etiquetas_pienso")}>
+          <ListItemText
+            primary="Etiquetas pienso"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("descarga_sacos_pienso")}>
+          <ListItemText
+            primary="Descarga de sacos pienso"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("descarga_pienso_granel")}>
+          <ListItemText
+            primary="Descarga de sacos pienso a granel"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("consumo_agua")}>
+          <ListItemText
+            primary="Consumo de agua"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("consumo_electricidad")}>
+          <ListItemText
+            primary="Consumo de electricidad"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("entradas_combustible")}>
+          <ListItemText
+            primary="Entradas de combustible"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+      </List>
+    </Collapse>
+  </Paper>
+</ListItem>
+
 {/* Resto de menús sin submenús */}
 {[
-  { key: "alimentacion", icon: Restaurant, text: "Alimentación y consumo" },
   { key: "bienestar", icon: Pets, text: "Bienestar animal" },
 ].map(({ key, icon: Icon, text }) => (
   <ListItem key={key} disablePadding>
@@ -433,7 +491,12 @@ const Home = () => {
       activeSection === "mantenimiento_equipos" ||
       activeSection === "recogida_cadaveres" ||
       activeSection === "recogida_residuos") && "Limpieza y mantenimiento"}
-                {activeSection === "alimentacion" && "Alimentación y consumo"}
+                {(activeSection === "etiquetas_pienso" ||
+      activeSection === "descarga_sacos_pienso" ||
+      activeSection === "descarga_pienso_granel" ||
+      activeSection === "consumo_agua" ||
+      activeSection === "consumo_electricidad" ||
+      activeSection === "entradas_combustible") && "Alimentación y consumo"}
                 {activeSection === "bienestar" && "Bienestar animal"}
                 {(activeSection === "entrada_lechones" ||
       activeSection === "salida_matadero" ||
@@ -482,8 +545,18 @@ const Home = () => {
                       return "Recogida de cadáveres y SANDACH";
                     case "recogida_residuos":
                       return "Recogida de residuos peligrosos";
-                    case "alimentacion":
-                      return "Alimentación y consumo";
+                    case "etiquetas_pienso":
+                      return "Etiquetas pienso";
+                    case "descarga_sacos_pienso":
+                      return "Descarga de sacos pienso";
+                    case "descarga_pienso_granel":
+                      return "Descarga de sacos pienso a granel";
+                    case "consumo_agua":
+                      return "Consumo de agua";
+                    case "consumo_electricidad":
+                      return "Consumo de electricidad";
+                    case "entradas_combustible":
+                      return "Entradas de combustible";
                     case "bienestar":
                       return "Bienestar animal";
                     case "entrada_lechones":
@@ -537,6 +610,15 @@ const Home = () => {
 {activeSection === "entrada_lechones" && <EntradaLechonesSection />}
 {activeSection === "salida_matadero" && <SalidaMataderoSection />}
 {activeSection === "baja_animales" && <BajaAnimalesSection />}
+
+{/* Secciones de Alimentación y consumo */}
+{activeSection === "etiquetas_pienso" && <EtiquetasPiensoSection />}
+{activeSection === "descarga_sacos_pienso" && <DescargaSacosPiensoSection />}
+
+{activeSection === "descarga_pienso_granel" && <DescargaPiensoGranelSection />}
+{activeSection === "consumo_agua" && <ConsumoAguaSection />}
+{activeSection === "consumo_electricidad" && <ConsumoElectricidadSection />}
+{activeSection === "entradas_combustible" && <EntradasCombustibleSection />}
           </Box>
         </Box>
       </ThemeProvider>
