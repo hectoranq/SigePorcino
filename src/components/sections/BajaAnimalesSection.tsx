@@ -16,7 +16,6 @@ import {
   DialogContent,
   TextField,
   Grid,
-  MenuItem,
   Checkbox,
 } from "@mui/material"
 import { Add, KeyboardArrowDown } from "@mui/icons-material"
@@ -34,79 +33,59 @@ const theme = createTheme({
   },
 })
 
-interface DesinsectacionData {
-  productoEmpleado: string
-  dondeSeEmpleo: string
-  aplicador: string
-  fecha: string
-  supervisado: string
-  tipoProducto: {
-    lavado: boolean
-    desinfectante: boolean
+interface BajaAnimalesData {
+  nroCrotal: string
+  causa: string
+  fechaFallecimiento: string
+  tipoFallecimiento: {
+    muerte: boolean
+    sacrificio: boolean
   }
   fechaCreacion: string
   fechaUltimaActualizacion: string
 }
 
-const SUPERVISORES = [
-  "Juan Carlos Martínez",
-  "María Elena González",
-  "Pedro Antonio López",
-  "Ana Isabel Rodríguez",
-  "José Manuel Fernández",
-  "Carmen Rosa Torres",
-  "Francisco Javier Silva"
-]
-
-export function DesinsectacionSection() {
+export function BajaAnimalesSection() {
   // Estados para el popup
   const [open, setOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [viewMode, setViewMode] = useState(false)
   const [editIndex, setEditIndex] = useState<number | null>(null)
   const [formData, setFormData] = useState({
-    productoEmpleado: "",
-    dondeSeEmpleo: "",
-    aplicador: "",
-    fecha: "",
-    supervisado: "",
-    tipoProducto: {
-      lavado: false,
-      desinfectante: false,
+    nroCrotal: "",
+    causa: "",
+    fechaFallecimiento: "",
+    tipoFallecimiento: {
+      muerte: false,
+      sacrificio: false,
     },
   })
 
-  // Estado para la tabla de desinsectación - ACTUALIZADO CON NUEVOS CAMPOS
-  const [desinsectacionData, setDesinsectacionData] = useState<DesinsectacionData[]>([
+  // Estado para la tabla de baja de animales
+  const [bajaAnimalesData, setBajaAnimalesData] = useState<BajaAnimalesData[]>([
     {
-      productoEmpleado: "Cipermetrina 10%",
-      dondeSeEmpleo: "Naves de animales y almacén",
-      aplicador: "Carlos Manuel Rodríguez Silva",
-      fecha: "2023-08-15",
-      supervisado: "María Elena González",
-      tipoProducto: { lavado: true, desinfectante: false },
-      fechaCreacion: "15/08/2023",
-      fechaUltimaActualizacion: "18/08/2023",
+      nroCrotal: "ES140520001234",
+      causa: "Enfermedad respiratoria crónica, sin respuesta al tratamiento veterinario",
+      fechaFallecimiento: "2024-01-15",
+      tipoFallecimiento: { muerte: true, sacrificio: false },
+      fechaCreacion: "15/01/2024",
+      fechaUltimaActualizacion: "16/01/2024",
     },
     {
-      productoEmpleado: "Deltametrina 2.5%",
-      dondeSeEmpleo: "Oficinas y comedores",
-      aplicador: "Ana Patricia Moreno López",
-      fecha: "2024-06-10",
-      supervisado: "Pedro Antonio López",
-      tipoProducto: { lavado: false, desinfectante: true },
-      fechaCreacion: "10/06/2024",
-      fechaUltimaActualizacion: "12/06/2024",
+      nroCrotal: "ES140520005678",
+      causa: "Sacrificio de emergencia por lesión grave en extremidad posterior",
+      fechaFallecimiento: "2024-02-28",
+      tipoFallecimiento: { muerte: false, sacrificio: true },
+      fechaCreacion: "28/02/2024",
+      fechaUltimaActualizacion: "01/03/2024",
     },
     {
-      productoEmpleado: "Imidacloprid 20%",
-      dondeSeEmpleo: "Zonas exteriores y silos",
-      aplicador: "Roberto Alejandro Vega Torres",
-      fecha: "2023-03-22",
-      supervisado: "Carmen Rosa Torres",
-      tipoProducto: { lavado: true, desinfectante: true },
-      fechaCreacion: "22/03/2023",
-      fechaUltimaActualizacion: "25/03/2023",
+      nroCrotal: "ES140520009876",
+      causa: "Muerte súbita, posible problema cardíaco según necropsia",
+      fechaFallecimiento: "2023-12-10",
+      tipoFallecimiento: { muerte: true, sacrificio: false },
+      fechaCreacion: "10/12/2023",
+      fechaUltimaActualizacion: "12/12/2023",
     },
   ])
 
@@ -117,19 +96,17 @@ export function DesinsectacionSection() {
     setOpen(true)
   }
 
-  // FUNCIÓN HANDLEEDIT ACTUALIZADA CON NUEVOS CAMPOS
+  // Función para abrir en modo edición
   const handleEdit = (index: number) => {
-    const item = desinsectacionData[index]
+    const item = bajaAnimalesData[index]
     
     setFormData({
-      productoEmpleado: item.productoEmpleado,
-      dondeSeEmpleo: item.dondeSeEmpleo,
-      aplicador: item.aplicador,
-      fecha: item.fecha,
-      supervisado: item.supervisado,
-      tipoProducto: {
-        lavado: item.tipoProducto.lavado,
-        desinfectante: item.tipoProducto.desinfectante,
+      nroCrotal: item.nroCrotal,
+      causa: item.causa,
+      fechaFallecimiento: item.fechaFallecimiento,
+      tipoFallecimiento: {
+        muerte: item.tipoFallecimiento.muerte,
+        sacrificio: item.tipoFallecimiento.sacrificio,
       },
     })
     
@@ -139,19 +116,17 @@ export function DesinsectacionSection() {
     setOpen(true)
   }
 
-  // FUNCIÓN VER MÁS ACTUALIZADA CON NUEVOS CAMPOS
+  // Función para "Ver más"
   const handleVerMas = (index: number) => {
-    const item = desinsectacionData[index]
+    const item = bajaAnimalesData[index]
     
     setFormData({
-      productoEmpleado: item.productoEmpleado,
-      dondeSeEmpleo: item.dondeSeEmpleo,
-      aplicador: item.aplicador,
-      fecha: item.fecha,
-      supervisado: item.supervisado,
-      tipoProducto: {
-        lavado: item.tipoProducto.lavado,
-        desinfectante: item.tipoProducto.desinfectante,
+      nroCrotal: item.nroCrotal,
+      causa: item.causa,
+      fechaFallecimiento: item.fechaFallecimiento,
+      tipoFallecimiento: {
+        muerte: item.tipoFallecimiento.muerte,
+        sacrificio: item.tipoFallecimiento.sacrificio,
       },
     })
     
@@ -161,7 +136,7 @@ export function DesinsectacionSection() {
     setOpen(true)
   }
 
-  
+
 
   // Función para convertir fecha de YYYY-MM-DD a DD/MM/YYYY
   const formatDateToDisplay = (dateString: string) => {
@@ -180,54 +155,49 @@ export function DesinsectacionSection() {
     setViewMode(false)
     setEditIndex(null)
     setFormData({
-      productoEmpleado: "",
-      dondeSeEmpleo: "",
-      aplicador: "",
-      fecha: "",
-      supervisado: "",
-      tipoProducto: {
-        lavado: false,
-        desinfectante: false,
+      nroCrotal: "",
+      causa: "",
+      fechaFallecimiento: "",
+      tipoFallecimiento: {
+        muerte: false,
+        sacrificio: false,
       },
     })
   }
 
-  // HANDLESUBMIT ACTUALIZADO CON NUEVOS CAMPOS
   const handleSubmit = () => {
-    console.log("Datos de desinsectación:", formData)
+    console.log("Datos de baja de animales:", formData)
 
     // Validar que los campos requeridos estén llenos
-    if (!formData.aplicador || !formData.productoEmpleado || !formData.fecha) {
+    if (!formData.nroCrotal || !formData.causa || !formData.fechaFallecimiento) {
       alert("Por favor, completa todos los campos requeridos")
       return
     }
 
-    const desinsectacionItem = {
-      productoEmpleado: formData.productoEmpleado,
-      dondeSeEmpleo: formData.dondeSeEmpleo,
-      aplicador: formData.aplicador,
-      fecha: formData.fecha,
-      supervisado: formData.supervisado,
-      tipoProducto: {
-        lavado: formData.tipoProducto.lavado,
-        desinfectante: formData.tipoProducto.desinfectante,
+    const bajaAnimalesItem = {
+      nroCrotal: formData.nroCrotal,
+      causa: formData.causa,
+      fechaFallecimiento: formData.fechaFallecimiento,
+      tipoFallecimiento: {
+        muerte: formData.tipoFallecimiento.muerte,
+        sacrificio: formData.tipoFallecimiento.sacrificio,
       },
       fechaCreacion: editMode 
-        ? desinsectacionData[editIndex!].fechaCreacion 
-        : formatDateToDisplay(formData.fecha),
-      fechaUltimaActualizacion: formatDateToDisplay(formData.fecha),
+        ? bajaAnimalesData[editIndex!].fechaCreacion 
+        : formatDateToDisplay(formData.fechaFallecimiento),
+      fechaUltimaActualizacion: formatDateToDisplay(formData.fechaFallecimiento),
     }
 
     if (editMode && editIndex !== null) {
       // Actualizar elemento existente
-      setDesinsectacionData((prev) => 
+      setBajaAnimalesData((prev) => 
         prev.map((item, index) => 
-          index === editIndex ? desinsectacionItem : item
+          index === editIndex ? bajaAnimalesItem : item
         )
       )
     } else {
       // Agregar nuevo elemento
-      setDesinsectacionData((prev) => [...prev, desinsectacionItem])
+      setBajaAnimalesData((prev) => [...prev, bajaAnimalesItem])
     }
     
     handleClose()
@@ -262,7 +232,7 @@ export function DesinsectacionSection() {
                     }}
                   />
                   <Typography variant="h5" fontWeight={600}>
-                    Desinsectación
+                    Baja de animales
                   </Typography>
                 </Box>
                 <Button 
@@ -282,31 +252,19 @@ export function DesinsectacionSection() {
                     <TableRow>
                       <TableCell>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          Producto empleado
+                          Nro de crotal
                           <KeyboardArrowDown fontSize="small" color="disabled" />
                         </Box>
                       </TableCell>
                       <TableCell>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          Nave
+                          Causa
                           <KeyboardArrowDown fontSize="small" color="disabled" />
                         </Box>
                       </TableCell>
                       <TableCell>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          Aplicador
-                          <KeyboardArrowDown fontSize="small" color="disabled" />
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          Fecha
-                          <KeyboardArrowDown fontSize="small" color="disabled" />
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          Supervisado por
+                          Fecha de fallecimiento
                           <KeyboardArrowDown fontSize="small" color="disabled" />
                         </Box>
                       </TableCell>
@@ -319,7 +277,7 @@ export function DesinsectacionSection() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {desinsectacionData.map((item, index) => (
+                    {bajaAnimalesData.map((item, index) => (
                       <TableRow
                         key={index}
                         sx={{
@@ -328,11 +286,17 @@ export function DesinsectacionSection() {
                           },
                         }}
                       >
-                        <TableCell>{item.productoEmpleado}</TableCell>
-                        <TableCell>{item.dondeSeEmpleo}</TableCell>
-                        <TableCell>{item.aplicador}</TableCell>
-                        <TableCell>{formatDateToDisplay(item.fecha)}</TableCell>
-                        <TableCell>{item.supervisado}</TableCell>
+                        <TableCell>{item.nroCrotal}</TableCell>
+                        <TableCell sx={{ maxWidth: 300 }}>
+                          <Typography variant="body2" sx={{ 
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap' 
+                          }}>
+                            {item.causa}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>{formatDateToDisplay(item.fechaFallecimiento)}</TableCell>
                         <TableCell>
                           <Box sx={{ display: "flex", gap: 1 }}>
                             <Button
@@ -407,58 +371,18 @@ export function DesinsectacionSection() {
                       borderRadius: 0.5 
                     }} />
                     <Typography variant="h6" sx={{ color: "white", fontWeight: 500 }}>
-                      {viewMode ? "Detalle de desinsectación" : editMode ? "Editar desinsectación" : "Registro de desinsectación"}
+                      {viewMode ? "Detalle de baja de animal" : editMode ? "Editar baja de animal" : "Registro de baja de animal"}
                     </Typography>
                   </Box>
 
                   <Box sx={{ p: 3 }}>
-                    {/* NUEVO FORMULARIO CON LOS CAMPOS SOLICITADOS */}
-                    
-                    {/* Producto empleado y Donde se empleó */}
-                    <Grid container spacing={3} sx={{ mb: 3 }}>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          placeholder="Producto empleado"
-                          variant="standard"
-                          value={formData.productoEmpleado}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, productoEmpleado: e.target.value }))}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          placeholder="Donde se empleó"
-                          variant="standard"
-                          value={formData.dondeSeEmpleo}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, dondeSeEmpleo: e.target.value }))}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
-                        />
-                      </Grid>
-                    </Grid>
-
-                    {/* Aplicador (ancho completo) */}
+                    {/* Nro de crotal */}
                     <TextField
                       fullWidth
-                      placeholder="Aplicador"
+                      placeholder="Nro de crotal"
                       variant="standard"
-                      value={formData.aplicador}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, aplicador: e.target.value }))}
+                      value={formData.nroCrotal}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, nroCrotal: e.target.value }))}
                       sx={{ 
                         mb: 3,
                         "& .MuiInputBase-input": {
@@ -470,71 +394,63 @@ export function DesinsectacionSection() {
                       }}
                     />
 
-                   
+                    {/* Causa */}
+                    <TextField
+                      fullWidth
+                      placeholder="Causa"
+                      variant="standard"
+                      multiline
+                      rows={3}
+                      value={formData.causa}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, causa: e.target.value }))}
+                      sx={{ 
+                        mb: 3,
+                        "& .MuiInputBase-input": {
+                          color: viewMode ? "text.secondary" : "text.primary",
+                        },
+                      }}
+                      InputProps={{
+                        readOnly: viewMode,
+                      }}
+                    />
 
-                    {/* Fecha y Supervisado */}
-                    <Grid container spacing={3} sx={{ mb: 3 }}>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          label="Fecha"
-                          type="date"
-                          variant="standard"
-                          value={formData.fecha}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, fecha: e.target.value }))}
-                          InputLabelProps={{
-                            shrink: true,
-                          }}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          select={!viewMode}
-                          label="Supervisado"
-                          variant="standard"
-                          value={formData.supervisado}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, supervisado: e.target.value }))}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
-                        >
-                          {!viewMode && SUPERVISORES.map((supervisor) => (
-                            <MenuItem key={supervisor} value={supervisor}>
-                              {supervisor}
-                            </MenuItem>
-                          ))}
-                        </TextField>
-                      </Grid>
-                    </Grid>
- {/* Tipo de producto - Checkboxes */}
+                    {/* Fecha de fallecimiento */}
+                    <TextField
+                      fullWidth
+                      label="Fecha de fallecimiento"
+                      type="date"
+                      variant="standard"
+                      value={formData.fechaFallecimiento}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, fechaFallecimiento: e.target.value }))}
+                      InputLabelProps={{
+                        shrink: true,
+                      }}
+                      InputProps={{
+                        readOnly: viewMode,
+                      }}
+                      sx={{
+                        mb: 3,
+                        "& .MuiInputBase-input": {
+                          color: viewMode ? "text.secondary" : "text.primary",
+                        },
+                      }}
+                    />
+
+                    {/* Tipo de fallecimiento - Checkboxes */}
                     <Box sx={{ mb: 3 }}>
                       <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 500, color: "text.primary" }}>
-                        Tipo de producto
+                        Tipo de fallecimiento
                       </Typography>
                       <Grid container spacing={2}>
                         <Grid item xs={6}>
                           <Box sx={{ display: "flex", alignItems: "center" }}>
                             <Checkbox
-                              checked={formData.tipoProducto.lavado}
+                              checked={formData.tipoFallecimiento.muerte}
                               onChange={(e) => setFormData((prev) => ({
                                 ...prev,
-                                tipoProducto: {
-                                  ...prev.tipoProducto,
-                                  lavado: e.target.checked
+                                tipoFallecimiento: {
+                                  ...prev.tipoFallecimiento,
+                                  muerte: e.target.checked
                                 }
                               }))}
                               disabled={viewMode}
@@ -546,19 +462,19 @@ export function DesinsectacionSection() {
                               }}
                             />
                             <Typography variant="body2" sx={{ color: viewMode ? "text.secondary" : "text.primary" }}>
-                              Lavado
+                              Muerte
                             </Typography>
                           </Box>
                         </Grid>
                         <Grid item xs={6}>
                           <Box sx={{ display: "flex", alignItems: "center" }}>
                             <Checkbox
-                              checked={formData.tipoProducto.desinfectante}
+                              checked={formData.tipoFallecimiento.sacrificio}
                               onChange={(e) => setFormData((prev) => ({
                                 ...prev,
-                                tipoProducto: {
-                                  ...prev.tipoProducto,
-                                  desinfectante: e.target.checked
+                                tipoFallecimiento: {
+                                  ...prev.tipoFallecimiento,
+                                  sacrificio: e.target.checked
                                 }
                               }))}
                               disabled={viewMode}
@@ -570,12 +486,13 @@ export function DesinsectacionSection() {
                               }}
                             />
                             <Typography variant="body2" sx={{ color: viewMode ? "text.secondary" : "text.primary" }}>
-                              Desinfectante
+                              Sacrificio
                             </Typography>
                           </Box>
                         </Grid>
                       </Grid>
                     </Box>
+
                     {/* Botones dinámicos según el modo */}
                     <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
                       {viewMode ? (
