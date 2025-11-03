@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { TextField, MenuItem, FormControlLabel, Checkbox, Typography, Button } from "@mui/material";
 import { useRouter } from "next/router";
-import { fetchParameters, emailExistsValidate } from "../../data/repository"; // Cambia la importación
+import { fetchParameters, emailExistsValidate } from "../../data/repository";
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import InputAdornment from '@mui/material/InputAdornment';
 import IconButton from '@mui/material/IconButton';
-import usePersonalStore from "../../_store/personal"; // Ajusta la ruta si es necesario
+import usePersonalStore from "../../_store/personal";
 
 const PersonalInfoBox = () => {
   const router = useRouter();
@@ -16,8 +16,8 @@ const PersonalInfoBox = () => {
     dni: "",
     name: "",
     surname: "",
-    locality: "",
-    province: "",
+    locality: "", // Campo libre de texto
+    province: "", // Campo select (dropdown)
     address: "",
     postal_code: "",
     phone_code: "",
@@ -27,26 +27,26 @@ const PersonalInfoBox = () => {
     accept_terms: false
   });
 
-    const [data, setData] = useState([]);
-    useEffect(() => {
-        // Llama a la función para traer provincias y localidades
-        fetchParameters().then(setData);
-      }, []);
-    
+  // Estado para provincias
+  const [provincias, setProvincias] = useState([]);
+  
+  useEffect(() => {
+    // Cargar solo las provincias
+    fetchParameters().then(setProvincias);
+  }, []);
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
     setFormData((prevData) => ({ ...prevData, [name]: value }));
-    
   };
-
 
   const handleLogin = () => {
     router.push("/");
   };
+
   const handleFarmRegister = () => {
-    setPersonalFormData(formData); // Guarda en Zustand
-     localStorage.setItem('registro_tipo', 'persona_fisica');
+    setPersonalFormData(formData);
+    localStorage.setItem('registro_tipo', 'persona_fisica');
     router.push("/register/gpsRegister");
   };
 
@@ -54,11 +54,11 @@ const PersonalInfoBox = () => {
   const [passwordConfirmError, setPasswordConfirmError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
-  const [emailError, setEmailError] = useState(""); // <-- Aquí está el cambio
+  const [emailError, setEmailError] = useState("");
 
   const validatePassword = (password: string) => {
-    // Al menos una mayúscula, un caracter especial y mínimo 8 caracteres
-    const regex = /^(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?])(?=.{8,})/;
+    // Al menos una mayúscula, un número y mínimo 8 caracteres
+    const regex = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
     return regex.test(password);
   };
 
@@ -68,7 +68,7 @@ const PersonalInfoBox = () => {
 
   useEffect(() => {
     if (formData.password && !validatePassword(formData.password)) {
-      setPasswordError("La contraseña debe tener al menos 8 caracteres, una mayúscula y un carácter especial.");
+      setPasswordError("La contraseña debe tener al menos 8 caracteres, una mayúscula y un número.");
     } else {
       setPasswordError("");
     }
@@ -92,8 +92,32 @@ const PersonalInfoBox = () => {
     }
   };
 
+  const isFormValid = () => {
+    const requiredFields = [
+      "dni",
+      "name",
+      "surname",
+      "province",
+      "locality",
+      "address",
+      "postal_code",
+      "phone_code",
+      "email",
+      "password",
+      "passwordConfirm"
+    ];
+    const allFilled = requiredFields.every((field) => !!formData[field]);
+    return (
+      allFilled &&
+      !passwordError &&
+      !passwordConfirmError &&
+      !emailError &&
+      formData.accept_terms
+    );
+  };
+
   return (
-    <section className="form-grid-main" >
+    <section className="form-grid-main">
       <TextField
         label="DNI"
         variant="filled"
@@ -117,21 +141,9 @@ const PersonalInfoBox = () => {
           onChange={handleInputChange}
         />
       </section>
+      
+      {/* CAMBIO PRINCIPAL: Provincia select, Localidad campo libre */}
       <section className="form-grid-2-cols">
-        <TextField
-          variant="filled"
-          select
-          label="Localidad"
-          name="locality"
-          value={formData.locality}
-          onChange={handleInputChange}
-        >
-          {data.map((item) => (
-            <MenuItem key={item.country.value} value={item.country.value}>
-              {item.country.label}
-            </MenuItem>
-          ))}
-        </TextField>
         <TextField
           variant="filled"
           select
@@ -139,15 +151,25 @@ const PersonalInfoBox = () => {
           name="province"
           value={formData.province}
           onChange={handleInputChange}
-          disabled={!formData.locality}
         >
-          {(data.find((item) => item.country.value === formData.locality)?.cities || []).map((city) => (
-            <MenuItem key={city.value} value={city.value}>
-              {city.label}
+          {provincias.map((item) => (
+            <MenuItem key={item.country.value} value={item.country.value}>
+              {item.country.label}
             </MenuItem>
           ))}
         </TextField>
+        
+        {/* Campo LOCALIDAD ahora es LIBRE (sin select, sin disabled) */}
+        <TextField
+          variant="filled"
+          label="Localidad"
+          name="locality"
+          value={formData.locality}
+          onChange={handleInputChange}
+          placeholder="Ej: Madrid, Barcelona, Sevilla..."
+        />
       </section>
+      
       <TextField
         label="Dirección"
         variant="filled"
@@ -237,23 +259,24 @@ const PersonalInfoBox = () => {
         style={{ display: 'flex', justifyContent: 'center', width: '100%' }}
       />
       <section className="form-grid-2-cols">
-          <Button
-            variant="contained"
-            color="secondary"
-            className="button-1"
-            onClick={handleLogin}
-          >
-            Ya tengo una cuenta
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            className="button"
-            onClick={handleFarmRegister}
-          >
-            Siguiente
-          </Button>
-        </section>
+        <Button
+          variant="contained"
+          color="secondary"
+          className="button-1"
+          onClick={handleLogin}
+        >
+          Ya tengo una cuenta
+        </Button>
+        <Button
+          variant="contained"
+          color="primary"
+          className="button"
+          onClick={handleFarmRegister}
+          disabled={!isFormValid()}
+        >
+          Siguiente
+        </Button>
+      </section>
     </section>
   );
 };

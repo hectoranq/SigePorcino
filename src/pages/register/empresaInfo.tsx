@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { TextField, MenuItem, FormControlLabel, Checkbox, Typography, Button } from "@mui/material";
 import { useRouter } from "next/router";
 import useUserFormStore from "../../_store";
-import { emailExistsValidate, fetchParameters } from "../../data/repository"; // Cambia la importación
+import { emailExistsValidate, fetchParameters } from "../../data/repository";
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import InputAdornment from '@mui/material/InputAdornment';
@@ -16,7 +16,7 @@ const EmpresaInfoBox = () => {
     company_name: "",
     city: "",
     province: "",
-    locality: "",
+    locality: "", // Campo libre de texto
     address: "",
     postal_code: "",
     phone_number: "",
@@ -26,17 +26,17 @@ const EmpresaInfoBox = () => {
     accept_terms: false,
   });
 
-   // Estado para provincias y localidades
-  const [data, setData] = useState([]);
+  // Estado para provincias (ya no necesitamos localidades en dropdown)
+  const [provincias, setProvincias] = useState([]);
   const [passwordError, setPasswordError] = useState("");
   const [passwordConfirmError, setPasswordConfirmError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
-  const [emailError, setEmailError] = useState(""); // <-- Aquí está el nuevo estado para el error de email
+  const [emailError, setEmailError] = useState("");
 
   useEffect(() => {
-    // Llama a la función para traer provincias y localidades
-     fetchParameters().then(setData);
+    // Cargar solo las provincias
+    fetchParameters().then(setProvincias);
   }, []);
 
   const validatePassword = (password: string) => {
@@ -58,7 +58,6 @@ const EmpresaInfoBox = () => {
   }, [formData.password, formData.passwordConfirm]);
 
   const validateEmailFormat = (email: string) => {
-    // Expresión regular simple para validar email
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
@@ -78,36 +77,15 @@ const EmpresaInfoBox = () => {
   const handleInputChange = (event) => {
     const { name, value } = event.target;
     setFormData((prevData) => ({ ...prevData, [name]: value }));
-    //onChange({ ...formData, [name]: value });
   };
 
- 
-  const handleProvinceChange = (event) => {
-    const provinceValue = event.target.value;
-    setFormData((prevData) => ({
-      ...prevData,
-      province: provinceValue,
-      locality: "", // Limpiar localidad al cambiar país
-    }));
+  const handleLogin = () => {
+    router.push("/");
   };
 
-  const handleLocalityChange = (event) => {
-    const localityValue = event.target.value;
-    setFormData((prevData) => ({
-      ...prevData,
-      locality: localityValue,
-    }));
-  };
-
-
-
-    const handleLogin = () => {
-      router.push("/");
-    };
-    const handleFarmRegister = async () => {
-      try {
-       // await registerCompany(FormDataObject(formData));
-       useUserFormStore.getState().setFormData({
+  const handleFarmRegister = async () => {
+    try {
+      useUserFormStore.getState().setFormData({
         email: formData.email,
         password: formData.password,
         company_name: formData.company_name,
@@ -121,40 +99,36 @@ const EmpresaInfoBox = () => {
         emailVisibility: true,
         passwordConfirm: formData.passwordConfirm,
       });
-       localStorage.setItem('registro_tipo', 'empresa');
+      localStorage.setItem('registro_tipo', 'empresa');
       console.log('/register/gpsRegister');
-        router.push('/register/gpsRegister');
-      } catch (error) {
-        console.error('Error registrando la empresa:', error);
-        // Aquí podrías mostrar algún error en pantalla si quieres
-      }
-    };
+      router.push('/register/gpsRegister');
+    } catch (error) {
+      console.error('Error registrando la empresa:', error);
+    }
+  };
 
-    const isFormValid = () => {
-      // Lista de campos obligatorios
-      const requiredFields = [
-        "cif",
-        "company_name",
-        "province",
-        "locality",
-        "address",
-        "postal_code",
-        "phone_number",
-        "email",
-        "password",
-        "passwordConfirm"
-      ];
-      // Verifica que todos los campos requeridos tengan valor
-      const allFilled = requiredFields.every((field) => !!formData[field]);
-      // Verifica que no haya errores y que acepte términos
-      return (
-        allFilled &&
-        !passwordError &&
-        !passwordConfirmError &&
-        !emailError &&
-        formData.accept_terms
-      );
-    };
+  const isFormValid = () => {
+    const requiredFields = [
+      "cif",
+      "company_name",
+      "province",
+      "locality",
+      "address",
+      "postal_code",
+      "phone_number",
+      "email",
+      "password",
+      "passwordConfirm"
+    ];
+    const allFilled = requiredFields.every((field) => !!formData[field]);
+    return (
+      allFilled &&
+      !passwordError &&
+      !passwordConfirmError &&
+      !emailError &&
+      formData.accept_terms
+    );
+  };
 
   return (
     <section className="form-grid-main" >
@@ -174,20 +148,22 @@ const EmpresaInfoBox = () => {
       />
       <section className="form-grid-2-cols" style={{ display: 'grid', gridTemplateColumns: '0.8fr 2fr', gap: '16px', width: '100%', boxSizing: 'border-box' }}>
         <TextField
-            label="Código postal"
-            variant="filled"
-            name="postal_code"
-            value={formData.postal_code}
-            onChange={handleInputChange}
+          label="Código postal"
+          variant="filled"
+          name="postal_code"
+          value={formData.postal_code}
+          onChange={handleInputChange}
         />
         <TextField
-            label="Número de teléfono"
-            variant="filled"
-            name="phone_number"
-            value={formData.phone_number}
-            onChange={handleInputChange}
+          label="Número de teléfono"
+          variant="filled"
+          name="phone_number"
+          value={formData.phone_number}
+          onChange={handleInputChange}
         />
       </section>
+      
+      {/* CAMBIO PRINCIPAL: Provincia select, Localidad campo libre */}
       <section className="form-grid-2-cols">
         <TextField
           variant="filled"
@@ -195,30 +171,26 @@ const EmpresaInfoBox = () => {
           label="Provincia"
           name="province"
           value={formData.province}
-          onChange={handleProvinceChange} // <-- usa esta función
+          onChange={handleInputChange}
         >
-          {data.map((item) => (
+          {provincias.map((item) => (
             <MenuItem key={item.country.value} value={item.country.value}>
               {item.country.label}
             </MenuItem>
           ))}
         </TextField>
+        
+        {/* Campo LOCALIDAD ahora es LIBRE (sin select, sin disabled) */}
         <TextField
           variant="filled"
-          select
           label="Localidad"
           name="locality"
           value={formData.locality}
-          onChange={handleLocalityChange}
-          disabled={!formData.province}
-        >
-          {(data.find((item) => item.country.value === formData.province)?.cities || []).map((city) => (
-    <MenuItem key={city.value} value={city.value}>
-      {city.label}
-    </MenuItem>
-  ))}
-        </TextField>
+          onChange={handleInputChange}
+          placeholder="Ej: Madrid, Barcelona, Sevilla..."
+        />
       </section>
+      
       <TextField
         label="Dirección"
         variant="filled"
@@ -281,40 +253,40 @@ const EmpresaInfoBox = () => {
         }}
       />
       <FormControlLabel
-  control={
-    <Checkbox
-      name="accept_terms"
-      checked={formData.accept_terms}
-      onChange={(e) =>
-        setFormData((prev) => ({
-          ...prev,
-          accept_terms: e.target.checked,
-        }))
-      }
-    />
-  }
-  label={<Typography variant="bodySRegular">Acepto los términos y condiciones</Typography>}
-  style={{ display: 'flex', justifyContent: 'center', width: '100%' }}
-/>
+        control={
+          <Checkbox
+            name="accept_terms"
+            checked={formData.accept_terms}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                accept_terms: e.target.checked,
+              }))
+            }
+          />
+        }
+        label={<Typography variant="bodySRegular">Acepto los términos y condiciones</Typography>}
+        style={{ display: 'flex', justifyContent: 'center', width: '100%' }}
+      />
       <section className="form-grid-2-cols">
-          <Button
-            variant="contained"
-            color="secondary"
-            className="btnatras"
-            onClick={handleLogin}
-          >
-            Ya tengo una cuenta
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            className="btnsiguiente"
-            onClick={handleFarmRegister}
-            disabled={!isFormValid()} // Deshabilitar si el formulario no es válido
-          >
-            Siguiente
-          </Button>
-        </section>
+        <Button
+          variant="contained"
+          color="secondary"
+          className="btnatras"
+          onClick={handleLogin}
+        >
+          Ya tengo una cuenta
+        </Button>
+        <Button
+          variant="contained"
+          color="primary"
+          className="btnsiguiente"
+          onClick={handleFarmRegister}
+          disabled={!isFormValid()}
+        >
+          Siguiente
+        </Button>
+      </section>
     </section>
   );
 };
