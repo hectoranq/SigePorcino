@@ -24,8 +24,10 @@ import {
   FormGroup,
   Checkbox,
   Divider,
+  DialogTitle,
+  DialogActions,
 } from "@mui/material"
-import { Add, KeyboardArrowDown } from "@mui/icons-material"
+import { Add, KeyboardArrowDown, Delete } from "@mui/icons-material"
 
 type TipoPersona = "empresa" | "persona"
 
@@ -77,6 +79,10 @@ export default function LinkedCompaniesManagersPage() {
     telefono: "",
     email: "",
   })
+
+  // Estados para el diálogo de confirmación de eliminación
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
+  const [empresaToDelete, setEmpresaToDelete] = useState<number | null>(null)
 
   const handleAgregarNuevo = () => {
     setOpen(true)
@@ -165,6 +171,26 @@ export default function LinkedCompaniesManagersPage() {
 
   const handleVerMas = (index: number) => {
     console.log("Ver más de empresa:", empresas[index])
+  }
+
+  // Funciones para eliminar
+  const handleEliminarClick = (index: number) => {
+    setEmpresaToDelete(index)
+    setOpenDeleteDialog(true)
+  }
+
+  const handleConfirmDelete = () => {
+    if (empresaToDelete !== null) {
+      setEmpresas(prev => prev.filter((_, index) => index !== empresaToDelete))
+      console.log("Empresa eliminada:", empresas[empresaToDelete])
+    }
+    setOpenDeleteDialog(false)
+    setEmpresaToDelete(null)
+  }
+
+  const handleCancelDelete = () => {
+    setOpenDeleteDialog(false)
+    setEmpresaToDelete(null)
   }
 
   return (
@@ -316,6 +342,24 @@ export default function LinkedCompaniesManagersPage() {
                         >
                           Ver más
                         </Button>
+                        {/* BOTÓN ELIMINAR AGREGADO */}
+                        <Button
+                          size="small"
+                          variant="contained"
+                          startIcon={<Delete />}
+                          onClick={() => handleEliminarClick(index)}
+                          sx={{
+                            bgcolor: "#f44336",
+                            color: "white",
+                            textTransform: "none",
+                            fontSize: "0.75rem",
+                            "&:hover": {
+                              bgcolor: "#d32f2f",
+                            },
+                          }}
+                        >
+                          Eliminar
+                        </Button>
                       </Box>
                     </TableCell>
                   </TableRow>
@@ -325,7 +369,43 @@ export default function LinkedCompaniesManagersPage() {
           </TableContainer>
         </Paper>
 
-        {/* Dialog/Popup */}
+        {/* Dialog de confirmación de eliminación */}
+        <Dialog
+          open={openDeleteDialog}
+          onClose={handleCancelDelete}
+          maxWidth="xs"
+          fullWidth
+        >
+          <DialogTitle>
+            ¿Confirmar eliminación?
+          </DialogTitle>
+          <DialogContent>
+            <Typography>
+              ¿Estás seguro de que deseas eliminar a{" "}
+              <strong>{empresaToDelete !== null ? empresas[empresaToDelete]?.nombre : ""}</strong>?
+              Esta acción no se puede deshacer.
+            </Typography>
+          </DialogContent>
+          <DialogActions sx={{ p: 2 }}>
+            <Button
+              onClick={handleCancelDelete}
+              variant="outlined"
+              color="inherit"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConfirmDelete}
+              variant="contained"
+              color="error"
+              startIcon={<Delete />}
+            >
+              Eliminar
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Dialog/Popup de registro - mantener igual */}
         <Dialog
           open={open}
           onClose={handleClose}

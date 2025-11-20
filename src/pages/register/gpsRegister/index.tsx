@@ -12,21 +12,24 @@ const FarmRegister = () => {
   const [formData, setFormData] = useState({
     rega: "",
     farm_name: "",
-    locality: "",
-    province: "",
+    locality: "", // Campo libre de texto
+    province: "", // Campo select (dropdown)
     address: "",
     species: "",
     group: "",
     zootechnical_classification: "",
     health_qualification: "",
   });
-  const [data, setData] = useState([]);
+  
+  // Solo necesitamos provincias para el dropdown 
+  const [provincias, setProvincias] = useState([]);
   const [groupSpeciesData, setGroupSpeciesData] = useState([]);
 
   useEffect(() => {
+    // Cargar solo las provincias
     fetchParameters().then((result) => {
-      setData(result);
-      console.log("Provincias y localidades cargadas:", result);
+      setProvincias(result);
+      console.log("Provincias cargadas:", result);
     });
   }, []);
 
@@ -37,10 +40,10 @@ const FarmRegister = () => {
     });
   }, []);
 
-
   const handleIndexRegister = () => {
     router.push("/register");
   };
+  
   const handlepaymentMethod = () => {
     setFarmFormData(formData); // Guarda en Zustand
     router.push("/register/gpsRegister/paymentMethod");
@@ -58,6 +61,21 @@ const FarmRegister = () => {
 
   const isFormValid = () => {
     return Object.values(formData).every((v) => v && v !== "");
+  };
+
+  // Función para obtener todas las especies de todos los grupos
+  const getAllSpecies = () => {
+    const allSpecies = [];
+    groupSpeciesData.forEach(group => {
+      if (group.species) {
+        allSpecies.push(...group.species);
+      }
+    });
+    // Eliminar duplicados por value
+    const uniqueSpecies = allSpecies.filter((species, index, self) => 
+      index === self.findIndex(s => s.value === species.value)
+    );
+    return uniqueSpecies;
   };
 
   return (
@@ -130,35 +148,35 @@ const FarmRegister = () => {
             value={formData.farm_name}
             onChange={handleInputChange}
           />
-          <TextField
-              variant="filled"
-              select
-              label="Localidad"
-              name="locality"
-              value={formData.locality}
-              onChange={handleInputChange}
-          >
-              {data.map((item) => (
-                <MenuItem key={item.country.value} value={item.country.value}>
-                  {item.country.label}
-                </MenuItem>
-              ))}
-          </TextField>
-          <TextField
+          
+          {/* CAMBIO PRINCIPAL: Provincia primero (dropdown), Localidad segundo (campo libre) */}
+          <section className="form-grid-2-cols">
+            <TextField
               variant="filled"
               select
               label="Provincia"
               name="province"
               value={formData.province}
               onChange={handleInputChange}
-              disabled={!formData.locality}
             >
-              {(data.find((item) => item.country.value === formData.locality)?.cities || []).map((city) => (
-                <MenuItem key={city.value} value={city.value}>
-                  {city.label}
+              {provincias.map((item) => (
+                <MenuItem key={item.country.value} value={item.country.value}>
+                  {item.country.label}
                 </MenuItem>
               ))}
-          </TextField>
+            </TextField>
+            
+            {/* Campo LOCALIDAD ahora es LIBRE (sin select, sin disabled) */}
+            <TextField
+              variant="filled"
+              label="Localidad"
+              name="locality"
+              value={formData.locality}
+              onChange={handleInputChange}
+              placeholder="Ej: Madrid, Barcelona, Sevilla..."
+            />
+          </section>
+          
           <TextField
             label="Dirección de la granja"
             variant="filled"
@@ -167,6 +185,22 @@ const FarmRegister = () => {
             onChange={handleInputChange}
           />
           <section className="form-grid-2-cols">
+            {/* ESPECIE ahora es INDEPENDIENTE (sin disabled, sin dependencia de grupo) */}
+            <TextField
+              variant="filled"
+              select
+              label="Especie"
+              name="species"
+              value={formData.species}
+              onChange={handleInputChange}
+            >
+              {getAllSpecies().map((specie) => (
+                <MenuItem key={specie.value} value={specie.value}>
+                  {specie.label}
+                </MenuItem>
+              ))}
+            </TextField>
+            
             <TextField
               variant="filled"
               select
@@ -178,21 +212,6 @@ const FarmRegister = () => {
               {groupSpeciesData.map((item) => (
                 <MenuItem key={item.group.value} value={item.group.value}>
                   {item.group.label}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              variant="filled"
-              select
-              label="Especie"
-              name="species"
-              value={formData.species}
-              onChange={handleInputChange}
-              disabled={!formData.group}
-            >
-              {(groupSpeciesData.find((item) => item.group.value === formData.group)?.species || []).map((specie) => (
-                <MenuItem key={specie.value} value={specie.value}>
-                  {specie.label}
                 </MenuItem>
               ))}
             </TextField>
