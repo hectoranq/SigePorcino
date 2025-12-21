@@ -19,6 +19,7 @@ import {
 } from "@mui/material"
 import { Add, KeyboardArrowDown } from "@mui/icons-material"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
+import { buttonStyles, headerColors, headerAccentColors, sectionHeaderStyle, headerBarStyle } from "./buttonStyles"
 
 const theme = createTheme({
   palette: {
@@ -188,26 +189,10 @@ export function ConsumoElectricidadSection() {
           {/* Page Content */}
           <Box sx={{ flexGrow: 1, p: 3, bgcolor: "grey.50" }}>
             <Paper elevation={1} sx={{ borderRadius: 2 }}>
-              {/* Header */}
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  p: 3,
-                  borderBottom: 1,
-                  borderColor: "divider",
-                }}
-              >
+{/* Header */}
+              <Box sx={sectionHeaderStyle}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  <Box
-                    sx={{
-                      width: 4,
-                      height: 32,
-                      bgcolor: "primary.main",
-                      borderRadius: 2,
-                    }}
-                  />
+                  <Box sx={headerBarStyle} />
                   <Typography variant="h5" fontWeight={600}>
                     Consumo de electricidad
                   </Typography>
@@ -216,7 +201,7 @@ export function ConsumoElectricidadSection() {
                   variant="contained" 
                   color="secondary" 
                   startIcon={<Add />} 
-                  sx={{ textTransform: "none" }}
+                  sx={buttonStyles.primary}
                   onClick={handleOpen}
                 >
                   Agregar nuevo
@@ -287,17 +272,10 @@ export function ConsumoElectricidadSection() {
                         </TableCell>
                         <TableCell>
                           <Box sx={{ display: "flex", gap: 1 }}>
-                            <Button
+<Button
                               size="small"
                               variant="contained"
-                              sx={{
-                                bgcolor: "#facc15",
-                                color: "grey.900",
-                                textTransform: "none",
-                                "&:hover": {
-                                  bgcolor: "#eab308",
-                                },
-                              }}
+                              sx={buttonStyles.edit}
                               onClick={() => handleEdit(index)}
                             >
                               Editar
@@ -305,15 +283,7 @@ export function ConsumoElectricidadSection() {
                             <Button
                               size="small"
                               variant="outlined"
-                              sx={{
-                                borderColor: "#93c5fd",
-                                color: "#2563eb",
-                                textTransform: "none",
-                                "&:hover": {
-                                  bgcolor: "#eff6ff",
-                                  borderColor: "#93c5fd",
-                                },
-                              }}
+                              sx={buttonStyles.secondary}
                               onClick={() => handleVerMas(index)}
                             >
                               Ver más
@@ -343,9 +313,9 @@ export function ConsumoElectricidadSection() {
             <ThemeProvider theme={theme}>
               <Box sx={{ minHeight: "auto", bgcolor: "#f9fafb", p: 3 }}>
                 <Paper sx={{ maxWidth: 800, mx: "auto", borderRadius: 2, overflow: "hidden" }}>
-                  {/* Header dinámico según el modo */}
+{/* Header dinámico según el modo */}
                   <Box sx={{ 
-                    bgcolor: viewMode ? "#64748b" : editMode ? "#f59e0b" : "#22d3ee", 
+                    bgcolor: viewMode ? headerColors.view : editMode ? headerColors.edit : headerColors.create, 
                     px: 3, 
                     py: 2, 
                     display: "flex", 
@@ -355,7 +325,7 @@ export function ConsumoElectricidadSection() {
                     <Box sx={{ 
                       width: 4, 
                       height: 24, 
-                      bgcolor: viewMode ? "#94a3b8" : editMode ? "#fbbf24" : "#67e8f9", 
+                      bgcolor: viewMode ? headerAccentColors.view : editMode ? headerAccentColors.edit : headerAccentColors.create, 
                       borderRadius: 0.5 
                     }} />
                     <Typography variant="h6" sx={{ color: "white", fontWeight: 500 }}>
@@ -446,11 +416,11 @@ export function ConsumoElectricidadSection() {
 
                     {/* Botones dinámicos según el modo */}
                     <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-                      {viewMode ? (
+{viewMode ? (
                         <Button
                           variant="outlined"
                           onClick={handleClose}
-                          sx={{ textTransform: "none", color: "#2563eb", borderColor: "#93c5fd" }}
+                          sx={buttonStyles.close}
                         >
                           Cerrar
                         </Button>
@@ -459,14 +429,14 @@ export function ConsumoElectricidadSection() {
                           <Button
                             variant="outlined"
                             onClick={handleClose}
-                            sx={{ textTransform: "none", color: "#2563eb", borderColor: "#93c5fd" }}
+                            sx={buttonStyles.cancel}
                           >
                             Cancelar
                           </Button>
                           <Button
                             variant="contained"
                             onClick={handleSubmit}
-                            sx={{ textTransform: "none" }}
+                            sx={buttonStyles.save}
                           >
                             {editMode ? "Actualizar" : "Guardar"}
                           </Button>

@@ -234,7 +234,6 @@ export default function LinkedCompaniesManagersPage() {
               sx={{
                 bgcolor: "#4caf50",
                 "&:hover": { bgcolor: "#45a049" },
-                textTransform: "none",
                 borderRadius: 1,
               }}
             >
@@ -316,7 +315,6 @@ export default function LinkedCompaniesManagersPage() {
                           sx={{
                             bgcolor: "#ffeb3b",
                             color: "#333",
-                            textTransform: "none",
                             fontSize: "0.75rem",
                             "&:hover": {
                               bgcolor: "#fdd835",
@@ -332,7 +330,6 @@ export default function LinkedCompaniesManagersPage() {
                           sx={{
                             borderColor: "#64b5f6",
                             color: "#1976d2",
-                            textTransform: "none",
                             fontSize: "0.75rem",
                             "&:hover": {
                               bgcolor: "#e3f2fd",
@@ -351,7 +348,6 @@ export default function LinkedCompaniesManagersPage() {
                           sx={{
                             bgcolor: "#f44336",
                             color: "white",
-                            textTransform: "none",
                             fontSize: "0.75rem",
                             "&:hover": {
                               bgcolor: "#d32f2f",

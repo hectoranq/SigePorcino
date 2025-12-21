@@ -73,6 +73,14 @@ import { EntradasCombustibleSection } from "../../components/sections/EntradasCo
 import useFarmFormStore from "../../_store/farm"
 import { registerFarm } from "../../action/registerFarm";
 import { RegistroVeterinarioSection } from "../../components/sections/RegistroVeterinarioSection";
+import { PlanLLDSection } from "../../components/sections/PlanLLDSection ";
+import { MantenimientoInstalacionesSection } from "../../components/sections/MantenimientoInstalacionesSection";
+import { PlanRecogidaCadaveresSection } from "../../components/sections/PlanRecogidaCadaveresSection";
+import { PlanGestionResiduosSection } from "../../components/sections/PlanGestionResiduosSection";
+import { PlanGestionAmbientalSection } from "../../components/sections/PlanGestionAmbientalSection";
+import { PlanFormacionSection } from "../../components/sections/PlanFormacionSection";
+import { PlanBioseguridadSection } from "../../components/sections/PlanBioseguridadSection";
+import { PlanSanitarioSection } from "../../components/sections/PlanSanitarioSection";
 
 const drawerWidth = 320
 
@@ -439,24 +447,84 @@ const Home = () => {
               </Paper>
             </ListItem>
 
-            {/* Other menu items */}
-            {[
-  { key: "planes", icon: Assignment, text: "Desarrollo de planes" },
-  { key: "control", icon: EventNote, text: "Control diario" },
-].map(({ key, icon: Icon, text }) => (
-  <ListItem key={key} disablePadding>
-    <ListItemButton onClick={() => handleToggle(key)} sx={{ borderRadius: 2, mb: 0.5 }}>
-      <ListItemIcon>
-        <Icon sx={{ color: "primary" }} />
-      </ListItemIcon>
-      <ListItemText primary={text} />
-      {openOtherSections[key] ? <ExpandLess /> : <ExpandMore />}
-    </ListItemButton>
-  </ListItem>
-))}
+            {/* Desarrollo de planes - CON SUBMENÚS */}
+            <ListItem disablePadding>
+              <Paper elevation={0} sx={{ width: "100%", bgcolor: "grey.50", borderRadius: 2, mb: 0.5 }}>
+                <ListItemButton onClick={() => handleToggle("planes")} sx={{ borderRadius: 2 }}>
+                  <ListItemIcon>
+                    <Assignment sx={{ color: "primary" }} />
+                  </ListItemIcon>
+                  <ListItemText primary="Desarrollo de planes" />
+                  {openOtherSections.planes ? <ExpandLess /> : <ExpandMore />}
+                </ListItemButton>
+                <Collapse in={openOtherSections.planes} timeout="auto" unmountOnExit>
+                  <List component="div" disablePadding sx={{ pl: 4, pb: 1 }}>
+                    <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("plan_lld")}>
+                      <ListItemText
+                        primary="LLD"
+                        sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+                      />
+                    </ListItemButton>
+                    <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("plan_bioseguridad")}>
+                      <ListItemText
+                        primary="Bioseguridad"
+                        sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+                      />
+                    </ListItemButton>
+                    <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("plan_sanitario")}>
+                      <ListItemText
+                        primary="Sanitario"
+                        sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+                      />
+                    </ListItemButton>
+                    <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("plan_mantenimiento_instalaciones")}>
+                      <ListItemText
+                        primary="Mantenimiento de instalaciones"
+                        sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+                      />
+                    </ListItemButton>
+                    <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("plan_formacion")}>
+                      <ListItemText
+                        primary="Formación"
+                        sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+                      />
+                    </ListItemButton>
+                    <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("plan_recogida_cadaveres")}>
+                      <ListItemText
+                        primary="Recogida de cadáveres"
+                        sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+                      />
+                    </ListItemButton>
+                    <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("plan_gestion_residuos")}>
+                      <ListItemText
+                        primary="Gestión de residuos"
+                        sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+                      />
+                    </ListItemButton>
+                    <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("plan_gestion_ambiental")}>
+                      <ListItemText
+                        primary="Gestión ambiental"
+                        sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+                      />
+                    </ListItemButton>
+                  </List>
+                </Collapse>
+              </Paper>
+            </ListItem>
 
-{/* Limpieza y mantenimiento con submenús */}
-<ListItem disablePadding>
+            {/* Control diario */}
+            <ListItem disablePadding>
+              <ListItemButton onClick={() => handleToggle("control")} sx={{ borderRadius: 2, mb: 0.5 }}>
+                <ListItemIcon>
+                  <EventNote sx={{ color: "primary" }} />
+                </ListItemIcon>
+                <ListItemText primary="Control diario" />
+                {openOtherSections.control ? <ExpandLess /> : <ExpandMore />}
+              </ListItemButton>
+            </ListItem>
+
+            {/* Limpieza y mantenimiento - mantener igual */}
+            <ListItem disablePadding>
   <Paper elevation={0} sx={{ width: "100%", bgcolor: "grey.50", borderRadius: 2, mb: 0.5 }}>
     <ListItemButton onClick={() => handleToggle("limpieza")} sx={{ borderRadius: 2 }}>
       <ListItemIcon>
@@ -724,27 +792,34 @@ const Home = () => {
                 {activeSection === "empresas_vinculadas" && "Información del personal"}
                 {activeSection === "registro_personal" && "Información del personal"}
                 {activeSection === "registro_veterinario" && "Información del personal"}
-                {activeSection === "planes" && "Desarrollo de planes"}
+                {(activeSection === "plan_lld" ||
+                  activeSection === "plan_bioseguridad" ||
+                  activeSection === "plan_sanitario" ||
+                  activeSection === "plan_mantenimiento_instalaciones" ||
+                  activeSection === "plan_formacion" ||
+                  activeSection === "plan_recogida_cadaveres" ||
+                  activeSection === "plan_gestion_residuos" ||
+                  activeSection === "plan_gestion_ambiental") && "Desarrollo de planes"}
                 {activeSection === "control" && "Control diario"}
                 {(activeSection === "desratizacion" || 
-      activeSection === "desinsectacion" || 
-      activeSection === "limpieza_desinfeccion" || 
-      activeSection === "arco_desinfeccion" || 
-      activeSection === "limpieza_silos" || 
-      activeSection === "limpieza_tuberias" || 
-      activeSection === "mantenimiento_equipos" ||
-      activeSection === "recogida_cadaveres" ||
-      activeSection === "recogida_residuos") && "Limpieza y mantenimiento"}
+                  activeSection === "desinsectacion" || 
+                  activeSection === "limpieza_desinfeccion" || 
+                  activeSection === "arco_desinfeccion" || 
+                  activeSection === "limpieza_silos" || 
+                  activeSection === "limpieza_tuberias" || 
+                  activeSection === "mantenimiento_equipos" ||
+                  activeSection === "recogida_cadaveres" ||
+                  activeSection === "recogida_residuos") && "Limpieza y mantenimiento"}
                 {(activeSection === "etiquetas_pienso" ||
-      activeSection === "descarga_sacos_pienso" ||
-      activeSection === "descarga_pienso_granel" ||
-      activeSection === "consumo_agua" ||
-      activeSection === "consumo_electricidad" ||
-      activeSection === "entradas_combustible") && "Alimentación y consumo"}
+                  activeSection === "descarga_sacos_pienso" ||
+                  activeSection === "descarga_pienso_granel" ||
+                  activeSection === "consumo_agua" ||
+                  activeSection === "consumo_electricidad" ||
+                  activeSection === "entradas_combustible") && "Alimentación y consumo"}
                 {activeSection === "bienestar" && "Bienestar animal"}
                 {(activeSection === "entrada_lechones" ||
-      activeSection === "salida_matadero" ||
-      activeSection === "baja_animales") && "Altas y bajas"}
+                  activeSection === "salida_matadero" ||
+                  activeSection === "baja_animales") && "Altas y bajas"}
                 {activeSection === "reportes" && "Reportes"}
                 {activeSection === "main" && ""}
               </Link>
@@ -767,8 +842,23 @@ const Home = () => {
                       return "Registro de personal";
                     case "registro_veterinario":
                       return "Registro de veterinario de explotación";
-                    case "planes":
-                      return "Desarrollo de planes";
+                    // Nuevas secciones de Desarrollo de planes
+                    case "plan_lld":
+                      return "LLD";
+                    case "plan_bioseguridad":
+                      return "Bioseguridad";
+                    case "plan_sanitario":
+                      return "Sanitario";
+                    case "plan_mantenimiento_instalaciones":
+                      return "Mantenimiento de instalaciones";
+                    case "plan_formacion":
+                      return "Formación";
+                    case "plan_recogida_cadaveres":
+                      return "Recogida de cadáveres";
+                    case "plan_gestion_residuos":
+                      return "Gestión de residuos";
+                    case "plan_gestion_ambiental":
+                      return "Gestión ambiental";
                     case "control":
                       return "Control diario";
                     case "desratizacion":
@@ -837,30 +927,39 @@ const Home = () => {
             {activeSection === "registro_personal" && <PersonalRegisterSection />}
             {activeSection === "registro_veterinario" && <RegistroVeterinarioSection />}
 
-            {/* Nuevas secciones de Limpieza y mantenimiento */}
-            {activeSection === "desratizacion" &&  <DesratizacionSection />}
-{activeSection === "desinsectacion" && <DesinsectacionSection />}
+            {/* Nuevas secciones de Desarrollo de planes */}
+            {activeSection === "plan_lld" && <PlanLLDSection />}
+            {activeSection === "plan_bioseguridad" && <PlanBioseguridadSection />}
+            {activeSection === "plan_sanitario" && <PlanSanitarioSection />}
+            {activeSection === "plan_mantenimiento_instalaciones" && <MantenimientoInstalacionesSection />}
+            
+            {activeSection === "plan_formacion" && <PlanFormacionSection />}
+            {activeSection === "plan_recogida_cadaveres" && <PlanRecogidaCadaveresSection />}
+            {activeSection === "plan_gestion_residuos" && <PlanGestionResiduosSection />}
+            {activeSection === "plan_gestion_ambiental" && <PlanGestionAmbientalSection />}
 
-{activeSection === "arco_desinfeccion" && <ArcoDesinfeccionSection />}
-{activeSection === "limpieza_silos" && <LimpiezaDesinfeccionSection />}
-{activeSection === "limpieza_tuberias" && <LimpiezaDesinfeccionTuberiasSection />}
-{activeSection === "mantenimiento_equipos" && <MantenimientoEquiposSection />}
-{activeSection === "recogida_cadaveres" && <RecogidaCadaveresSection />}
-{activeSection === "recogida_residuos" && <RecogidaResiduosSection />}
+            {/* Secciones de Limpieza y mantenimiento - mantener igual */}
+            {activeSection === "desratizacion" && <DesratizacionSection />}
+            {activeSection === "desinsectacion" && <DesinsectacionSection />}
+            {activeSection === "arco_desinfeccion" && <ArcoDesinfeccionSection />}
+            {activeSection === "limpieza_silos" && <LimpiezaDesinfeccionSection />}
+            {activeSection === "limpieza_tuberias" && <LimpiezaDesinfeccionTuberiasSection />}
+            {activeSection === "mantenimiento_equipos" && <MantenimientoEquiposSection />}
+            {activeSection === "recogida_cadaveres" && <RecogidaCadaveresSection />}
+            {activeSection === "recogida_residuos" && <RecogidaResiduosSection />}
 
-{/* Secciones de Altas y bajas */}
-{activeSection === "entrada_lechones" && <EntradaLechonesSection />}
-{activeSection === "salida_matadero" && <SalidaMataderoSection />}
-{activeSection === "baja_animales" && <BajaAnimalesSection />}
+            {/* Secciones de Altas y bajas - mantener igual */}
+            {activeSection === "entrada_lechones" && <EntradaLechonesSection />}
+            {activeSection === "salida_matadero" && <SalidaMataderoSection />}
+            {activeSection === "baja_animales" && <BajaAnimalesSection />}
 
-{/* Secciones de Alimentación y consumo */}
-{activeSection === "etiquetas_pienso" && <EtiquetasPiensoSection />}
-{activeSection === "descarga_sacos_pienso" && <DescargaSacosPiensoSection />}
-
-{activeSection === "descarga_pienso_granel" && <DescargaPiensoGranelSection />}
-{activeSection === "consumo_agua" && <ConsumoAguaSection />}
-{activeSection === "consumo_electricidad" && <ConsumoElectricidadSection />}
-{activeSection === "entradas_combustible" && <EntradasCombustibleSection />}
+            {/* Secciones de Alimentación y consumo - mantener igual */}
+            {activeSection === "etiquetas_pienso" && <EtiquetasPiensoSection />}
+            {activeSection === "descarga_sacos_pienso" && <DescargaSacosPiensoSection />}
+            {activeSection === "descarga_pienso_granel" && <DescargaPiensoGranelSection />}
+            {activeSection === "consumo_agua" && <ConsumoAguaSection />}
+            {activeSection === "consumo_electricidad" && <ConsumoElectricidadSection />}
+            {activeSection === "entradas_combustible" && <EntradasCombustibleSection />}
           </Box>
         </Box>
 

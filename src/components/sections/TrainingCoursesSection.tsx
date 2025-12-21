@@ -122,7 +122,6 @@ export default function TrainingCoursesPage() {
             sx={{
               bgcolor: "#4caf50",
               "&:hover": { bgcolor: "#45a049" },
-              textTransform: "none",
               borderRadius: 1,
             }}
           >
@@ -160,7 +159,6 @@ export default function TrainingCoursesPage() {
                           bgcolor: "#fdd835",
                           color: "text.primary",
                           "&:hover": { bgcolor: "#fbc02d" },
-                          textTransform: "none",
                           minWidth: "auto",
                           px: 2,
                         }}
@@ -173,7 +171,6 @@ export default function TrainingCoursesPage() {
                         sx={{
                           bgcolor: "#42a5f5",
                           "&:hover": { bgcolor: "#1e88e5" },
-                          textTransform: "none",
                           minWidth: "auto",
                           px: 2,
                         }}

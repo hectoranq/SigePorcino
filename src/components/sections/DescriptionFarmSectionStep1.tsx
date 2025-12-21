@@ -18,6 +18,7 @@ import {
 
 import useUserStore from "../../_store/user"
 import useFarmFormStore from "../../_store/farm"
+import { buttonStyles } from "./buttonStyles"
 
 import { FarmDetails } from "../../data/repository"; // Ajusta la ruta si es necesario
 
@@ -682,20 +683,17 @@ const DescriptionFarmSectionStep1 = ({ onNext }: { onNext: () => void }) => {
             </FormControl>
           </Box>
 
-          {/* Next Button */}
+{/* Next Button */}
           <section className="form-grid-2-cols">
             <Button
               variant="outlined"
-              color="secondary"
-              className="btnatras"
-              sx={{ mr: 2 }}
+              sx={buttonStyles.back}
             >
               Atras
             </Button>
             <Button
               variant="contained"
-              color="primary"
-              className="btnsiguiente"
+              sx={buttonStyles.next}
               onClick={handleSubmit}
               disabled={!currentFarm} // Deshabilitar si no hay granja seleccionada
             >

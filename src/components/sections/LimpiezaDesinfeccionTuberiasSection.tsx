@@ -20,6 +20,7 @@ import {
 } from "@mui/material"
 import { Add, KeyboardArrowDown } from "@mui/icons-material"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
+import { buttonStyles, headerColors, headerAccentColors, sectionHeaderStyle, headerBarStyle } from "./buttonStyles"
 
 const theme = createTheme({
   palette: {
@@ -249,7 +250,7 @@ export function LimpiezaDesinfeccionTuberiasSection() {
                   variant="contained" 
                   color="secondary" 
                   startIcon={<Add />} 
-                  sx={{ textTransform: "none" }}
+                  sx={buttonStyles.save}
                   onClick={handleOpen}
                 >
                   Agregar nuevo
@@ -319,11 +320,10 @@ export function LimpiezaDesinfeccionTuberiasSection() {
                               size="small"
                               variant="contained"
                               sx={{
-                                bgcolor: "#facc15",
+                                bgcolor: "#eab308",
                                 color: "grey.900",
-                                textTransform: "none",
                                 "&:hover": {
-                                  bgcolor: "#eab308",
+                                  bgcolor: "#ca8a04",
                                 },
                               }}
                               onClick={() => handleEdit(index)}
@@ -336,7 +336,6 @@ export function LimpiezaDesinfeccionTuberiasSection() {
                               sx={{
                                 borderColor: "#93c5fd",
                                 color: "#2563eb",
-                                textTransform: "none",
                                 "&:hover": {
                                   bgcolor: "#eff6ff",
                                   borderColor: "#93c5fd",
@@ -368,188 +367,186 @@ export function LimpiezaDesinfeccionTuberiasSection() {
           }}
         >
           <DialogContent sx={{ p: 0 }}>
-            <ThemeProvider theme={theme}>
-              <Box sx={{ minHeight: "auto", bgcolor: "#f9fafb", p: 3 }}>
-                <Paper sx={{ maxWidth: 1024, mx: "auto", borderRadius: 2, overflow: "hidden" }}>
-                  {/* Header dinámico según el modo */}
+            <Box sx={{ minHeight: "auto", bgcolor: "#f9fafb", p: 3 }}>
+              <Paper sx={{ maxWidth: 1024, mx: "auto", borderRadius: 2, overflow: "hidden" }}>
+                {/* Header dinámico según el modo */}
+                <Box sx={{ 
+                  bgcolor: viewMode ? headerColors.view : editMode ? headerColors.edit : headerColors.create, 
+                  px: 3, 
+                  py: 2, 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: 1 
+                }}>
                   <Box sx={{ 
-                    bgcolor: viewMode ? "#64748b" : editMode ? "#f59e0b" : "#22d3ee", 
-                    px: 3, 
-                    py: 2, 
-                    display: "flex", 
-                    alignItems: "center", 
-                    gap: 1 
-                  }}>
-                    <Box sx={{ 
-                      width: 4, 
-                      height: 24, 
-                      bgcolor: viewMode ? "#94a3b8" : editMode ? "#fbbf24" : "#67e8f9", 
-                      borderRadius: 0.5 
-                    }} />
-                    <Typography variant="h6" sx={{ color: "white", fontWeight: 500 }}>
-                      {viewMode ? "Detalle de limpieza y desinfección de tuberías" : editMode ? "Editar limpieza y desinfección de tuberías" : "Registro de limpieza y desinfección de tuberías"}
-                    </Typography>
-                  </Box>
+                    width: 4, 
+                    height: 24, 
+                    bgcolor: viewMode ? headerAccentColors.view : editMode ? headerAccentColors.edit : headerAccentColors.create, 
+                    borderRadius: 0.5 
+                  }} />
+                  <Typography variant="h6" sx={{ color: "white", fontWeight: 500 }}>
+                    {viewMode ? "Detalle de limpieza y desinfección de tuberías" : editMode ? "Editar limpieza y desinfección de tuberías" : "Registro de limpieza y desinfección de tuberías"}
+                  </Typography>
+                </Box>
 
-                  <Box sx={{ p: 3 }}>
-                    {/* Producto empleado y Fecha */}
-                    <Grid container spacing={3} sx={{ mb: 3 }}>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          placeholder="Producto empleado"
-                          variant="standard"
-                          value={formData.productoEmpleado}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, productoEmpleado: e.target.value }))}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          label="Fecha"
-                          type="date"
-                          variant="standard"
-                          value={formData.fecha}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, fecha: e.target.value }))}
-                          InputLabelProps={{
-                            shrink: true,
-                          }}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
-                        />
-                      </Grid>
+                <Box sx={{ p: 3 }}>
+                  {/* Producto empleado y Fecha */}
+                  <Grid container spacing={3} sx={{ mb: 3 }}>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        placeholder="Producto empleado"
+                        variant="standard"
+                        value={formData.productoEmpleado}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, productoEmpleado: e.target.value }))}
+                        InputProps={{
+                          readOnly: viewMode,
+                        }}
+                        sx={{
+                          "& .MuiInputBase-input": {
+                            color: viewMode ? "text.secondary" : "text.primary",
+                          },
+                        }}
+                      />
                     </Grid>
-
-                    {/* Operario y Supervisado por */}
-                    <Grid container spacing={3} sx={{ mb: 3 }}>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          placeholder="Operario"
-                          variant="standard"
-                          value={formData.operario}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, operario: e.target.value }))}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          select={!viewMode}
-                          label="Supervisado por"
-                          variant="standard"
-                          value={formData.supervisadoPor}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, supervisadoPor: e.target.value }))}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
-                        >
-                          {!viewMode && SUPERVISORES.map((supervisor) => (
-                            <MenuItem key={supervisor} value={supervisor}>
-                              {supervisor}
-                            </MenuItem>
-                          ))}
-                        </TextField>
-                      </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        label="Fecha"
+                        type="date"
+                        variant="standard"
+                        value={formData.fecha}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, fecha: e.target.value }))}
+                        InputLabelProps={{
+                          shrink: true,
+                        }}
+                        InputProps={{
+                          readOnly: viewMode,
+                        }}
+                        sx={{
+                          "& .MuiInputBase-input": {
+                            color: viewMode ? "text.secondary" : "text.primary",
+                          },
+                        }}
+                      />
                     </Grid>
+                  </Grid>
 
-                    {/* Nro de Tubería */}
-                    <TextField
-                      fullWidth
-                      placeholder="Nro de Tubería"
-                      variant="standard"
-                      value={formData.nroSilo}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, nroSilo: e.target.value }))}
-                      sx={{ 
-                        mb: 3,
-                        "& .MuiInputBase-input": {
-                          color: viewMode ? "text.secondary" : "text.primary",
-                        },
-                      }}
-                      InputProps={{
-                        readOnly: viewMode,
-                      }}
-                    />
+                  {/* Operario y Supervisado por */}
+                  <Grid container spacing={3} sx={{ mb: 3 }}>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        placeholder="Operario"
+                        variant="standard"
+                        value={formData.operario}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, operario: e.target.value }))}
+                        InputProps={{
+                          readOnly: viewMode,
+                        }}
+                        sx={{
+                          "& .MuiInputBase-input": {
+                            color: viewMode ? "text.secondary" : "text.primary",
+                          },
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        select={!viewMode}
+                        label="Supervisado por"
+                        variant="standard"
+                        value={formData.supervisadoPor}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, supervisadoPor: e.target.value }))}
+                        InputProps={{
+                          readOnly: viewMode,
+                        }}
+                        sx={{
+                          "& .MuiInputBase-input": {
+                            color: viewMode ? "text.secondary" : "text.primary",
+                          },
+                        }}
+                      >
+                        {!viewMode && SUPERVISORES.map((supervisor) => (
+                          <MenuItem key={supervisor} value={supervisor}>
+                            {supervisor}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+                  </Grid>
 
-                    {/* Observaciones */}
-                    <TextField
-                      fullWidth
-                      placeholder="Observaciones"
-                      variant="standard"
-                      multiline
-                      rows={3}
-                      value={formData.observaciones}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, observaciones: e.target.value }))}
-                      sx={{ 
-                        mb: 3,
-                        "& .MuiInputBase-input": {
-                          color: viewMode ? "text.secondary" : "text.primary",
-                        },
-                      }}
-                      InputProps={{
-                        readOnly: viewMode,
-                      }}
-                    />
+                  {/* Nro de Tubería */}
+                  <TextField
+                    fullWidth
+                    placeholder="Nro de Tubería"
+                    variant="standard"
+                    value={formData.nroSilo}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, nroSilo: e.target.value }))}
+                    sx={{ 
+                      mb: 3,
+                      "& .MuiInputBase-input": {
+                        color: viewMode ? "text.secondary" : "text.primary",
+                      },
+                    }}
+                    InputProps={{
+                      readOnly: viewMode,
+                    }}
+                  />
 
-                    {/* Botones dinámicos según el modo */}
-                    <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-                      {viewMode ? (
+                  {/* Observaciones */}
+                  <TextField
+                    fullWidth
+                    placeholder="Observaciones"
+                    variant="standard"
+                    multiline
+                    rows={3}
+                    value={formData.observaciones}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, observaciones: e.target.value }))}
+                    sx={{ 
+                      mb: 3,
+                      "& .MuiInputBase-input": {
+                        color: viewMode ? "text.secondary" : "text.primary",
+                      },
+                    }}
+                    InputProps={{
+                      readOnly: viewMode,
+                    }}
+                  />
+
+                  {/* Botones dinámicos según el modo */}
+                  <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+                    {viewMode ? (
+                      <Button
+                        variant="outlined"
+                        onClick={handleClose}
+                        sx={buttonStyles.close}
+                      >
+                        Cerrar
+                      </Button>
+                    ) : (
+                      <>
                         <Button
                           variant="outlined"
                           onClick={handleClose}
-                          sx={{ textTransform: "none", color: "#2563eb", borderColor: "#93c5fd" }}
+                          sx={buttonStyles.close}
                         >
-                          Cerrar
+                          Cancelar
                         </Button>
-                      ) : (
-                        <>
-                          <Button
-                            variant="outlined"
-                            onClick={handleClose}
-                            sx={{ textTransform: "none", color: "#2563eb", borderColor: "#93c5fd" }}
-                          >
-                            Cancelar
-                          </Button>
-                          <Button
-                            variant="contained"
-                            onClick={handleSubmit}
-                            sx={{ textTransform: "none" }}
-                          >
-                            {editMode ? "Actualizar" : "Guardar"}
-                          </Button>
-                        </>
-                      )}
-                    </Box>
+                        <Button
+                          variant="contained"
+                          onClick={handleSubmit}
+                          sx={buttonStyles.save}
+                        >
+                          {editMode ? "Actualizar" : "Guardar"}
+                        </Button>
+                      </>
+                    )}
                   </Box>
-                </Paper>
-              </Box>
-            </ThemeProvider>
+                </Box>
+              </Paper>
+            </Box>
           </DialogContent>
         </Dialog>
       </Box>

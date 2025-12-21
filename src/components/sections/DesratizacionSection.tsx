@@ -20,6 +20,7 @@ import {
 } from "@mui/material"
 import { Add, KeyboardArrowDown } from "@mui/icons-material"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
+import { buttonStyles, headerColors, headerAccentColors, sectionHeaderStyle, headerBarStyle } from "./buttonStyles"
 
 const theme = createTheme({
   palette: {
@@ -258,7 +259,7 @@ export function DesratizacionSection() {
                   variant="contained" 
                   color="secondary" 
                   startIcon={<Add />} 
-                  sx={{ textTransform: "none" }}
+                  sx={buttonStyles.save}
                   onClick={handleOpen}
                 >
                   Agregar nuevo
@@ -327,14 +328,7 @@ export function DesratizacionSection() {
                             <Button
                               size="small"
                               variant="contained"
-                              sx={{
-                                bgcolor: "#facc15",
-                                color: "grey.900",
-                                textTransform: "none",
-                                "&:hover": {
-                                  bgcolor: "#eab308",
-                                },
-                              }}
+                              sx={buttonStyles.edit}
                               onClick={() => handleEdit(index)}
                             >
                               Editar
@@ -345,7 +339,6 @@ export function DesratizacionSection() {
                               sx={{
                                 borderColor: "#93c5fd",
                                 color: "#2563eb",
-                                textTransform: "none",
                                 "&:hover": {
                                   bgcolor: "#eff6ff",
                                   borderColor: "#93c5fd",
@@ -377,208 +370,204 @@ export function DesratizacionSection() {
           }}
         >
           <DialogContent sx={{ p: 0 }}>
-            <ThemeProvider theme={theme}>
-              <Box sx={{ minHeight: "auto", bgcolor: "#f9fafb", p: 3 }}>
-                <Paper sx={{ maxWidth: 1024, mx: "auto", borderRadius: 2, overflow: "hidden" }}>
-                  {/* HEADER DINÁMICO SEGÚN EL MODO */}
+            <Box sx={{ minHeight: "auto", bgcolor: "#f9fafb", p: 3 }}>
+              <Paper sx={{ maxWidth: 1024, mx: "auto", borderRadius: 2, overflow: "hidden" }}>
+                {/* HEADER DINÁMICO SEGÚN EL MODO */}
+                <Box sx={{ 
+                  bgcolor: viewMode ? headerColors.view : editMode ? headerColors.edit : headerColors.create, 
+                  px: 3, 
+                  py: 2, 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: 1 
+                }}>
                   <Box sx={{ 
-                    bgcolor: viewMode ? "#64748b" : editMode ? "#f59e0b" : "#22d3ee", 
-                    px: 3, 
-                    py: 2, 
-                    display: "flex", 
-                    alignItems: "center", 
-                    gap: 1 
-                  }}>
-                    <Box sx={{ 
-                      width: 4, 
-                      height: 24, 
-                      bgcolor: viewMode ? "#94a3b8" : editMode ? "#fbbf24" : "#67e8f9", 
-                      borderRadius: 0.5 
-                    }} />
-                    <Typography variant="h6" sx={{ color: "white", fontWeight: 500 }}>
-                      {viewMode ? "Detalle de desratización" : editMode ? "Editar desratización" : "Registro de desratización"}
-                    </Typography>
-                  </Box>
+                    width: 4, 
+                    height: 24, 
+                    bgcolor: viewMode ? headerAccentColors.view : editMode ? headerAccentColors.edit : headerAccentColors.create, 
+                    borderRadius: 0.5 
+                  }} />
+                  <Typography variant="h6" sx={{ color: "white", fontWeight: 500 }}>
+                    {viewMode ? "Detalle de desratización" : editMode ? "Editar desratización" : "Registro de desratización"}
+                  </Typography>
+                </Box>
 
-                  <Box sx={{ p: 3 }}>
-                    {/* Aplicador y DNI */}
-                    <Grid container spacing={3} sx={{ mb: 3 }}>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          placeholder="Aplicador"
-                          variant="standard"
-                          value={formData.aplicador}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, aplicador: e.target.value }))}
-                          InputProps={{
-                            readOnly: viewMode, // SOLO LECTURA EN MODO VISUALIZACIÓN
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          placeholder="DNI"
-                          variant="standard"
-                          value={formData.dni}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, dni: e.target.value }))}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
-                        />
-                      </Grid>
+                <Box sx={{ p: 3 }}>
+                  {/* Aplicador y DNI */}
+                  <Grid container spacing={3} sx={{ mb: 3 }}>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        placeholder="Aplicador"
+                        variant="standard"
+                        value={formData.aplicador}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, aplicador: e.target.value }))}
+                        InputProps={{
+                          readOnly: viewMode,
+                        }}
+                        sx={{
+                          "& .MuiInputBase-input": {
+                            color: viewMode ? "text.secondary" : "text.primary",
+                          },
+                        }}
+                      />
                     </Grid>
-
-                    {/* Rodenticida y Cebo atrayente */}
-                    <Grid container spacing={3} sx={{ mb: 3 }}>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          placeholder="Rodenticida"
-                          variant="standard"
-                          value={formData.rodenticida}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, rodenticida: e.target.value }))}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          placeholder="Cebo atrayente de roedores"
-                          variant="standard"
-                          value={formData.ceboAtrayente}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, ceboAtrayente: e.target.value }))}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
-                        />
-                      </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        placeholder="DNI"
+                        variant="standard"
+                        value={formData.dni}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, dni: e.target.value }))}
+                        InputProps={{
+                          readOnly: viewMode,
+                        }}
+                        sx={{
+                          "& .MuiInputBase-input": {
+                            color: viewMode ? "text.secondary" : "text.primary",
+                          },
+                        }}
+                      />
                     </Grid>
+                  </Grid>
 
-                    {/* Trampa adhesiva */}
-                    <TextField
-                      fullWidth
-                      placeholder="Trampa adhesiva de roedores"
-                      variant="standard"
-                      value={formData.trampaAdhesiva}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, trampaAdhesiva: e.target.value }))}
-                      sx={{ 
-                        mb: 3,
-                        "& .MuiInputBase-input": {
-                          color: viewMode ? "text.secondary" : "text.primary",
-                        },
-                      }}
-                      InputProps={{
-                        readOnly: viewMode,
-                      }}
-                    />
-
-                    {/* Fecha y Supervisado */}
-                    <Grid container spacing={3} sx={{ mb: 3 }}>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          label="Fecha"
-                          type="date"
-                          variant="standard"
-                          value={formData.fecha}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, fecha: e.target.value }))}
-                          InputLabelProps={{
-                            shrink: true,
-                          }}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          select={!viewMode} // DESACTIVAR SELECT EN MODO VISUALIZACIÓN
-                          label="Supervisado"
-                          variant="standard"
-                          value={formData.supervisado}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, supervisado: e.target.value }))}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
-                        >
-                          {!viewMode && SUPERVISORES.map((supervisor) => (
-                            <MenuItem key={supervisor} value={supervisor}>
-                              {supervisor}
-                            </MenuItem>
-                          ))}
-                        </TextField>
-                      </Grid>
+                  {/* Rodenticida y Cebo atrayente */}
+                  <Grid container spacing={3} sx={{ mb: 3 }}>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        placeholder="Rodenticida"
+                        variant="standard"
+                        value={formData.rodenticida}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, rodenticida: e.target.value }))}
+                        InputProps={{
+                          readOnly: viewMode,
+                        }}
+                        sx={{
+                          "& .MuiInputBase-input": {
+                            color: viewMode ? "text.secondary" : "text.primary",
+                          },
+                        }}
+                      />
                     </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        placeholder="Cebo atrayente de roedores"
+                        variant="standard"
+                        value={formData.ceboAtrayente}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, ceboAtrayente: e.target.value }))}
+                        InputProps={{
+                          readOnly: viewMode,
+                        }}
+                        sx={{
+                          "& .MuiInputBase-input": {
+                            color: viewMode ? "text.secondary" : "text.primary",
+                          },
+                        }}
+                      />
+                    </Grid>
+                  </Grid>
 
-                    {/* BOTONES DINÁMICOS SEGÚN EL MODO */}
-                    <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-                      {viewMode ? (
-                        // SOLO BOTÓN CERRAR EN MODO VISUALIZACIÓN
+                  {/* Trampa adhesiva */}
+                  <TextField
+                    fullWidth
+                    placeholder="Trampa adhesiva de roedores"
+                    variant="standard"
+                    value={formData.trampaAdhesiva}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, trampaAdhesiva: e.target.value }))}
+                    sx={{ 
+                      mb: 3,
+                      "& .MuiInputBase-input": {
+                        color: viewMode ? "text.secondary" : "text.primary",
+                      },
+                    }}
+                    InputProps={{
+                      readOnly: viewMode,
+                    }}
+                  />
+
+                  {/* Fecha y Supervisado */}
+                  <Grid container spacing={3} sx={{ mb: 3 }}>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        label="Fecha"
+                        type="date"
+                        variant="standard"
+                        value={formData.fecha}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, fecha: e.target.value }))}
+                        InputLabelProps={{
+                          shrink: true,
+                        }}
+                        InputProps={{
+                          readOnly: viewMode,
+                        }}
+                        sx={{
+                          "& .MuiInputBase-input": {
+                            color: viewMode ? "text.secondary" : "text.primary",
+                          },
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        select={!viewMode}
+                        label="Supervisado"
+                        variant="standard"
+                        value={formData.supervisado}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, supervisado: e.target.value }))}
+                        InputProps={{
+                          readOnly: viewMode,
+                        }}
+                        sx={{
+                          "& .MuiInputBase-input": {
+                            color: viewMode ? "text.secondary" : "text.primary",
+                          },
+                        }}
+                      >
+                        {!viewMode && SUPERVISORES.map((supervisor) => (
+                          <MenuItem key={supervisor} value={supervisor}>
+                            {supervisor}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+                  </Grid>
+
+                  {/* BOTONES DINÁMICOS SEGÚN EL MODO */}
+                  <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+                    {viewMode ? (
+                      <Button
+                        variant="outlined"
+                        onClick={handleClose}
+                        sx={buttonStyles.close}
+                      >
+                        Cerrar
+                      </Button>
+                    ) : (
+                      <>
                         <Button
                           variant="outlined"
                           onClick={handleClose}
-                          sx={{ textTransform: "none", color: "#2563eb", borderColor: "#93c5fd" }}
+                          sx={buttonStyles.close}
                         >
-                          Cerrar
+                          Cancelar
                         </Button>
-                      ) : (
-                        // BOTONES DE EDICIÓN EN OTROS MODOS
-                        <>
-                          <Button
-                            variant="outlined"
-                            onClick={handleClose}
-                            sx={{ textTransform: "none", color: "#2563eb", borderColor: "#93c5fd" }}
-                          >
-                            Cancelar
-                          </Button>
-                          <Button
-                            variant="contained"
-                            onClick={handleSubmit}
-                            sx={{ textTransform: "none" }}
-                          >
-                            {editMode ? "Actualizar" : "Guardar"}
-                          </Button>
-                        </>
-                      )}
-                    </Box>
+                        <Button
+                          variant="contained"
+                          onClick={handleSubmit}
+                          sx={buttonStyles.save}
+                        >
+                          {editMode ? "Actualizar" : "Guardar"}
+                        </Button>
+                      </>
+                    )}
                   </Box>
-                </Paper>
-              </Box>
-            </ThemeProvider>
+                </Box>
+              </Paper>
+            </Box>
           </DialogContent>
         </Dialog>
       </Box>
