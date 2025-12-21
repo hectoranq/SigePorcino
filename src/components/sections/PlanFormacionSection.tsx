@@ -17,7 +17,6 @@ import {
   TextField,
   DialogTitle,
   DialogActions,
-  Checkbox,
   FormControlLabel,
   Radio,
   RadioGroup,
@@ -105,7 +104,7 @@ export function PlanFormacionSection() {
     setNuevoCursoHoras("")
   }
 
-  const handleInputChange = (field: keyof PlanFormacion, value: any) => {
+  const handleInputChange = (field: keyof PlanFormacion, value: string) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,

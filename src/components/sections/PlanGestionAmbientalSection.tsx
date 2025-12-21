@@ -246,7 +246,7 @@ export function PlanGestionAmbientalSection() {
     }))
   }
 
-  const handleInputChange = (field: keyof PlanGestionAmbiental, value: any) => {
+  const handleInputChange = (field: keyof PlanGestionAmbiental, value: string) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,

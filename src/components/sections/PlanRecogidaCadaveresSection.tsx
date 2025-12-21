@@ -82,7 +82,7 @@ export function PlanRecogidaCadaveresSection() {
     })
   }
 
-  const handleInputChange = (field: keyof PlanRecogidaCadaveres, value: any) => {
+  const handleInputChange = (field: keyof PlanRecogidaCadaveres, value: string) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,

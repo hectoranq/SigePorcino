@@ -95,7 +95,7 @@ const Home = () => {
     const farms = useFarmFormStore(state => state.farms);
     const currentFarm = useFarmFormStore(state => state.currentFarm);
     const setCurrentFarm = useFarmFormStore(state => state.setCurrentFarm);
-    const addFarm = useFarmFormStore(state => state.addFarm);
+    
     
     const [activeSection, setActiveSection] = useState<string>("main");
 
@@ -210,7 +210,6 @@ const Home = () => {
     // Guardar nueva granja
     const handleSaveNewFarm = async () => {
       try {
-        const token = useUserStore.getState().token;
         const userId = useUserStore.getState().record.id;
 
         if (!userId) {

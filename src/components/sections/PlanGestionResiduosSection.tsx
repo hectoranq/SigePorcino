@@ -166,7 +166,7 @@ export function PlanGestionResiduosSection() {
     })
   }
 
-  const handleInputChange = (field: keyof GestionResiduos, value: any) => {
+  const handleInputChange = (field: keyof GestionResiduos, value: string) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,

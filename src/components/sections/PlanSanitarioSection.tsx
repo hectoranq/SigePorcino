@@ -111,7 +111,7 @@ export function PlanSanitarioSection() {
     })
   }
 
-  const handleInputChange = (field: keyof PlanSanitario, value: any) => {
+  const handleInputChange = (field: keyof PlanSanitario, value: string) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,

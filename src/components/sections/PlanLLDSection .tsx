@@ -95,7 +95,7 @@ export function PlanLLDSection() {
     }))
   }
 
-  const handleInputChange = (field: keyof PlanLLDFormData, value: any) => {
+  const handleInputChange = (field: keyof PlanLLDFormData, value: string | boolean) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,

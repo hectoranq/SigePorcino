@@ -313,7 +313,7 @@ export function PlanBioseguridadSection() {
     })
   }
 
-  const handleInputChange = (field: keyof PlanBioseguridad, value: any) => {
+  const handleInputChange = (field: keyof PlanBioseguridad, value: string) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,

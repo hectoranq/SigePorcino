@@ -131,7 +131,7 @@ export function MantenimientoInstalacionesSection() {
     }))
   }
 
-  const handleInputChange = (field: keyof MantenimientoInstalacion, value: any) => {
+  const handleInputChange = (field: keyof MantenimientoInstalacion, value: string) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,

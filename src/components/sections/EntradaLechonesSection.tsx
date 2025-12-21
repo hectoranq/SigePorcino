@@ -19,7 +19,7 @@ import {
 } from "@mui/material"
 import { Add, KeyboardArrowDown } from "@mui/icons-material"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
-import { buttonStyles, headerColors, headerAccentColors, sectionHeaderStyle, headerBarStyle } from "./buttonStyles"
+import { buttonStyles, headerColors, headerAccentColors} from "./buttonStyles"
 
 const theme = createTheme({
   palette: {
