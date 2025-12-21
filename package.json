@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "next dev -p 8080",
+    "dev": "next dev --webpack --port 8080",
     "build": "next build",
     "start": "next start -p 8080"
   },
@@ -19,11 +19,11 @@
     "agro-sige": "file:",
     "autoprefixer": "^10.4.20",
     "axios": "^1.7.9",
-    "next": "^15.3.1",
+    "next": "^16.1.0",
     "pocketbase": "^0.26.0",
     "postcss": "^8.4.49",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
     "tailwindcss": "^3.4.17",
     "zustand": "^5.0.4"
   },
