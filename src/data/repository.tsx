@@ -389,9 +389,12 @@ export const fetchFarmsByUserId = async (userId: string, token: string): Promise
         filter: `user="${userId}"`,
       },
     });
-    console.log(`🌍 Total de granjas encontradas para el usuario ${userId}: ${response.data.items}`);
-    // Opcional: guardar en zustand si quieres
-    useFarmFormStore.getState().setFormData(response.data.items[0]); // o guardar todos
+    console.log(`🌍 Total de granjas encontradas para el usuario ${userId}:`, response.data.items.length);
+    
+    // Guardar todas las granjas en zustand
+    if (response.data.items.length > 0) {
+      useFarmFormStore.getState().setFarms(response.data.items);
+    }
 
     return response.data.items;
   } catch (error) {

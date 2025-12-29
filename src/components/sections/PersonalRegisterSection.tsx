@@ -1,10 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Box,
   Typography,
-
   Paper,
   Table,
   TableBody,
@@ -21,12 +20,25 @@ import {
   FormGroup,
   Checkbox,
   InputAdornment,
+  Snackbar,
+  Alert,
+  CircularProgress,
+  DialogTitle,
+  DialogActions,
 } from "@mui/material"
 import {
   Add,
   KeyboardArrowDown,
   CalendarToday,
+  Delete,
 } from "@mui/icons-material"
+import {
+  listStaff,
+  createStaff,
+  updateStaff,
+  deleteStaff,
+  Staff,
+} from "../../action/PersonalRegisterPocket"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
 import { buttonStyles } from "./buttonStyles"
 
@@ -42,13 +54,26 @@ const theme = createTheme({
   },
 })
 
-export function PersonalRegisterSection() {
+interface PersonalRegisterSectionProps {
+  token: string;
+  userId: string;
+  farmId?: string;
+}
+
+export function PersonalRegisterSection({ token, userId, farmId }: PersonalRegisterSectionProps) {
+  const [staffData, setStaffData] = useState<Staff[]>([])
+  const [loading, setLoading] = useState(false)
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" })
   
 
   // Estado para el popup
   const [open, setOpen] = useState(false)
-  const [editMode, setEditMode] = useState(false) // Nuevo estado para modo edición
-  const [editIndex, setEditIndex] = useState<number | null>(null) // Índice del elemento a editar
+  const [editMode, setEditMode] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null)
+  
+  // Estados para el diálogo de confirmación de eliminación
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
+  const [staffToDelete, setStaffToDelete] = useState<string | null>(null)
   
   const [formData, setFormData] = useState({
     dni: "",
@@ -63,30 +88,35 @@ export function PersonalRegisterSection() {
     tareas: [] as string[],
   })
 
-  // Estado para la tabla de personal
-  const [staffData, setStaffData] = useState([
-    {
-      dni: "2566113",
-      nombre: "Jose Antonio Capdevilla Torrejon",
-      telefono: "75266312",
-      fechaInicio: "12/07/2023",
-      fechaFinalizacion: "12/07/2025",
-    },
-    {
-      dni: "2566113",
-      nombre: "Mario Antonio Alvarez Peredo",
-      telefono: "60547811",
-      fechaInicio: "30/05/2024",
-      fechaFinalizacion: "31/12/2024",
-    },
-    {
-      dni: "2566113",
-      nombre: "Juana Adriana Obregon",
-      telefono: "70142889",
-      fechaInicio: "01/02/2023",
-      fechaFinalizacion: "31/12/2024",
-    },
-  ])
+  // Cargar personal al montar el componente
+  useEffect(() => {
+    loadStaff()
+  }, [token, userId, farmId])
+
+  const loadStaff = async () => {
+    if (!token || !userId) {
+      console.error("❌ Token o userId no disponibles")
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await listStaff(token, userId, farmId)
+      if (response.success) {
+        setStaffData(response.data.items as Staff[] || [])
+        console.log("✅ Personal cargado:", response.data.items.length)
+      }
+    } catch (error: any) {
+      console.error("❌ Error al cargar personal:", error)
+      setSnackbar({
+        open: true,
+        message: error.message || "Error al cargar personal",
+        severity: "error",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleCheckboxChange = (value: string, category: "titulaciones" | "tareas") => {
     setFormData(prev => ({
@@ -99,30 +129,32 @@ export function PersonalRegisterSection() {
 
   const handleOpen = () => {
     setEditMode(false)
-    setEditIndex(null)
+    setEditId(null)
     setOpen(true)
   }
 
-  // Nueva función para abrir en modo edición
-  const handleEdit = (index: number) => {
-    const person = staffData[index]
-    const [nombre, ...apellidos] = person.nombre.split(' ')
+  // Función para abrir en modo edición
+  const handleEdit = (id: string) => {
+    const person = staffData.find(p => p.id === id)
+    if (!person) return
+
+    console.log("Editar personal:", person)
     
     setFormData({
       dni: person.dni,
-      nombre: nombre,
-      apellidos: apellidos.join(' '),
+      nombre: person.nombre,
+      apellidos: person.apellidos,
       telefono: person.telefono,
-      correo: "", // Si no tienes este dato, déjalo vacío
-      fechaInicio: convertDateFormat(person.fechaInicio),
-      fechaFinalizacion: convertDateFormat(person.fechaFinalizacion),
-      experiencia: "",
-      titulaciones: [],
-      tareas: [],
+      correo: person.correo,
+      fechaInicio: person.fecha_inicio,
+      fechaFinalizacion: person.fecha_finalizacion,
+      experiencia: person.experiencia || "",
+      titulaciones: person.titulaciones || [],
+      tareas: person.tareas || [],
     })
     
     setEditMode(true)
-    setEditIndex(index)
+    setEditId(id)
     setOpen(true)
   }
 
@@ -147,7 +179,7 @@ export function PersonalRegisterSection() {
   const handleClose = () => {
     setOpen(false)
     setEditMode(false)
-    setEditIndex(null)
+    setEditId(null)
     setFormData({
       dni: "",
       nombre: "",
@@ -162,36 +194,117 @@ export function PersonalRegisterSection() {
     })
   }
 
-  const handleSubmit = () => {
-    console.log("Datos del personal:", formData)
-
-    // Validar que los campos requeridos estén llenos
-    if (!formData.dni || !formData.nombre || !formData.apellidos || !formData.telefono) {
-      alert("Por favor, completa todos los campos requeridos")
+  const handleSubmit = async () => {
+    if (!token || !userId || !farmId) {
+      setSnackbar({
+        open: true,
+        message: "Faltan datos de sesión (token, userId o farmId)",
+        severity: "error",
+      })
       return
     }
 
-    const personData = {
-      dni: formData.dni,
-      nombre: `${formData.nombre} ${formData.apellidos}`,
-      telefono: formData.telefono,
-      fechaInicio: formatDateToDisplay(formData.fechaInicio),
-      fechaFinalizacion: formatDateToDisplay(formData.fechaFinalizacion),
+    // Validar campos requeridos
+    if (!formData.dni || !formData.nombre || !formData.apellidos || !formData.telefono || !formData.correo) {
+      setSnackbar({
+        open: true,
+        message: "Por favor, completa todos los campos requeridos",
+        severity: "error",
+      })
+      return
     }
 
-    if (editMode && editIndex !== null) {
-      // Actualizar persona existente
-      setStaffData((prev) => 
-        prev.map((person, index) => 
-          index === editIndex ? personData : person
-        )
-      )
-    } else {
-      // Agregar nueva persona
-      setStaffData((prev) => [...prev, personData])
+    const data = {
+      dni: formData.dni,
+      nombre: formData.nombre,
+      apellidos: formData.apellidos,
+      telefono: formData.telefono,
+      correo: formData.correo,
+      fecha_inicio: formData.fechaInicio,
+      fecha_finalizacion: formData.fechaFinalizacion,
+      experiencia: formData.experiencia,
+      titulaciones: formData.titulaciones,
+      tareas: formData.tareas,
+      farm: farmId,
+      user: userId,
     }
-    
-    handleClose()
+
+    setLoading(true)
+    try {
+      if (editMode && editId) {
+        // Actualizar personal existente
+        const response = await updateStaff(token, editId, data, userId)
+        if (response.success) {
+          setSnackbar({
+            open: true,
+            message: "Personal actualizado exitosamente",
+            severity: "success",
+          })
+          await loadStaff()
+          handleClose()
+        }
+      } else {
+        // Crear nuevo personal
+        const response = await createStaff(token, data)
+        if (response.success) {
+          setSnackbar({
+            open: true,
+            message: "Personal registrado exitosamente",
+            severity: "success",
+          })
+          await loadStaff()
+          handleClose()
+        }
+      }
+    } catch (error: any) {
+      console.error("❌ Error al guardar personal:", error)
+      setSnackbar({
+        open: true,
+        message: error.message || "Error al guardar el personal",
+        severity: "error",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Funciones para eliminar
+  const handleEliminarClick = (id: string) => {
+    setStaffToDelete(id)
+    setOpenDeleteDialog(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!staffToDelete || !token || !userId) return
+
+    setLoading(true)
+    try {
+      const response = await deleteStaff(token, staffToDelete, userId)
+      if (response.success) {
+        setSnackbar({
+          open: true,
+          message: "Personal eliminado exitosamente",
+          severity: "success",
+        })
+        await loadStaff()
+      }
+    } catch (error: any) {
+      console.error("❌ Error al eliminar personal:", error)
+      setSnackbar({
+        open: true,
+        message: error.message || "Error al eliminar el personal",
+        severity: "error",
+      })
+    } finally {
+      setLoading(false)
+      setOpenDeleteDialog(false)
+      setStaffToDelete(null)
+    }
+  }
+
+  const handleCancelDelete = () => {
+    setOpenDeleteDialog(false)
+    setStaffToDelete(null)
   }
 
   
@@ -282,54 +395,86 @@ export function PersonalRegisterSection() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {staffData.map((person, index) => (
-                      <TableRow
-                        key={index}
-                        sx={{
-                          "&:hover": {
-                            bgcolor: "grey.50",
-                          },
-                        }}
-                      >
-                        <TableCell>{person.dni}</TableCell>
-                        <TableCell>{person.nombre}</TableCell>
-                        <TableCell>{person.telefono}</TableCell>
-                        <TableCell>{person.fechaInicio}</TableCell>
-                        <TableCell>{person.fechaFinalizacion}</TableCell>
-                        <TableCell>
-                          <Box sx={{ display: "flex", gap: 1 }}>
-                            <Button
-                              size="small"
-                              variant="contained"
-                              sx={{
-                                bgcolor: "#eab308",
-                                color: "grey.900",
-                                "&:hover": {
-                                  bgcolor: "#ca8a04",
-                                },
-                              }}
-                              onClick={() => handleEdit(index)}
-                            >
-                              Editar
-                            </Button>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              sx={{
-                                borderColor: "#93c5fd",
-                                color: "#2563eb",
-                                "&:hover": {
-                                  bgcolor: "#eff6ff",
-                                  borderColor: "#93c5fd",
-                                },
-                              }}
-                            >
-                              Ver más
-                            </Button>
-                          </Box>
+                    {loading && staffData.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                          <CircularProgress size={40} />
+                          <Typography sx={{ mt: 2 }}>Cargando personal...</Typography>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : staffData.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                          <Typography color="text.secondary">
+                            No hay personal registrado
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      staffData.map((person) => (
+                        <TableRow
+                          key={person.id}
+                          sx={{
+                            "&:hover": {
+                              bgcolor: "grey.50",
+                            },
+                          }}
+                        >
+                          <TableCell>{person.dni}</TableCell>
+                          <TableCell>{person.nombre} {person.apellidos}</TableCell>
+                          <TableCell>{person.telefono}</TableCell>
+                          <TableCell>{formatDateToDisplay(person.fecha_inicio)}</TableCell>
+                          <TableCell>{formatDateToDisplay(person.fecha_finalizacion)}</TableCell>
+                          <TableCell>
+                            <Box sx={{ display: "flex", gap: 1 }}>
+                              <Button
+                                size="small"
+                                variant="contained"
+                                sx={{
+                                  bgcolor: "#eab308",
+                                  color: "grey.900",
+                                  "&:hover": {
+                                    bgcolor: "#ca8a04",
+                                  },
+                                }}
+                                onClick={() => handleEdit(person.id!)}
+                              >
+                                Editar
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                sx={{
+                                  borderColor: "#93c5fd",
+                                  color: "#2563eb",
+                                  "&:hover": {
+                                    bgcolor: "#eff6ff",
+                                    borderColor: "#93c5fd",
+                                  },
+                                }}
+                              >
+                                Ver más
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="contained"
+                                startIcon={<Delete />}
+                                onClick={() => handleEliminarClick(person.id!)}
+                                sx={{
+                                  bgcolor: "#f44336",
+                                  color: "white",
+                                  "&:hover": {
+                                    bgcolor: "#d32f2f",
+                                  },
+                                }}
+                              >
+                                Eliminar
+                              </Button>
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -590,6 +735,62 @@ export function PersonalRegisterSection() {
             </Box>
           </DialogContent>
         </Dialog>
+
+        {/* Dialog de confirmación de eliminación */}
+        <Dialog
+          open={openDeleteDialog}
+          onClose={handleCancelDelete}
+          maxWidth="xs"
+          fullWidth
+        >
+          <DialogTitle>
+            ¿Confirmar eliminación?
+          </DialogTitle>
+          <DialogContent>
+            <Typography>
+              ¿Estás seguro de que deseas eliminar a{" "}
+              <strong>
+                {staffToDelete
+                  ? staffData.find(s => s.id === staffToDelete)?.nombre
+                  : ""}
+              </strong>?
+              Esta acción no se puede deshacer.
+            </Typography>
+          </DialogContent>
+          <DialogActions sx={{ p: 2 }}>
+            <Button
+              onClick={handleCancelDelete}
+              variant="outlined"
+              color="inherit"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConfirmDelete}
+              variant="contained"
+              color="error"
+              startIcon={<Delete />}
+            >
+              Eliminar
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Snackbar para mensajes */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Box>
     </ThemeProvider>
   )

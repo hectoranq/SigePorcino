@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import {
   Box,
   Typography,
@@ -26,8 +26,18 @@ import {
   Divider,
   DialogTitle,
   DialogActions,
+  Snackbar,
+  Alert,
+  CircularProgress,
 } from "@mui/material"
 import { Add, KeyboardArrowDown, Delete } from "@mui/icons-material"
+import {
+  listLinkedCompaniesManagers,
+  createLinkedCompanyManager,
+  updateLinkedCompanyManager,
+  deleteLinkedCompanyManager,
+  LinkedCompanyManager,
+} from "../../action/LinkedCompaniesManagerPocket"
 
 type TipoPersona = "empresa" | "persona"
 
@@ -36,30 +46,16 @@ const PROVINCIAS = ["Madrid", "Barcelona", "Valencia", "Sevilla", "Zaragoza"]
 const OPCIONES_IZQ = ["Propietario", "Arrendatario", "Gestor"]
 const OPCIONES_DER = ["Transportista", "Veterinario", "Técnico especialista"]
 
-export default function LinkedCompaniesManagersPage() {
-  const [empresas, setEmpresas] = useState([
-    {
-      dni: "2566113",
-      nombre: "Jose Antonio Capdevilla Torrejon",
-      telefono: "75266312",
-      fechaInicio: "12/07/2023",
-      fechaFinalizacion: "12/07/2025",
-    },
-    {
-      dni: "2566113",
-      nombre: "Mario Antonio Alvarez Peredo",
-      telefono: "60547811",
-      fechaInicio: "30/05/2024",
-      fechaFinalizacion: "31/12/2024",
-    },
-    {
-      dni: "2566113",
-      nombre: "Juana Adriana Obregon",
-      telefono: "70142889",
-      fechaInicio: "01/02/2023",
-      fechaFinalizacion: "31/12/2024",
-    },
-  ])
+interface LinkedCompaniesManagersPageProps {
+  token: string;
+  userId: string;
+  farmId?: string;
+}
+
+export default function LinkedCompaniesManagersPage({ token, userId, farmId }: LinkedCompaniesManagersPageProps) {
+  const [empresas, setEmpresas] = useState<LinkedCompanyManager[]>([])
+  const [loading, setLoading] = useState(false)
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" })
 
   // Estados para el popup
   const [open, setOpen] = useState(false)
@@ -82,7 +78,38 @@ export default function LinkedCompaniesManagersPage() {
 
   // Estados para el diálogo de confirmación de eliminación
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
-  const [empresaToDelete, setEmpresaToDelete] = useState<number | null>(null)
+  const [empresaToDelete, setEmpresaToDelete] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+
+  // Cargar empresas vinculadas al montar el componente
+  useEffect(() => {
+    loadEmpresas()
+  }, [token, userId, farmId])
+
+  const loadEmpresas = async () => {
+    if (!token || !userId) {
+      console.error("❌ Token o userId no disponibles")
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await listLinkedCompaniesManagers(token, userId, farmId)
+      if (response.success) {
+        setEmpresas(response.data.items as LinkedCompanyManager[] || [])
+        console.log("✅ Empresas vinculadas cargadas:", response.data.items.length)
+      }
+    } catch (error: any) {
+      console.error("❌ Error al cargar empresas:", error)
+      setSnackbar({
+        open: true,
+        message: error.message || "Error al cargar empresas vinculadas",
+        severity: "error",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleAgregarNuevo = () => {
     setOpen(true)
@@ -90,6 +117,7 @@ export default function LinkedCompaniesManagersPage() {
 
   const handleClose = () => {
     setOpen(false)
+    setEditingId(null)
     // Resetear formulario
     setTipoPersona("empresa")
     setPoblacion("")
@@ -135,57 +163,151 @@ export default function LinkedCompaniesManagersPage() {
     })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("Datos del formulario:", {
-      tipoPersona,
-      formData,
-      poblacion,
-      provincia,
-      fechaInicio,
-      fechaFin,
-      checks,
-      opcionesExtra,
-    })
 
-    // Agregar nueva empresa a la tabla
-    const nuevaEmpresa = {
-      dni: formData.dni,
-      nombre: `${formData.nombre} ${formData.apellidos}`,
-      telefono: formData.telefono,
-      fechaInicio: formatDateToDisplay(fechaInicio),
-      fechaFinalizacion: formatDateToDisplay(fechaFin),
+    if (!token || !userId || !farmId) {
+      setSnackbar({
+        open: true,
+        message: "Faltan datos de sesión (token, userId o farmId)",
+        severity: "error",
+      })
+      return
     }
 
-    setEmpresas(prev => [...prev, nuevaEmpresa])
-    handleClose()
+    // Recolectar tipos de vinculación seleccionados
+    const tiposVinculacion = Object.keys(checks).filter(key => checks[key])
+
+    const data = {
+      tipo_persona: tipoPersona,
+      dni_cif: formData.dni,
+      nombre: formData.nombre,
+      apellidos: formData.apellidos || "",
+      direccion: formData.direccion,
+      poblacion,
+      provincia,
+      telefono: formData.telefono,
+      email: formData.email,
+      fecha_inicio: fechaInicio,
+      fecha_finalizacion: fechaFin,
+      tipo_vinculacion: tiposVinculacion,
+      farm: farmId,
+      user: userId,
+    }
+
+    setLoading(true)
+    try {
+      if (editingId) {
+        // Actualizar empresa existente
+        const response = await updateLinkedCompanyManager(token, editingId, data, userId)
+        if (response.success) {
+          setSnackbar({
+            open: true,
+            message: "Empresa actualizada exitosamente",
+            severity: "success",
+          })
+          await loadEmpresas()
+          handleClose()
+        }
+      } else {
+        // Crear nueva empresa
+        const response = await createLinkedCompanyManager(token, data)
+        if (response.success) {
+          setSnackbar({
+            open: true,
+            message: "Empresa registrada exitosamente",
+            severity: "success",
+          })
+          await loadEmpresas()
+          handleClose()
+        }
+      }
+    } catch (error: any) {
+      console.error("❌ Error al guardar empresa:", error)
+      setSnackbar({
+        open: true,
+        message: error.message || "Error al guardar la empresa",
+        severity: "error",
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleCancelar = () => {
     handleClose()
   }
 
-  const handleEditar = (index: number) => {
-    console.log("Editar empresa:", empresas[index])
+  const handleEditar = (id: string) => {
+    const empresa = empresas.find(e => e.id === id)
+    if (!empresa) return
+
+    console.log("Editar empresa:", empresa)
+    
+    // Cargar datos en el formulario
+    setEditingId(id)
+    setTipoPersona(empresa.tipo_persona)
+    setFormData({
+      dni: empresa.dni_cif,
+      nombre: empresa.nombre,
+      apellidos: empresa.apellidos || "",
+      direccion: empresa.direccion,
+      telefono: empresa.telefono,
+      email: empresa.email,
+    })
+    setPoblacion(empresa.poblacion)
+    setProvincia(empresa.provincia)
+    setFechaInicio(empresa.fecha_inicio)
+    setFechaFin(empresa.fecha_finalizacion)
+    
+    // Cargar checkboxes de tipo_vinculacion
+    const checksObj: { [key: string]: boolean } = {}
+    empresa.tipo_vinculacion.forEach(tipo => {
+      checksObj[tipo] = true
+    })
+    setChecks(checksObj)
+    
+    setOpen(true)
   }
 
-  const handleVerMas = (index: number) => {
-    console.log("Ver más de empresa:", empresas[index])
+  const handleVerMas = (id: string) => {
+    const empresa = empresas.find(e => e.id === id)
+    console.log("Ver más de empresa:", empresa)
+    // TODO: Implementar modal de detalles si se requiere
   }
 
   // Funciones para eliminar
-  const handleEliminarClick = (index: number) => {
-    setEmpresaToDelete(index)
+  const handleEliminarClick = (id: string) => {
+    setEmpresaToDelete(id)
     setOpenDeleteDialog(true)
   }
 
-  const handleConfirmDelete = () => {
-    if (empresaToDelete !== null) {
-      setEmpresas(prev => prev.filter((_, index) => index !== empresaToDelete))
-      console.log("Empresa eliminada:", empresas[empresaToDelete])
+  const handleConfirmDelete = async () => {
+    if (!empresaToDelete || !token || !userId) return
+
+    setLoading(true)
+    try {
+      const response = await deleteLinkedCompanyManager(token, empresaToDelete, userId)
+      if (response.success) {
+        setSnackbar({
+          open: true,
+          message: "Empresa eliminada exitosamente",
+          severity: "success",
+        })
+        await loadEmpresas()
+      }
+    } catch (error: any) {
+      console.error("❌ Error al eliminar empresa:", error)
+      setSnackbar({
+        open: true,
+        message: error.message || "Error al eliminar la empresa",
+        severity: "error",
+      })
+    } finally {
+      setLoading(false)
+      setOpenDeleteDialog(false)
+      setEmpresaToDelete(null)
     }
-    setOpenDeleteDialog(false)
-    setEmpresaToDelete(null)
   }
 
   const handleCancelDelete = () => {
@@ -279,87 +401,103 @@ export default function LinkedCompaniesManagersPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {empresas.map((empresa, index) => (
-                  <TableRow
-                    key={index}
-                    sx={{
-                      "&:nth-of-type(even)": {
-                        bgcolor: "#fafafa",
-                      },
-                      "&:hover": {
-                        bgcolor: "#f5f5f5",
-                      },
-                    }}
-                  >
-                    <TableCell sx={{ color: "text.primary" }}>
-                      {empresa.dni}
-                    </TableCell>
-                    <TableCell sx={{ color: "text.primary" }}>
-                      {empresa.nombre}
-                    </TableCell>
-                    <TableCell sx={{ color: "text.primary" }}>
-                      {empresa.telefono}
-                    </TableCell>
-                    <TableCell sx={{ color: "text.primary" }}>
-                      {empresa.fechaInicio}
-                    </TableCell>
-                    <TableCell sx={{ color: "text.primary" }}>
-                      {empresa.fechaFinalizacion}
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: "flex", gap: 1 }}>
-                        <Button
-                          size="small"
-                          variant="contained"
-                          onClick={() => handleEditar(index)}
-                          sx={{
-                            bgcolor: "#ffeb3b",
-                            color: "#333",
-                            fontSize: "0.75rem",
-                            "&:hover": {
-                              bgcolor: "#fdd835",
-                            },
-                          }}
-                        >
-                          Editar
-                        </Button>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          onClick={() => handleVerMas(index)}
-                          sx={{
-                            borderColor: "#64b5f6",
-                            color: "#1976d2",
-                            fontSize: "0.75rem",
-                            "&:hover": {
-                              bgcolor: "#e3f2fd",
-                              borderColor: "#42a5f5",
-                            },
-                          }}
-                        >
-                          Ver más
-                        </Button>
-                        {/* BOTÓN ELIMINAR AGREGADO */}
-                        <Button
-                          size="small"
-                          variant="contained"
-                          startIcon={<Delete />}
-                          onClick={() => handleEliminarClick(index)}
-                          sx={{
-                            bgcolor: "#f44336",
-                            color: "white",
-                            fontSize: "0.75rem",
-                            "&:hover": {
-                              bgcolor: "#d32f2f",
-                            },
-                          }}
-                        >
-                          Eliminar
-                        </Button>
-                      </Box>
+                {loading && empresas.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                      <CircularProgress size={40} />
+                      <Typography sx={{ mt: 2 }}>Cargando empresas vinculadas...</Typography>
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : empresas.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                      <Typography color="text.secondary">
+                        No hay empresas vinculadas registradas
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  empresas.map((empresa) => (
+                    <TableRow
+                      key={empresa.id}
+                      sx={{
+                        "&:nth-of-type(even)": {
+                          bgcolor: "#fafafa",
+                        },
+                        "&:hover": {
+                          bgcolor: "#f5f5f5",
+                        },
+                      }}
+                    >
+                      <TableCell sx={{ color: "text.primary" }}>
+                        {empresa.dni_cif}
+                      </TableCell>
+                      <TableCell sx={{ color: "text.primary" }}>
+                        {empresa.nombre} {empresa.apellidos}
+                      </TableCell>
+                      <TableCell sx={{ color: "text.primary" }}>
+                        {empresa.telefono}
+                      </TableCell>
+                      <TableCell sx={{ color: "text.primary" }}>
+                        {formatDateToDisplay(empresa.fecha_inicio)}
+                      </TableCell>
+                      <TableCell sx={{ color: "text.primary" }}>
+                        {formatDateToDisplay(empresa.fecha_finalizacion)}
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: "flex", gap: 1 }}>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            onClick={() => handleEditar(empresa.id!)}
+                            sx={{
+                              bgcolor: "#ffeb3b",
+                              color: "#333",
+                              fontSize: "0.75rem",
+                              "&:hover": {
+                                bgcolor: "#fdd835",
+                              },
+                            }}
+                          >
+                            Editar
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() => handleVerMas(empresa.id!)}
+                            sx={{
+                              borderColor: "#64b5f6",
+                              color: "#1976d2",
+                              fontSize: "0.75rem",
+                              "&:hover": {
+                                bgcolor: "#e3f2fd",
+                                borderColor: "#42a5f5",
+                              },
+                            }}
+                          >
+                            Ver más
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            startIcon={<Delete />}
+                            onClick={() => handleEliminarClick(empresa.id!)}
+                            sx={{
+                              bgcolor: "#f44336",
+                              color: "white",
+                              fontSize: "0.75rem",
+                              "&:hover": {
+                                bgcolor: "#d32f2f",
+                              },
+                            }}
+                          >
+                            Eliminar
+                          </Button>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </TableContainer>
@@ -378,7 +516,11 @@ export default function LinkedCompaniesManagersPage() {
           <DialogContent>
             <Typography>
               ¿Estás seguro de que deseas eliminar a{" "}
-              <strong>{empresaToDelete !== null ? empresas[empresaToDelete]?.nombre : ""}</strong>?
+              <strong>
+                {empresaToDelete
+                  ? empresas.find(e => e.id === empresaToDelete)?.nombre
+                  : ""}
+              </strong>?
               Esta acción no se puede deshacer.
             </Typography>
           </DialogContent>
@@ -658,6 +800,22 @@ export default function LinkedCompaniesManagersPage() {
             </Paper>
           </DialogContent>
         </Dialog>
+
+        {/* Snackbar para mensajes */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Container>
     </Box>
   )

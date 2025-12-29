@@ -81,6 +81,7 @@ import { PlanGestionAmbientalSection } from "../../components/sections/PlanGesti
 import { PlanFormacionSection } from "../../components/sections/PlanFormacionSection";
 import { PlanBioseguridadSection } from "../../components/sections/PlanBioseguridadSection";
 import { PlanSanitarioSection } from "../../components/sections/PlanSanitarioSection";
+import { DatosGranjaSection } from "../../components/sections/DatosGranjaSection";
 
 const drawerWidth = 320
 
@@ -102,7 +103,7 @@ const Home = () => {
     // Estados para el modal de crear granja
     const [openCreateFarmModal, setOpenCreateFarmModal] = useState(false);
     const [farmFormData, setFarmFormData] = useState({
-      rega: "",
+      REGA: "",
       farm_name: "",
       locality: "",
       province: "",
@@ -190,7 +191,7 @@ const Home = () => {
     const handleCloseCreateFarmModal = () => {
       setOpenCreateFarmModal(false);
       setFarmFormData({
-        rega: "",
+        REGA: "",
         farm_name: "",
         locality: "",
         province: "",
@@ -306,7 +307,7 @@ const Home = () => {
                       {farm?.farm_name}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      REGA: {farm?.rega || "N/A"}
+                      REGA: {farm?.REGA || "N/A"}
                     </Typography>
                   </Box>
                 );
@@ -320,7 +321,7 @@ const Home = () => {
                       {farm.farm_name}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      REGA: {farm.rega || "N/A"} • {farm.locality}, {farm.province}
+                      REGA: {farm.REGA || "N/A"} • {farm.locality}, {farm.province}
                     </Typography>
                   </Box>
                 </MenuItem>
@@ -722,7 +723,8 @@ const Home = () => {
     const userId = useUserStore(state => state.record.id);
 
     useEffect(() => {
-      if (token) {
+      if (token && userId) {
+        console.log("🔄 Cargando granjas para usuario:", userId);
         fetchFarmsByUserId(userId, token)
           .then(() => {
             // Las granjas se guardan automáticamente en el store
@@ -730,12 +732,17 @@ const Home = () => {
             const farms = useFarmFormStore.getState().farms;
             const currentFarm = useFarmFormStore.getState().currentFarm;
             
+            console.log("✅ Granjas cargadas:", farms.length);
+            
             if (farms.length > 0 && !currentFarm) {
+              console.log("📍 Estableciendo granja actual:", farms[0].farm_name);
               useFarmFormStore.getState().setCurrentFarm(farms[0]);
+            } else if (currentFarm) {
+              console.log("📍 Granja actual ya establecida:", currentFarm.farm_name);
             }
           })
           .catch((err) => {
-            console.error("Error al cargar granjas:", err);
+            console.error("❌ Error al cargar granjas:", err);
           });
       }
     }, [userId, token]);
@@ -913,18 +920,26 @@ const Home = () => {
             {activeSection === "main" && <MainSection />}
 
             {activeSection === "descripcion_granja" && <MainDescriptionFarm />}
-            {activeSection === "datos_granja" && (
-              <Typography variant="h5">Aquí van los datos de la granja</Typography>
-            )}
+            {activeSection === "datos_granja" && <DatosGranjaSection />}
             {activeSection === "gestores_autorizados" && (
               <Typography variant="h5">Aquí van los gestores autorizados</Typography>
             )}
             {activeSection === "gestion_rega" && (
               <Typography variant="h5">Aquí va la gestión de REGA</Typography>
             )}
-            {activeSection === "empresas_vinculadas" && <LinkedCompaniesManagersPage />}
-            {activeSection === "registro_personal" && <PersonalRegisterSection />}
-            {activeSection === "registro_veterinario" && <RegistroVeterinarioSection />}
+            {activeSection === "empresas_vinculadas" && (
+              <LinkedCompaniesManagersPage 
+                token={token}
+                userId={userId}
+                farmId={currentFarm?.id}
+              />
+            )}
+            {activeSection === "registro_personal" && <PersonalRegisterSection token={token}
+                userId={userId}
+                farmId={currentFarm?.id} />}
+            {activeSection === "registro_veterinario" && <RegistroVeterinarioSection token={token}
+                userId={userId}
+                farmId={currentFarm?.id} />}
 
             {/* Nuevas secciones de Desarrollo de planes */}
             {activeSection === "plan_lld" && <PlanLLDSection />}
@@ -999,8 +1014,8 @@ const Home = () => {
               <TextField
                 label="R.E.G.A."
                 variant="filled"
-                name="rega"
-                value={farmFormData.rega}
+                name="REGA"
+                value={farmFormData.REGA}
                 onChange={handleFarmInputChange}
                 fullWidth
               />

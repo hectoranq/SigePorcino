@@ -5,7 +5,7 @@ export interface FarmFormData {
   collectionId: string;
   collectionName: string;
   id: string;
-  rega: string;
+  REGA: string;
   farm_name: string;
   locality: string;
   province: string;
@@ -49,7 +49,7 @@ const emptyFarm: FarmFormData = {
   collectionId: "",
   collectionName: "",
   id: "",
-  rega: "",
+  REGA: "",
   farm_name: "",
   locality: "",
   province: "",
@@ -123,7 +123,7 @@ const useFarmFormStore = create<FarmFormStore>()(
 
       // Obtener una granja por REGA
       getFarmByREGA: (rega) => {
-        return get().farms.find((farm) => farm.rega === rega);
+        return get().farms.find((farm) => farm.REGA === rega);
       },
 
       // Reset solo el formulario actual

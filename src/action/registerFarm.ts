@@ -4,7 +4,7 @@
 import PocketBase from 'pocketbase';
 
 export async function registerFarm(formData: FormData, userId: string) {
-  const REGA = formData.get('rega') as string;
+  const REGA = formData.get('REGA') as string;
   const farm_name = formData.get('farm_name') as string;
   const locality = formData.get('locality') as string;
   const province = formData.get('province') as string;

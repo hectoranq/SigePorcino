@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import {
   Box,
   Typography,
@@ -21,10 +21,26 @@ import {
   Checkbox,
   FormControlLabel,
   FormGroup,
+  Snackbar,
+  Alert,
+  CircularProgress,
 } from "@mui/material"
 import { Add, KeyboardArrowDown, Delete } from "@mui/icons-material"
+import {
+  listVeterinarians,
+  createVeterinarian,
+  updateVeterinarian,
+  deleteVeterinarian,
+  Veterinarian,
+} from "../../action/RegistroVeterinarioPocket"
 
-interface Veterinario {
+interface RegistroVeterinarioSectionProps {
+  token: string;
+  userId: string;
+  farmId?: string;
+}
+
+interface FormData {
   numeroColegiado: string
   dni: string
   nombres: string
@@ -41,45 +57,15 @@ interface Veterinario {
   planVisitasZoonotarias: string
 }
 
-export function RegistroVeterinarioSection() {
-  const [veterinarios, setVeterinarios] = useState<Veterinario[]>([
-    {
-      numeroColegiado: "VET-2023-001",
-      dni: "12345678A",
-      nombres: "Carlos",
-      apellidos: "García López",
-      telefono: "612345678",
-      correo: "carlos.garcia@vet.com",
-      fechaInicio: "15/01/2023",
-      fechaFinalizacion: "15/01/2024",
-      redaccionPlanes: true,
-      revisionAnimales: true,
-      instruccionManejo: false,
-      informacionBioseguridad: true,
-      planEjecucionTareas: "Plan trimestral de vacunación",
-      planVisitasZoonotarias: "Visitas mensuales programadas",
-    },
-    {
-      numeroColegiado: "VET-2023-002",
-      dni: "87654321B",
-      nombres: "María",
-      apellidos: "Rodríguez Pérez",
-      telefono: "698765432",
-      correo: "maria.rodriguez@vet.com",
-      fechaInicio: "20/03/2023",
-      fechaFinalizacion: "20/03/2024",
-      redaccionPlanes: true,
-      revisionAnimales: true,
-      instruccionManejo: true,
-      informacionBioseguridad: true,
-      planEjecucionTareas: "Control sanitario semanal",
-      planVisitasZoonotarias: "Revisión quincenal",
-    },
-  ])
+export function RegistroVeterinarioSection({ token, userId, farmId }: RegistroVeterinarioSectionProps) {
+  const [veterinarios, setVeterinarios] = useState<Veterinarian[]>([])
+  const [loading, setLoading] = useState(false)
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" })
 
   // Estados para el popup
   const [open, setOpen] = useState(false)
-  const [formData, setFormData] = useState<Veterinario>({
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [formData, setFormData] = useState<FormData>({
     numeroColegiado: "",
     dni: "",
     nombres: "",
@@ -98,11 +84,41 @@ export function RegistroVeterinarioSection() {
 
   // Estados para el diálogo de confirmación de eliminación
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
-  const [veterinarioToDelete, setVeterinarioToDelete] = useState<number | null>(null)
+  const [veterinarioToDelete, setVeterinarioToDelete] = useState<string | null>(null)
 
   // Estados para el diálogo de ver más
   const [openViewDialog, setOpenViewDialog] = useState(false)
-  const [selectedVeterinario, setSelectedVeterinario] = useState<Veterinario | null>(null)
+  const [selectedVeterinario, setSelectedVeterinario] = useState<Veterinarian | null>(null)
+
+  // Cargar veterinarios al montar el componente
+  useEffect(() => {
+    loadVeterinarios()
+  }, [token, userId, farmId])
+
+  const loadVeterinarios = async () => {
+    if (!token || !userId) {
+      console.error("❌ Token o userId no disponibles")
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await listVeterinarians(token, userId, farmId)
+      if (response.success) {
+        setVeterinarios(response.data.items as Veterinarian[] || [])
+        console.log("✅ Veterinarios cargados:", response.data.items.length)
+      }
+    } catch (error: any) {
+      console.error("❌ Error al cargar veterinarios:", error)
+      setSnackbar({
+        open: true,
+        message: error.message || "Error al cargar veterinarios",
+        severity: "error",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleAgregarNuevo = () => {
     setOpen(true)
@@ -110,6 +126,7 @@ export function RegistroVeterinarioSection() {
 
   const handleClose = () => {
     setOpen(false)
+    setEditingId(null)
     // Resetear formulario
     setFormData({
       numeroColegiado: "",
@@ -129,7 +146,7 @@ export function RegistroVeterinarioSection() {
     })
   }
 
-  const handleInputChange = (field: keyof Veterinario, value: string | boolean) => {
+  const handleInputChange = (field: keyof FormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
@@ -144,32 +161,113 @@ export function RegistroVeterinarioSection() {
     })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    const nuevoVeterinario: Veterinario = {
-      ...formData,
-      fechaInicio: formatDateToDisplay(formData.fechaInicio),
-      fechaFinalizacion: formatDateToDisplay(formData.fechaFinalizacion),
+
+    if (!token || !userId || !farmId) {
+      setSnackbar({
+        open: true,
+        message: "Faltan datos de sesión (token, userId o farmId)",
+        severity: "error",
+      })
+      return
     }
 
-    setVeterinarios(prev => [...prev, nuevoVeterinario])
-    handleClose()
-    console.log("Veterinario agregado:", nuevoVeterinario)
+    const data = {
+      numero_colegiado: formData.numeroColegiado,
+      dni: formData.dni,
+      nombres: formData.nombres,
+      apellidos: formData.apellidos,
+      telefono: formData.telefono,
+      correo: formData.correo,
+      fecha_inicio: formData.fechaInicio,
+      fecha_finalizacion: formData.fechaFinalizacion,
+      redaccion_planes: formData.redaccionPlanes,
+      revision_animales: formData.revisionAnimales,
+      instruccion_manejo: formData.instruccionManejo,
+      informacion_bioseguridad: formData.informacionBioseguridad,
+      plan_ejecucion_tareas: formData.planEjecucionTareas,
+      plan_visitas_zoonotarias: formData.planVisitasZoonotarias,
+      farm: farmId,
+      user: userId,
+    }
+
+    setLoading(true)
+    try {
+      if (editingId) {
+        // Actualizar veterinario existente
+        const response = await updateVeterinarian(token, editingId, data, userId)
+        if (response.success) {
+          setSnackbar({
+            open: true,
+            message: "Veterinario actualizado exitosamente",
+            severity: "success",
+          })
+          await loadVeterinarios()
+          handleClose()
+        }
+      } else {
+        // Crear nuevo veterinario
+        const response = await createVeterinarian(token, data)
+        if (response.success) {
+          setSnackbar({
+            open: true,
+            message: "Veterinario registrado exitosamente",
+            severity: "success",
+          })
+          await loadVeterinarios()
+          handleClose()
+        }
+      }
+    } catch (error: any) {
+      console.error("❌ Error al guardar veterinario:", error)
+      setSnackbar({
+        open: true,
+        message: error.message || "Error al guardar el veterinario",
+        severity: "error",
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleCancelar = () => {
     handleClose()
   }
 
-  const handleEditar = (index: number) => {
-    console.log("Editar veterinario:", veterinarios[index])
-    // Aquí puedes implementar la lógica de edición
+  const handleEditar = (id: string) => {
+    const vet = veterinarios.find(v => v.id === id)
+    if (!vet) return
+
+    console.log("Editar veterinario:", vet)
+    
+    setFormData({
+      numeroColegiado: vet.numero_colegiado,
+      dni: vet.dni,
+      nombres: vet.nombres,
+      apellidos: vet.apellidos,
+      telefono: vet.telefono,
+      correo: vet.correo,
+      fechaInicio: vet.fecha_inicio,
+      fechaFinalizacion: vet.fecha_finalizacion,
+      redaccionPlanes: vet.redaccion_planes,
+      revisionAnimales: vet.revision_animales,
+      instruccionManejo: vet.instruccion_manejo,
+      informacionBioseguridad: vet.informacion_bioseguridad,
+      planEjecucionTareas: vet.plan_ejecucion_tareas || "",
+      planVisitasZoonotarias: vet.plan_visitas_zoonotarias || "",
+    })
+    
+    setEditingId(id)
+    setOpen(true)
   }
 
-  const handleVerMas = (index: number) => {
-    setSelectedVeterinario(veterinarios[index])
-    setOpenViewDialog(true)
+  const handleVerMas = (id: string) => {
+    const vet = veterinarios.find(v => v.id === id)
+    if (vet) {
+      setSelectedVeterinario(vet)
+      setOpenViewDialog(true)
+    }
   }
 
   const handleCloseViewDialog = () => {
@@ -178,18 +276,37 @@ export function RegistroVeterinarioSection() {
   }
 
   // Funciones para eliminar
-  const handleEliminarClick = (index: number) => {
-    setVeterinarioToDelete(index)
+  const handleEliminarClick = (id: string) => {
+    setVeterinarioToDelete(id)
     setOpenDeleteDialog(true)
   }
 
-  const handleConfirmDelete = () => {
-    if (veterinarioToDelete !== null) {
-      setVeterinarios(prev => prev.filter((_, index) => index !== veterinarioToDelete))
-      console.log("Veterinario eliminado:", veterinarios[veterinarioToDelete])
+  const handleConfirmDelete = async () => {
+    if (!veterinarioToDelete || !token || !userId) return
+
+    setLoading(true)
+    try {
+      const response = await deleteVeterinarian(token, veterinarioToDelete, userId)
+      if (response.success) {
+        setSnackbar({
+          open: true,
+          message: "Veterinario eliminado exitosamente",
+          severity: "success",
+        })
+        await loadVeterinarios()
+      }
+    } catch (error: any) {
+      console.error("❌ Error al eliminar veterinario:", error)
+      setSnackbar({
+        open: true,
+        message: error.message || "Error al eliminar el veterinario",
+        severity: "error",
+      })
+    } finally {
+      setLoading(false)
+      setOpenDeleteDialog(false)
+      setVeterinarioToDelete(null)
     }
-    setOpenDeleteDialog(false)
-    setVeterinarioToDelete(null)
   }
 
   const handleCancelDelete = () => {
@@ -288,89 +405,106 @@ export function RegistroVeterinarioSection() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {veterinarios.map((veterinario, index) => (
-                  <TableRow
-                    key={index}
-                    sx={{
-                      "&:nth-of-type(even)": {
-                        bgcolor: "#fafafa",
-                      },
-                      "&:hover": {
-                        bgcolor: "#f5f5f5",
-                      },
-                    }}
-                  >
-                    <TableCell sx={{ color: "text.primary" }}>
-                      {veterinario.numeroColegiado}
-                    </TableCell>
-                    <TableCell sx={{ color: "text.primary" }}>
-                      {veterinario.dni}
-                    </TableCell>
-                    <TableCell sx={{ color: "text.primary" }}>
-                      {veterinario.nombres}
-                    </TableCell>
-                    <TableCell sx={{ color: "text.primary" }}>
-                      {veterinario.apellidos}
-                    </TableCell>
-                    <TableCell sx={{ color: "text.primary" }}>
-                      {veterinario.telefono}
-                    </TableCell>
-                    <TableCell sx={{ color: "text.primary" }}>
-                      {veterinario.correo}
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: "flex", gap: 1 }}>
-                        <Button
-                          size="small"
-                          variant="contained"
-                          onClick={() => handleEditar(index)}
-                          sx={{
-                            bgcolor: "#ffeb3b",
-                            color: "#333",
-                            fontSize: "0.75rem",
-                            "&:hover": {
-                              bgcolor: "#fdd835",
-                            },
-                          }}
-                        >
-                          Editar
-                        </Button>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          onClick={() => handleVerMas(index)}
-                          sx={{
-                            borderColor: "#64b5f6",
-                            color: "#1976d2",
-                            fontSize: "0.75rem",
-                            "&:hover": {
-                              bgcolor: "#e3f2fd",
-                              borderColor: "#42a5f5",
-                            },
-                          }}
-                        >
-                          Ver más
-                        </Button>
-                        <Button
-                          size="small"
-                          variant="contained"
-                          startIcon={<Delete />}
-                          onClick={() => handleEliminarClick(index)}
-                          sx={{
-                            bgcolor: "#f44336",
-                            color: "white",
-                            fontSize: "0.75rem",
-                            "&:hover": {
-                              bgcolor: "#d32f2f",
-                            },
-                          }}
-                        >
-                          Eliminar
-                        </Button>
-                      </Box>
+                {loading && veterinarios.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                      <CircularProgress size={40} />
+                      <Typography sx={{ mt: 2 }}>Cargando veterinarios...</Typography>
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : veterinarios.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                      <Typography color="text.secondary">
+                        No hay veterinarios registrados
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  veterinarios.map((veterinario) => (
+                    <TableRow
+                      key={veterinario.id}
+                      sx={{
+                        "&:nth-of-type(even)": {
+                          bgcolor: "#fafafa",
+                        },
+                        "&:hover": {
+                          bgcolor: "#f5f5f5",
+                        },
+                      }}
+                    >
+                      <TableCell sx={{ color: "text.primary" }}>
+                        {veterinario.numero_colegiado}
+                      </TableCell>
+                      <TableCell sx={{ color: "text.primary" }}>
+                        {veterinario.dni}
+                      </TableCell>
+                      <TableCell sx={{ color: "text.primary" }}>
+                        {veterinario.nombres}
+                      </TableCell>
+                      <TableCell sx={{ color: "text.primary" }}>
+                        {veterinario.apellidos}
+                      </TableCell>
+                      <TableCell sx={{ color: "text.primary" }}>
+                        {veterinario.telefono}
+                      </TableCell>
+                      <TableCell sx={{ color: "text.primary" }}>
+                        {veterinario.correo}
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: "flex", gap: 1 }}>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            onClick={() => handleEditar(veterinario.id!)}
+                            sx={{
+                              bgcolor: "#ffeb3b",
+                              color: "#333",
+                              fontSize: "0.75rem",
+                              "&:hover": {
+                                bgcolor: "#fdd835",
+                              },
+                            }}
+                          >
+                            Editar
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() => handleVerMas(veterinario.id!)}
+                            sx={{
+                              borderColor: "#64b5f6",
+                              color: "#1976d2",
+                              fontSize: "0.75rem",
+                              "&:hover": {
+                                bgcolor: "#e3f2fd",
+                                borderColor: "#42a5f5",
+                              },
+                            }}
+                          >
+                            Ver más
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            startIcon={<Delete />}
+                            onClick={() => handleEliminarClick(veterinario.id!)}
+                            sx={{
+                              bgcolor: "#f44336",
+                              color: "white",
+                              fontSize: "0.75rem",
+                              "&:hover": {
+                                bgcolor: "#d32f2f",
+                              },
+                            }}
+                          >
+                            Eliminar
+                          </Button>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </TableContainer>
@@ -390,8 +524,9 @@ export function RegistroVeterinarioSection() {
             <Typography>
               ¿Estás seguro de que deseas eliminar al veterinario{" "}
               <strong>
-                {veterinarioToDelete !== null
-                  ? `${veterinarios[veterinarioToDelete]?.nombres} ${veterinarios[veterinarioToDelete]?.apellidos}`
+                {veterinarioToDelete
+                  ? veterinarios.find(v => v.id === veterinarioToDelete)?.nombres + " " +
+                    veterinarios.find(v => v.id === veterinarioToDelete)?.apellidos
                   : ""}
               </strong>
               ? Esta acción no se puede deshacer.
@@ -434,7 +569,7 @@ export function RegistroVeterinarioSection() {
                     Número de Colegiado
                   </Typography>
                   <Typography variant="body1" sx={{ mb: 2 }}>
-                    {selectedVeterinario.numeroColegiado}
+                    {selectedVeterinario.numero_colegiado}
                   </Typography>
                 </Grid>
                 <Grid item xs={12} md={6}>
@@ -482,7 +617,7 @@ export function RegistroVeterinarioSection() {
                     Fecha de Inicio
                   </Typography>
                   <Typography variant="body1" sx={{ mb: 2 }}>
-                    {selectedVeterinario.fechaInicio}
+                    {formatDateToDisplay(selectedVeterinario.fecha_inicio)}
                   </Typography>
                 </Grid>
                 <Grid item xs={12} md={6}>
@@ -490,7 +625,7 @@ export function RegistroVeterinarioSection() {
                     Fecha de Finalización
                   </Typography>
                   <Typography variant="body1" sx={{ mb: 2 }}>
-                    {selectedVeterinario.fechaFinalizacion}
+                    {formatDateToDisplay(selectedVeterinario.fecha_finalizacion)}
                   </Typography>
                 </Grid>
 
@@ -500,19 +635,19 @@ export function RegistroVeterinarioSection() {
                   </Typography>
                   <FormGroup>
                     <FormControlLabel
-                      control={<Checkbox checked={selectedVeterinario.redaccionPlanes} disabled />}
+                      control={<Checkbox checked={selectedVeterinario.redaccion_planes} disabled />}
                       label="Redacción y actualización de planes"
                     />
                     <FormControlLabel
-                      control={<Checkbox checked={selectedVeterinario.revisionAnimales} disabled />}
+                      control={<Checkbox checked={selectedVeterinario.revision_animales} disabled />}
                       label="Revisión de animales"
                     />
                     <FormControlLabel
-                      control={<Checkbox checked={selectedVeterinario.instruccionManejo} disabled />}
+                      control={<Checkbox checked={selectedVeterinario.instruccion_manejo} disabled />}
                       label="Instrucción para mejorar el manejo"
                     />
                     <FormControlLabel
-                      control={<Checkbox checked={selectedVeterinario.informacionBioseguridad} disabled />}
+                      control={<Checkbox checked={selectedVeterinario.informacion_bioseguridad} disabled />}
                       label="Información sobre bioseguridad"
                     />
                   </FormGroup>
@@ -523,7 +658,7 @@ export function RegistroVeterinarioSection() {
                     Plan de ejecución de tareas
                   </Typography>
                   <Typography variant="body1" sx={{ mb: 2 }}>
-                    {selectedVeterinario.planEjecucionTareas || "No especificado"}
+                    {selectedVeterinario.plan_ejecucion_tareas || "No especificado"}
                   </Typography>
                 </Grid>
 
@@ -532,7 +667,7 @@ export function RegistroVeterinarioSection() {
                     Plan de visitas zoonotarias
                   </Typography>
                   <Typography variant="body1" sx={{ mb: 2 }}>
-                    {selectedVeterinario.planVisitasZoonotarias || "No especificado"}
+                    {selectedVeterinario.plan_visitas_zoonotarias || "No especificado"}
                   </Typography>
                 </Grid>
               </Grid>
@@ -758,6 +893,22 @@ export function RegistroVeterinarioSection() {
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* Snackbar para mensajes */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Container>
     </Box>
   )
