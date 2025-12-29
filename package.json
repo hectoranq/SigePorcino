@@ -19,7 +19,7 @@
     "agro-sige": "file:",
     "autoprefixer": "^10.4.20",
     "axios": "^1.7.9",
-    "next": "^15.3.1",
+    "next": "15.3.8",
     "pocketbase": "^0.26.0",
     "postcss": "^8.4.49",
     "react": "^18.3.1",
