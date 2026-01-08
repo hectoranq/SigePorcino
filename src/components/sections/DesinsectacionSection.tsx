@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Box,
   Typography,
@@ -18,9 +18,23 @@ import {
   Grid,
   MenuItem,
   Checkbox,
+  CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material"
 import { Add, KeyboardArrowDown } from "@mui/icons-material"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
+import { buttonStyles, headerColors, headerAccentColors, sectionHeaderStyle, headerBarStyle } from "./buttonStyles"
+import useUserStore from "../../_store/user"
+import useFarmFormStore from "../../_store/farm"
+import { listStaff, Staff } from "../../action/PersonalRegisterPocket"
+import {
+  createDesinsectacion,
+  updateDesinsectacion,
+  deleteDesinsectacion,
+  getDesinsectacionByFarmId,
+  Desinsectacion as APIDesinsectacion,
+} from "../../action/DesinsectacionPocket"
 
 const theme = createTheme({
   palette: {
@@ -35,11 +49,13 @@ const theme = createTheme({
 })
 
 interface DesinsectacionData {
+  id?: string
   productoEmpleado: string
   dondeSeEmpleo: string
   aplicador: string
   fecha: string
   supervisado: string
+  supervisadoId?: string
   tipoProducto: {
     lavado: boolean
     desinfectante: boolean
@@ -48,17 +64,19 @@ interface DesinsectacionData {
   fechaUltimaActualizacion: string
 }
 
-const SUPERVISORES = [
-  "Juan Carlos Martínez",
-  "María Elena González",
-  "Pedro Antonio López",
-  "Ana Isabel Rodríguez",
-  "José Manuel Fernández",
-  "Carmen Rosa Torres",
-  "Francisco Javier Silva"
-]
-
 export function DesinsectacionSection() {
+  const { token, record } = useUserStore()
+  const { currentFarm } = useFarmFormStore()
+  const [staff, setStaff] = useState<Staff[]>([])
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [currentRegistroId, setCurrentRegistroId] = useState<string | null>(null)
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean
+    message: string
+    severity: "success" | "error" | "info" | "warning"
+  }>({ open: false, message: "", severity: "info" })
+
   // Estados para el popup
   const [open, setOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
@@ -76,67 +94,129 @@ export function DesinsectacionSection() {
     },
   })
 
+  // Cargar personal al montar el componente
+  useEffect(() => {
+    const loadStaff = async () => {
+      if (!currentFarm?.id || !token || !record?.id) return
+
+      try {
+        const response = await listStaff(token, record.id, currentFarm.id)
+        setStaff(response.data.items as Staff[])
+      } catch (error) {
+        console.error("Error loading staff:", error)
+      }
+    }
+
+    loadStaff()
+  }, [currentFarm, token, record])
+
   // Estado para la tabla de desinsectación - ACTUALIZADO CON NUEVOS CAMPOS
-  const [desinsectacionData, setDesinsectacionData] = useState<DesinsectacionData[]>([
-    {
-      productoEmpleado: "Cipermetrina 10%",
-      dondeSeEmpleo: "Naves de animales y almacén",
-      aplicador: "Carlos Manuel Rodríguez Silva",
-      fecha: "2023-08-15",
-      supervisado: "María Elena González",
-      tipoProducto: { lavado: true, desinfectante: false },
-      fechaCreacion: "15/08/2023",
-      fechaUltimaActualizacion: "18/08/2023",
-    },
-    {
-      productoEmpleado: "Deltametrina 2.5%",
-      dondeSeEmpleo: "Oficinas y comedores",
-      aplicador: "Ana Patricia Moreno López",
-      fecha: "2024-06-10",
-      supervisado: "Pedro Antonio López",
-      tipoProducto: { lavado: false, desinfectante: true },
-      fechaCreacion: "10/06/2024",
-      fechaUltimaActualizacion: "12/06/2024",
-    },
-    {
-      productoEmpleado: "Imidacloprid 20%",
-      dondeSeEmpleo: "Zonas exteriores y silos",
-      aplicador: "Roberto Alejandro Vega Torres",
-      fecha: "2023-03-22",
-      supervisado: "Carmen Rosa Torres",
-      tipoProducto: { lavado: true, desinfectante: true },
-      fechaCreacion: "22/03/2023",
-      fechaUltimaActualizacion: "25/03/2023",
-    },
-  ])
+  const [desinsectacionData, setDesinsectacionData] = useState<DesinsectacionData[]>([])
+
+  // Función para convertir fecha de YYYY-MM-DD a DD/MM/YYYY
+  const formatDateToDisplay = (dateString: string) => {
+    if (!dateString) return "Sin fecha"
+    const date = new Date(dateString)
+    return date.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    })
+  }
+
+  // Función para convertir de API a formato local
+  const convertAPItoLocal = (apiData: APIDesinsectacion): DesinsectacionData => {
+    const supervisor = staff.find(s => s.id === apiData.supervisado)
+    const supervisorNombre = supervisor 
+      ? `${supervisor.nombre} ${supervisor.apellidos}` 
+      : ""
+
+    return {
+      id: apiData.id,
+      productoEmpleado: apiData.producto_empleado,
+      dondeSeEmpleo: apiData.donde_se_empleo,
+      aplicador: apiData.aplicador,
+      fecha: apiData.fecha,
+      supervisado: supervisorNombre,
+      supervisadoId: apiData.supervisado,
+      tipoProducto: {
+        lavado: apiData.tipo_producto_lavado,
+        desinfectante: apiData.tipo_producto_desinfectante,
+      },
+      fechaCreacion: apiData.created ? formatDateToDisplay(apiData.created) : "",
+      fechaUltimaActualizacion: apiData.updated ? formatDateToDisplay(apiData.updated) : "",
+    }
+  }
+
+  // Función para convertir de formato local a API
+  const convertLocalToAPI = (localData: DesinsectacionData) => {
+    return {
+      farm: currentFarm!.id,
+      user: record!.id,
+      producto_empleado: localData.productoEmpleado,
+      donde_se_empleo: localData.dondeSeEmpleo,
+      aplicador: localData.aplicador,
+      fecha: localData.fecha,
+      supervisado: localData.supervisado,
+      tipo_producto_lavado: localData.tipoProducto.lavado,
+      tipo_producto_desinfectante: localData.tipoProducto.desinfectante,
+    }
+  }
+
+  // Cargar registros de desinsectación
+  useEffect(() => {
+    const loadDesinsectacion = async () => {
+      if (!currentFarm?.id || !token || !record?.id || staff.length === 0) return
+
+      setLoading(true)
+      try {
+        const response = await getDesinsectacionByFarmId(token, currentFarm.id, record.id)
+        const registros = (response.data.items as APIDesinsectacion[]).map(convertAPItoLocal)
+        setDesinsectacionData(registros)
+      } catch (error) {
+        console.error("Error loading desinsectacion:", error)
+        setSnackbar({
+          open: true,
+          message: "Error al cargar los registros de desinsectación",
+          severity: "error",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadDesinsectacion()
+  }, [currentFarm, token, record, staff])
+
+  const loadRegistroToForm = (registro: DesinsectacionData) => {
+    setFormData({
+      productoEmpleado: registro.productoEmpleado,
+      dondeSeEmpleo: registro.dondeSeEmpleo,
+      aplicador: registro.aplicador,
+      fecha: registro.fecha,
+      supervisado: registro.supervisadoId || "",
+      tipoProducto: {
+        lavado: registro.tipoProducto.lavado,
+        desinfectante: registro.tipoProducto.desinfectante,
+      },
+    })
+    setCurrentRegistroId(registro.id || null)
+    setEditMode(true)
+    setViewMode(false)
+    setOpen(true)
+  }
 
   const handleOpen = () => {
     setEditMode(false)
     setViewMode(false)
     setEditIndex(null)
+    setCurrentRegistroId(null)
     setOpen(true)
   }
 
   // FUNCIÓN HANDLEEDIT ACTUALIZADA CON NUEVOS CAMPOS
   const handleEdit = (index: number) => {
-    const item = desinsectacionData[index]
-    
-    setFormData({
-      productoEmpleado: item.productoEmpleado,
-      dondeSeEmpleo: item.dondeSeEmpleo,
-      aplicador: item.aplicador,
-      fecha: item.fecha,
-      supervisado: item.supervisado,
-      tipoProducto: {
-        lavado: item.tipoProducto.lavado,
-        desinfectante: item.tipoProducto.desinfectante,
-      },
-    })
-    
-    setEditMode(true)
-    setViewMode(false)
-    setEditIndex(index)
-    setOpen(true)
+    loadRegistroToForm(desinsectacionData[index])
   }
 
   // FUNCIÓN VER MÁS ACTUALIZADA CON NUEVOS CAMPOS
@@ -148,7 +228,7 @@ export function DesinsectacionSection() {
       dondeSeEmpleo: item.dondeSeEmpleo,
       aplicador: item.aplicador,
       fecha: item.fecha,
-      supervisado: item.supervisado,
+      supervisado: item.supervisadoId || "",
       tipoProducto: {
         lavado: item.tipoProducto.lavado,
         desinfectante: item.tipoProducto.desinfectante,
@@ -163,22 +243,14 @@ export function DesinsectacionSection() {
 
   
 
-  // Función para convertir fecha de YYYY-MM-DD a DD/MM/YYYY
-  const formatDateToDisplay = (dateString: string) => {
-    if (!dateString) return "Sin fecha"
-    const date = new Date(dateString)
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    })
-  }
+  
 
   const handleClose = () => {
     setOpen(false)
     setEditMode(false)
     setViewMode(false)
     setEditIndex(null)
+    setCurrentRegistroId(null)
     setFormData({
       productoEmpleado: "",
       dondeSeEmpleo: "",
@@ -192,45 +264,51 @@ export function DesinsectacionSection() {
     })
   }
 
-  // HANDLESUBMIT ACTUALIZADO CON NUEVOS CAMPOS
-  const handleSubmit = () => {
-    console.log("Datos de desinsectación:", formData)
-
+  // HANDLESUBMIT ACTUALIZADO CON NUEVOS CAMPOS Y API
+  const handleSubmit = async () => {
     // Validar que los campos requeridos estén llenos
     if (!formData.aplicador || !formData.productoEmpleado || !formData.fecha) {
-      alert("Por favor, completa todos los campos requeridos")
+      setSnackbar({ open: true, message: "Por favor, completa todos los campos requeridos", severity: "error" })
       return
     }
 
-    const desinsectacionItem = {
-      productoEmpleado: formData.productoEmpleado,
-      dondeSeEmpleo: formData.dondeSeEmpleo,
-      aplicador: formData.aplicador,
-      fecha: formData.fecha,
-      supervisado: formData.supervisado,
-      tipoProducto: {
-        lavado: formData.tipoProducto.lavado,
-        desinfectante: formData.tipoProducto.desinfectante,
-      },
-      fechaCreacion: editMode 
-        ? desinsectacionData[editIndex!].fechaCreacion 
-        : formatDateToDisplay(formData.fecha),
-      fechaUltimaActualizacion: formatDateToDisplay(formData.fecha),
+    if (!formData.supervisado) {
+      setSnackbar({ open: true, message: "Por favor, selecciona un supervisor", severity: "error" })
+      return
     }
 
-    if (editMode && editIndex !== null) {
-      // Actualizar elemento existente
-      setDesinsectacionData((prev) => 
-        prev.map((item, index) => 
-          index === editIndex ? desinsectacionItem : item
-        )
-      )
-    } else {
-      // Agregar nuevo elemento
-      setDesinsectacionData((prev) => [...prev, desinsectacionItem])
+    setSaving(true)
+
+    try {
+      const dataToSend = convertLocalToAPI(formData as DesinsectacionData)
+
+      if (currentRegistroId) {
+        // Actualizar registro existente
+        await updateDesinsectacion(token, currentRegistroId, dataToSend, record.id)
+        
+        setSnackbar({ open: true, message: "Registro actualizado exitosamente", severity: "success" })
+      } else {
+        // Crear nuevo registro
+        await createDesinsectacion(token, dataToSend)
+        setSnackbar({ open: true, message: "Registro creado exitosamente", severity: "success" })
+      }
+
+      // Recargar los datos
+      const registros = await getDesinsectacionByFarmId( token, currentFarm.id, record.id).then(res => res.data.items as APIDesinsectacion[])
+      const convertedData = registros.map(convertAPItoLocal)
+      setDesinsectacionData(convertedData)
+
+      handleClose()
+    } catch (error) {
+      console.error("Error al guardar:", error)
+      setSnackbar({
+        open: true,
+        message: `Error al guardar el registro: ${error instanceof Error ? error.message : "Error desconocido"}`,
+        severity: "error",
+      })
+    } finally {
+      setSaving(false)
     }
-    
-    handleClose()
   }
 
   return (
@@ -242,25 +320,9 @@ export function DesinsectacionSection() {
           <Box sx={{ flexGrow: 1, p: 3, bgcolor: "grey.50" }}>
             <Paper elevation={1} sx={{ borderRadius: 2 }}>
               {/* Header */}
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  p: 3,
-                  borderBottom: 1,
-                  borderColor: "divider",
-                }}
-              >
+              <Box sx={sectionHeaderStyle}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  <Box
-                    sx={{
-                      width: 4,
-                      height: 32,
-                      bgcolor: "primary.main",
-                      borderRadius: 2,
-                    }}
-                  />
+                  <Box sx={headerBarStyle} />
                   <Typography variant="h5" fontWeight={600}>
                     Desinsectación
                   </Typography>
@@ -269,15 +331,20 @@ export function DesinsectacionSection() {
                   variant="contained" 
                   color="secondary" 
                   startIcon={<Add />} 
-                  sx={{ textTransform: "none" }}
+                  sx={buttonStyles.primary}
                   onClick={handleOpen}
                 >
                   Agregar nuevo
                 </Button>
               </Box>
 
-              <TableContainer>
-                <Table>
+              {loading ? (
+                <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "400px" }}>
+                  <CircularProgress />
+                </Box>
+              ) : (
+                <TableContainer>
+                  <Table>
                   <TableHead sx={{ bgcolor: "grey.100" }}>
                     <TableRow>
                       <TableCell>
@@ -338,14 +405,7 @@ export function DesinsectacionSection() {
                             <Button
                               size="small"
                               variant="contained"
-                              sx={{
-                                bgcolor: "#facc15",
-                                color: "grey.900",
-                                textTransform: "none",
-                                "&:hover": {
-                                  bgcolor: "#eab308",
-                                },
-                              }}
+                              sx={buttonStyles.edit}
                               onClick={() => handleEdit(index)}
                             >
                               Editar
@@ -353,15 +413,7 @@ export function DesinsectacionSection() {
                             <Button
                               size="small"
                               variant="outlined"
-                              sx={{
-                                borderColor: "#93c5fd",
-                                color: "#2563eb",
-                                textTransform: "none",
-                                "&:hover": {
-                                  bgcolor: "#eff6ff",
-                                  borderColor: "#93c5fd",
-                                },
-                              }}
+                              sx={buttonStyles.secondary}
                               onClick={() => handleVerMas(index)}
                             >
                               Ver más
@@ -373,6 +425,7 @@ export function DesinsectacionSection() {
                   </TableBody>
                 </Table>
               </TableContainer>
+              )}
             </Paper>
           </Box>
         </Box>
@@ -393,7 +446,7 @@ export function DesinsectacionSection() {
                 <Paper sx={{ maxWidth: 1024, mx: "auto", borderRadius: 2, overflow: "hidden" }}>
                   {/* Header dinámico según el modo */}
                   <Box sx={{ 
-                    bgcolor: viewMode ? "#64748b" : editMode ? "#f59e0b" : "#22d3ee", 
+                    bgcolor: viewMode ? headerColors.view : editMode ? headerColors.edit : headerColors.create, 
                     px: 3, 
                     py: 2, 
                     display: "flex", 
@@ -403,11 +456,11 @@ export function DesinsectacionSection() {
                     <Box sx={{ 
                       width: 4, 
                       height: 24, 
-                      bgcolor: viewMode ? "#94a3b8" : editMode ? "#fbbf24" : "#67e8f9", 
+                      bgcolor: viewMode ? headerAccentColors.view : editMode ? headerAccentColors.edit : headerAccentColors.create, 
                       borderRadius: 0.5 
                     }} />
                     <Typography variant="h6" sx={{ color: "white", fontWeight: 500 }}>
-                      {viewMode ? "Detalle de desinsectación" : editMode ? "Editar desinsectación" : "Registro de desinsectación"}
+                      {viewMode ? "Detalle de desinsectación" : currentRegistroId ? "Editar desinsectación" : "Registro de desinsectación"}
                     </Typography>
                   </Box>
 
@@ -419,8 +472,9 @@ export function DesinsectacionSection() {
                       <Grid item xs={6}>
                         <TextField
                           fullWidth
+                          label="Producto empleado"
                           placeholder="Producto empleado"
-                          variant="standard"
+                          variant="filled"
                           value={formData.productoEmpleado}
                           onChange={(e) => setFormData((prev) => ({ ...prev, productoEmpleado: e.target.value }))}
                           InputProps={{
@@ -436,8 +490,9 @@ export function DesinsectacionSection() {
                       <Grid item xs={6}>
                         <TextField
                           fullWidth
+                          label="Donde se empleó"
                           placeholder="Donde se empleó"
-                          variant="standard"
+                          variant="filled"
                           value={formData.dondeSeEmpleo}
                           onChange={(e) => setFormData((prev) => ({ ...prev, dondeSeEmpleo: e.target.value }))}
                           InputProps={{
@@ -455,8 +510,9 @@ export function DesinsectacionSection() {
                     {/* Aplicador (ancho completo) */}
                     <TextField
                       fullWidth
+                      label="Aplicador"
                       placeholder="Aplicador"
-                      variant="standard"
+                      variant="filled"
                       value={formData.aplicador}
                       onChange={(e) => setFormData((prev) => ({ ...prev, aplicador: e.target.value }))}
                       sx={{ 
@@ -479,7 +535,7 @@ export function DesinsectacionSection() {
                           fullWidth
                           label="Fecha"
                           type="date"
-                          variant="standard"
+                          variant="filled"
                           value={formData.fecha}
                           onChange={(e) => setFormData((prev) => ({ ...prev, fecha: e.target.value }))}
                           InputLabelProps={{
@@ -496,28 +552,42 @@ export function DesinsectacionSection() {
                         />
                       </Grid>
                       <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          select={!viewMode}
-                          label="Supervisado"
-                          variant="standard"
-                          value={formData.supervisado}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, supervisado: e.target.value }))}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
-                        >
-                          {!viewMode && SUPERVISORES.map((supervisor) => (
-                            <MenuItem key={supervisor} value={supervisor}>
-                              {supervisor}
-                            </MenuItem>
-                          ))}
-                        </TextField>
+                        {viewMode ? (
+                          <TextField
+                            fullWidth
+                            label="Supervisado"
+                            variant="filled"
+                            value={formData.supervisado}
+                            InputProps={{
+                              readOnly: true,
+                            }}
+                            sx={{
+                              "& .MuiInputBase-input": {
+                                color: "text.secondary",
+                              },
+                            }}
+                          />
+                        ) : (
+                          <TextField
+                            fullWidth
+                            select
+                            label="Supervisado"
+                            variant="filled"
+                            value={formData.supervisado}
+                            onChange={(e) => setFormData((prev) => ({ ...prev, supervisado: e.target.value }))}
+                            sx={{
+                              "& .MuiInputBase-input": {
+                                color: "text.primary",
+                              },
+                            }}
+                          >
+                            {staff.map((person) => (
+                              <MenuItem key={person.id} value={person.id}>
+                                {person.nombre} {person.apellidos}
+                              </MenuItem>
+                            ))}
+                          </TextField>
+                        )}
                       </Grid>
                     </Grid>
  {/* Tipo de producto - Checkboxes */}
@@ -582,7 +652,8 @@ export function DesinsectacionSection() {
                         <Button
                           variant="outlined"
                           onClick={handleClose}
-                          sx={{ textTransform: "none", color: "#2563eb", borderColor: "#93c5fd" }}
+                          sx={buttonStyles.close}
+                          disabled={saving}
                         >
                           Cerrar
                         </Button>
@@ -591,16 +662,19 @@ export function DesinsectacionSection() {
                           <Button
                             variant="outlined"
                             onClick={handleClose}
-                            sx={{ textTransform: "none", color: "#2563eb", borderColor: "#93c5fd" }}
+                            sx={buttonStyles.cancel}
+                            disabled={saving}
                           >
                             Cancelar
                           </Button>
                           <Button
                             variant="contained"
                             onClick={handleSubmit}
-                            sx={{ textTransform: "none" }}
+                            sx={buttonStyles.save}
+                            disabled={saving}
+                            startIcon={saving ? <CircularProgress size={20} /> : undefined}
                           >
-                            {editMode ? "Actualizar" : "Guardar"}
+                            {saving ? "Guardando..." : currentRegistroId ? "Actualizar" : "Guardar"}
                           </Button>
                         </>
                       )}
@@ -611,6 +685,22 @@ export function DesinsectacionSection() {
             </ThemeProvider>
           </DialogContent>
         </Dialog>
+
+        {/* Snackbar para notificaciones */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Box>
     </ThemeProvider>
   )

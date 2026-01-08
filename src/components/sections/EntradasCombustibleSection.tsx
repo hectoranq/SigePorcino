@@ -20,6 +20,7 @@ import {
 } from "@mui/material"
 import { Add, KeyboardArrowDown } from "@mui/icons-material"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
+import { buttonStyles, headerColors, headerAccentColors} from "./buttonStyles"
 
 const theme = createTheme({
   palette: {
@@ -251,7 +252,7 @@ export function EntradasCombustibleSection() {
                   variant="contained" 
                   color="secondary" 
                   startIcon={<Add />} 
-                  sx={{ textTransform: "none" }}
+                  sx={buttonStyles.save}
                   onClick={handleOpen}
                 >
                   Agregar nuevo
@@ -337,11 +338,10 @@ export function EntradasCombustibleSection() {
                               size="small"
                               variant="contained"
                               sx={{
-                                bgcolor: "#facc15",
+                                bgcolor: "#eab308",
                                 color: "grey.900",
-                                textTransform: "none",
                                 "&:hover": {
-                                  bgcolor: "#eab308",
+                                  bgcolor: "#ca8a04",
                                 },
                               }}
                               onClick={() => handleEdit(index)}
@@ -354,7 +354,6 @@ export function EntradasCombustibleSection() {
                               sx={{
                                 borderColor: "#93c5fd",
                                 color: "#2563eb",
-                                textTransform: "none",
                                 "&:hover": {
                                   bgcolor: "#eff6ff",
                                   borderColor: "#93c5fd",
@@ -386,188 +385,186 @@ export function EntradasCombustibleSection() {
           }}
         >
           <DialogContent sx={{ p: 0 }}>
-            <ThemeProvider theme={theme}>
-              <Box sx={{ minHeight: "auto", bgcolor: "#f9fafb", p: 3 }}>
-                <Paper sx={{ maxWidth: 1000, mx: "auto", borderRadius: 2, overflow: "hidden" }}>
-                  {/* Header dinámico según el modo */}
+            <Box sx={{ minHeight: "auto", bgcolor: "#f9fafb", p: 3 }}>
+              <Paper sx={{ maxWidth: 1000, mx: "auto", borderRadius: 2, overflow: "hidden" }}>
+                {/* Header dinámico según el modo */}
+                <Box sx={{ 
+                  bgcolor: viewMode ? headerColors.view : editMode ? headerColors.edit : headerColors.create, 
+                  px: 3, 
+                  py: 2, 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: 1 
+                }}>
                   <Box sx={{ 
-                    bgcolor: viewMode ? "#64748b" : editMode ? "#f59e0b" : "#22d3ee", 
-                    px: 3, 
-                    py: 2, 
-                    display: "flex", 
-                    alignItems: "center", 
-                    gap: 1 
-                  }}>
+                    width: 4, 
+                    height: 24, 
+                    bgcolor: viewMode ? headerAccentColors.view : editMode ? headerAccentColors.edit : headerAccentColors.create, 
+                    borderRadius: 0.5 
+                  }} />
+                  <Typography variant="h6" sx={{ color: "white", fontWeight: 500 }}>
+                    {viewMode ? "Detalle de entrada de combustible" : editMode ? "Editar entrada de combustible" : "Registro de entrada de combustible"}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ p: 3 }}>
+                  {/* Tipo de combustible y Fecha */}
+                  <Grid container spacing={3} sx={{ mb: 3 }}>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        select={!viewMode}
+                        label="Tipo de combustible"
+                        variant="standard"
+                        value={formData.tipoCombustible}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, tipoCombustible: e.target.value }))}
+                        InputProps={{
+                          readOnly: viewMode,
+                        }}
+                        sx={{
+                          "& .MuiInputBase-input": {
+                            color: viewMode ? "text.secondary" : "text.primary",
+                          },
+                        }}
+                      >
+                        {!viewMode && TIPOS_COMBUSTIBLE.map((tipo) => (
+                          <MenuItem key={tipo} value={tipo}>
+                            {tipo}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        label="Fecha de entrada"
+                        type="date"
+                        variant="standard"
+                        value={formData.fecha}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, fecha: e.target.value }))}
+                        InputLabelProps={{
+                          shrink: true,
+                        }}
+                        InputProps={{
+                          readOnly: viewMode,
+                        }}
+                        sx={{
+                          "& .MuiInputBase-input": {
+                            color: viewMode ? "text.secondary" : "text.primary",
+                          },
+                        }}
+                      />
+                    </Grid>
+                  </Grid>
+
+                  {/* Cantidades y Unidades */}
+                  <Grid container spacing={3} sx={{ mb: 3 }}>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        placeholder="Cantidad recibida"
+                        variant="standard"
+                        type="number"
+                        inputProps={{ step: "0.1", min: "0" }}
+                        value={formData.cantidades}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, cantidades: e.target.value }))}
+                        InputProps={{
+                          readOnly: viewMode,
+                        }}
+                        sx={{
+                          "& .MuiInputBase-input": {
+                            color: viewMode ? "text.secondary" : "text.primary",
+                            fontSize: "1.1rem",
+                            fontWeight: 500,
+                          },
+                        }}
+                        helperText={!viewMode ? "Cantidad numérica del combustible recibido" : ""}
+                      />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        select={!viewMode}
+                        label="Unidad de medida"
+                        variant="standard"
+                        value={formData.unidades}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, unidades: e.target.value }))}
+                        InputProps={{
+                          readOnly: viewMode,
+                        }}
+                        sx={{
+                          "& .MuiInputBase-input": {
+                            color: viewMode ? "text.secondary" : "text.primary",
+                          },
+                        }}
+                        helperText={!viewMode ? "Selecciona la unidad correspondiente al tipo de combustible" : ""}
+                      >
+                        {!viewMode && UNIDADES_MEDIDA.map((unidad) => (
+                          <MenuItem key={unidad} value={unidad}>
+                            {unidad}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+                  </Grid>
+
+                  {/* Información adicional en modo ver */}
+                  {viewMode && (
                     <Box sx={{ 
-                      width: 4, 
-                      height: 24, 
-                      bgcolor: viewMode ? "#94a3b8" : editMode ? "#fbbf24" : "#67e8f9", 
-                      borderRadius: 0.5 
-                    }} />
-                    <Typography variant="h6" sx={{ color: "white", fontWeight: 500 }}>
-                      {viewMode ? "Detalle de entrada de combustible" : editMode ? "Editar entrada de combustible" : "Registro de entrada de combustible"}
-                    </Typography>
-                  </Box>
+                      bgcolor: "grey.50", 
+                      p: 2, 
+                      borderRadius: 1, 
+                      mb: 3,
+                      border: 1,
+                      borderColor: "grey.200"
+                    }}>
+                      <Typography variant="subtitle2" sx={{ mb: 1, color: "text.secondary" }}>
+                        Resumen de la entrada:
+                      </Typography>
+                      <Typography variant="body2" sx={{ mb: 1 }}>
+                        <strong>Combustible:</strong> {formData.tipoCombustible}
+                      </Typography>
+                      <Typography variant="body2" sx={{ mb: 1 }}>
+                        <strong>Cantidad total:</strong> {parseFloat(formData.cantidades).toLocaleString('es-ES')} {formData.unidades}
+                      </Typography>
+                      <Typography variant="body2">
+                        <strong>Fecha de recepción:</strong> {formatDateToDisplay(formData.fecha)}
+                      </Typography>
+                    </Box>
+                  )}
 
-                  <Box sx={{ p: 3 }}>
-                    {/* Tipo de combustible y Fecha */}
-                    <Grid container spacing={3} sx={{ mb: 3 }}>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          select={!viewMode}
-                          label="Tipo de combustible"
-                          variant="standard"
-                          value={formData.tipoCombustible}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, tipoCombustible: e.target.value }))}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
-                        >
-                          {!viewMode && TIPOS_COMBUSTIBLE.map((tipo) => (
-                            <MenuItem key={tipo} value={tipo}>
-                              {tipo}
-                            </MenuItem>
-                          ))}
-                        </TextField>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          label="Fecha de entrada"
-                          type="date"
-                          variant="standard"
-                          value={formData.fecha}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, fecha: e.target.value }))}
-                          InputLabelProps={{
-                            shrink: true,
-                          }}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
-                        />
-                      </Grid>
-                    </Grid>
-
-                    {/* Cantidades y Unidades */}
-                    <Grid container spacing={3} sx={{ mb: 3 }}>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          placeholder="Cantidad recibida"
-                          variant="standard"
-                          type="number"
-                          inputProps={{ step: "0.1", min: "0" }}
-                          value={formData.cantidades}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, cantidades: e.target.value }))}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                              fontSize: "1.1rem",
-                              fontWeight: 500,
-                            },
-                          }}
-                          helperText={!viewMode ? "Cantidad numérica del combustible recibido" : ""}
-                        />
-                      </Grid>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          select={!viewMode}
-                          label="Unidad de medida"
-                          variant="standard"
-                          value={formData.unidades}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, unidades: e.target.value }))}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
-                          helperText={!viewMode ? "Selecciona la unidad correspondiente al tipo de combustible" : ""}
-                        >
-                          {!viewMode && UNIDADES_MEDIDA.map((unidad) => (
-                            <MenuItem key={unidad} value={unidad}>
-                              {unidad}
-                            </MenuItem>
-                          ))}
-                        </TextField>
-                      </Grid>
-                    </Grid>
-
-                    {/* Información adicional en modo ver */}
-                    {viewMode && (
-                      <Box sx={{ 
-                        bgcolor: "grey.50", 
-                        p: 2, 
-                        borderRadius: 1, 
-                        mb: 3,
-                        border: 1,
-                        borderColor: "grey.200"
-                      }}>
-                        <Typography variant="subtitle2" sx={{ mb: 1, color: "text.secondary" }}>
-                          Resumen de la entrada:
-                        </Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>
-                          <strong>Combustible:</strong> {formData.tipoCombustible}
-                        </Typography>
-                        <Typography variant="body2" sx={{ mb: 1 }}>
-                          <strong>Cantidad total:</strong> {parseFloat(formData.cantidades).toLocaleString('es-ES')} {formData.unidades}
-                        </Typography>
-                        <Typography variant="body2">
-                          <strong>Fecha de recepción:</strong> {formatDateToDisplay(formData.fecha)}
-                        </Typography>
-                      </Box>
-                    )}
-
-                    {/* Botones dinámicos según el modo */}
-                    <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-                      {viewMode ? (
+                  {/* Botones dinámicos según el modo */}
+                  <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+                    {viewMode ? (
+                      <Button
+                        variant="outlined"
+                        onClick={handleClose}
+                        sx={buttonStyles.close}
+                      >
+                        Cerrar
+                      </Button>
+                    ) : (
+                      <>
                         <Button
                           variant="outlined"
                           onClick={handleClose}
-                          sx={{ textTransform: "none", color: "#2563eb", borderColor: "#93c5fd" }}
+                          sx={buttonStyles.close}
                         >
-                          Cerrar
+                          Cancelar
                         </Button>
-                      ) : (
-                        <>
-                          <Button
-                            variant="outlined"
-                            onClick={handleClose}
-                            sx={{ textTransform: "none", color: "#2563eb", borderColor: "#93c5fd" }}
-                          >
-                            Cancelar
-                          </Button>
-                          <Button
-                            variant="contained"
-                            onClick={handleSubmit}
-                            sx={{ textTransform: "none" }}
-                          >
-                            {editMode ? "Actualizar" : "Guardar"}
-                          </Button>
-                        </>
-                      )}
-                    </Box>
+                        <Button
+                          variant="contained"
+                          onClick={handleSubmit}
+                          sx={buttonStyles.save}
+                        >
+                          {editMode ? "Actualizar" : "Guardar"}
+                        </Button>
+                      </>
+                    )}
                   </Box>
-                </Paper>
-              </Box>
-            </ThemeProvider>
+                </Box>
+              </Paper>
+            </Box>
           </DialogContent>
         </Dialog>
       </Box>

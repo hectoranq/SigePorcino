@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Box,
   Typography,
@@ -18,9 +18,23 @@ import {
   Grid,
   MenuItem,
   Checkbox,
+  CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material"
 import { Add, KeyboardArrowDown } from "@mui/icons-material"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
+import { buttonStyles, headerColors, headerAccentColors, sectionHeaderStyle, headerBarStyle } from "./buttonStyles"
+import useUserStore from "../../_store/user"
+import useFarmFormStore from "../../_store/farm"
+import { listStaff, Staff } from "../../action/PersonalRegisterPocket"
+import {
+  getArcoDesinfeccionByFarmId,
+  createArcoDesinfeccion,
+  updateArcoDesinfeccion,
+  deleteArcoDesinfeccion,
+  ArcoDesinfeccion as APIArcoDesinfeccion,
+} from "../../action/ArcoDesinfeccionPocket"
 
 const theme = createTheme({
   palette: {
@@ -35,9 +49,11 @@ const theme = createTheme({
 })
 
 interface ArcoDesinfeccionData {
+  id?: string
   productoEmpleado: string
   cantidadEmpleada: string
   responsable: string
+  responsableId?: string
   fecha: string
   sistemaEmpleado: {
     arco: boolean
@@ -48,22 +64,23 @@ interface ArcoDesinfeccionData {
   fechaUltimaActualizacion: string
 }
 
-const RESPONSABLES = [
-  "Juan Carlos Martínez",
-  "María Elena González",
-  "Pedro Antonio López",
-  "Ana Isabel Rodríguez",
-  "José Manuel Fernández",
-  "Carmen Rosa Torres",
-  "Francisco Javier Silva"
-]
-
 export function ArcoDesinfeccionSection() {
+  // Zustand stores
+  const { token, record } = useUserStore()
+  const { currentFarm } = useFarmFormStore()
+
+  // Estado para el personal
+  const [staff, setStaff] = useState<Staff[]>([])
+
   // Estados para el popup
   const [open, setOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [viewMode, setViewMode] = useState(false)
   const [editIndex, setEditIndex] = useState<number | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [currentRegistroId, setCurrentRegistroId] = useState<string | null>(null)
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" })
   const [formData, setFormData] = useState({
     productoEmpleado: "",
     cantidadEmpleada: "",
@@ -76,64 +93,120 @@ export function ArcoDesinfeccionSection() {
     },
   })
 
+  // Cargar personal al montar el componente
+  useEffect(() => {
+    const loadStaff = async () => {
+      if (!currentFarm?.id || !token || !record?.id) return
+
+      try {
+        const response = await listStaff(token, record.id, currentFarm.id)
+        setStaff(response.data.items as Staff[])
+      } catch (error) {
+        console.error("Error loading staff:", error)
+      }
+    }
+
+    loadStaff()
+  }, [currentFarm?.id, token, record?.id])
+
   // Estado para la tabla de arco de desinfección
-  const [arcoDesinfeccionData, setArcoDesinfeccionData] = useState<ArcoDesinfeccionData[]>([
-    {
-      productoEmpleado: "Solución desinfectante vehicular",
-      cantidadEmpleada: "5000",
-      responsable: "Juan Carlos Martínez",
-      fecha: "2023-11-14",
-      sistemaEmpleado: { arco: true, vado: false, mochila: false },
-      fechaCreacion: "14/11/2023",
-      fechaUltimaActualizacion: "15/11/2023",
-    },
-    {
-      productoEmpleado: "Desinfectante de amplio espectro",
-      cantidadEmpleada: "3500",
-      responsable: "Pedro Antonio López",
-      fecha: "2024-09-08",
-      sistemaEmpleado: { arco: false, vado: true, mochila: false },
-      fechaCreacion: "08/09/2024",
-      fechaUltimaActualizacion: "09/09/2024",
-    },
-    {
-      productoEmpleado: "Hipoclorito de sodio al 12%",
-      cantidadEmpleada: "1200",
-      responsable: "Ana Isabel Rodríguez",
-      fecha: "2023-06-25",
-      sistemaEmpleado: { arco: false, vado: false, mochila: true },
-      fechaCreacion: "25/06/2023",
-      fechaUltimaActualizacion: "27/06/2023",
-    },
-  ])
+  const [arcoDesinfeccionData, setArcoDesinfeccionData] = useState<ArcoDesinfeccionData[]>([])
+
+  
+
+  // Función para convertir de API a formato local
+  const convertAPItoLocal = (apiData: APIArcoDesinfeccion): ArcoDesinfeccionData => {
+    const responsableStaff = staff.find(s => s.id === apiData.responsable)
+    const responsableNombre = responsableStaff 
+      ? `${responsableStaff.nombre} ${responsableStaff.apellidos}` 
+      : ""
+
+    return {
+      id: apiData.id,
+      productoEmpleado: apiData.producto_empleado,
+      cantidadEmpleada: apiData.cantidad_empleada.toString(),
+      responsable: responsableNombre,
+      responsableId: apiData.responsable,
+      fecha: apiData.fecha,
+      sistemaEmpleado: {
+        arco: apiData.sistema_arco,
+        vado: apiData.sistema_vado,
+        mochila: apiData.sistema_mochila,
+      },
+      fechaCreacion: apiData.created ? formatDateToDisplay(apiData.created) : "",
+      fechaUltimaActualizacion: apiData.updated ? formatDateToDisplay(apiData.updated) : "",
+    }
+  }
+
+  // Función para convertir de formato local a API
+  const convertLocalToAPI = (localData: ArcoDesinfeccionData) => {
+    return {
+      farm: currentFarm!.id,
+      user: record!.id,
+      producto_empleado: localData.productoEmpleado,
+      cantidad_empleada: parseFloat(localData.cantidadEmpleada) || 0,
+      fecha: localData.fecha,
+      responsable: localData.responsable,
+      sistema_arco: localData.sistemaEmpleado.arco,
+      sistema_vado: localData.sistemaEmpleado.vado,
+      sistema_mochila: localData.sistemaEmpleado.mochila,
+    }
+  }
+
+  // Cargar registros de arco de desinfección
+  useEffect(() => {
+    const loadArcoDesinfeccion = async () => {
+      if (!currentFarm?.id || !token || !record?.id || staff.length === 0) return
+
+      setLoading(true)
+      try {
+        const response = await getArcoDesinfeccionByFarmId(token, currentFarm.id, record.id)
+        const registros = (response.data.items as APIArcoDesinfeccion[]).map(convertAPItoLocal)
+        setArcoDesinfeccionData(registros)
+      } catch (error) {
+        console.error("Error loading arco desinfeccion:", error)
+        setSnackbar({
+          open: true,
+          message: "Error al cargar los registros de arco de desinfección",
+          severity: "error",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadArcoDesinfeccion()
+  }, [currentFarm?.id, token, record?.id, staff])
+
+  const loadRegistroToForm = (registro: ArcoDesinfeccionData) => {
+    setFormData({
+      productoEmpleado: registro.productoEmpleado,
+      cantidadEmpleada: registro.cantidadEmpleada,
+      responsable: registro.responsableId || "",
+      fecha: registro.fecha,
+      sistemaEmpleado: {
+        arco: registro.sistemaEmpleado.arco,
+        vado: registro.sistemaEmpleado.vado,
+        mochila: registro.sistemaEmpleado.mochila,
+      },
+    })
+    setCurrentRegistroId(registro.id || null)
+    setEditMode(true)
+    setViewMode(false)
+    setOpen(true)
+  }
 
   const handleOpen = () => {
     setEditMode(false)
     setViewMode(false)
     setEditIndex(null)
+    setCurrentRegistroId(null)
     setOpen(true)
   }
 
   // Función para abrir en modo edición
   const handleEdit = (index: number) => {
-    const item = arcoDesinfeccionData[index]
-    
-    setFormData({
-      productoEmpleado: item.productoEmpleado,
-      cantidadEmpleada: item.cantidadEmpleada,
-      responsable: item.responsable,
-      fecha: item.fecha,
-      sistemaEmpleado: {
-        arco: item.sistemaEmpleado.arco,
-        vado: item.sistemaEmpleado.vado,
-        mochila: item.sistemaEmpleado.mochila,
-      },
-    })
-    
-    setEditMode(true)
-    setViewMode(false)
-    setEditIndex(index)
-    setOpen(true)
+    loadRegistroToForm(arcoDesinfeccionData[index])
   }
 
   // Función para "Ver más"
@@ -143,7 +216,7 @@ export function ArcoDesinfeccionSection() {
     setFormData({
       productoEmpleado: item.productoEmpleado,
       cantidadEmpleada: item.cantidadEmpleada,
-      responsable: item.responsable,
+      responsable: item.responsableId || "",
       fecha: item.fecha,
       sistemaEmpleado: {
         arco: item.sistemaEmpleado.arco,
@@ -174,6 +247,7 @@ export function ArcoDesinfeccionSection() {
     setEditMode(false)
     setViewMode(false)
     setEditIndex(null)
+    setCurrentRegistroId(null)
     setFormData({
       productoEmpleado: "",
       cantidadEmpleada: "",
@@ -187,44 +261,77 @@ export function ArcoDesinfeccionSection() {
     })
   }
 
-  const handleSubmit = () => {
-    console.log("Datos de arco de desinfección:", formData)
-
+  const handleSubmit = async () => {
     // Validar que los campos requeridos estén llenos
     if (!formData.productoEmpleado || !formData.responsable || !formData.fecha) {
-      alert("Por favor, completa todos los campos requeridos")
+      setSnackbar({ open: true, message: "Por favor, completa todos los campos requeridos", severity: "error" })
       return
     }
 
-    const arcoDesinfeccionItem = {
-      productoEmpleado: formData.productoEmpleado,
-      cantidadEmpleada: formData.cantidadEmpleada,
-      responsable: formData.responsable,
-      fecha: formData.fecha,
-      sistemaEmpleado: {
-        arco: formData.sistemaEmpleado.arco,
-        vado: formData.sistemaEmpleado.vado,
-        mochila: formData.sistemaEmpleado.mochila,
-      },
-      fechaCreacion: editMode 
-        ? arcoDesinfeccionData[editIndex!].fechaCreacion 
-        : formatDateToDisplay(formData.fecha),
-      fechaUltimaActualizacion: formatDateToDisplay(formData.fecha),
+    setSaving(true)
+
+    try {
+      const dataToSend = convertLocalToAPI(formData as ArcoDesinfeccionData)
+
+      if (currentRegistroId) {
+        // Actualizar registro existente
+        await updateArcoDesinfeccion(token, currentRegistroId, dataToSend, record!.id)
+        setSnackbar({ open: true, message: "Registro actualizado exitosamente", severity: "success" })
+      } else {
+        // Crear nuevo registro
+        await createArcoDesinfeccion(token, dataToSend)
+        setSnackbar({ open: true, message: "Registro creado exitosamente", severity: "success" })
+      }
+
+      // Recargar los datos
+      const registros = await getArcoDesinfeccionByFarmId(currentFarm!.id, token, record!.id)
+      const convertedData = (registros.data.items as APIArcoDesinfeccion[]).map(convertAPItoLocal)
+      setArcoDesinfeccionData(convertedData)
+
+      handleClose()
+    } catch (error) {
+      console.error("Error al guardar:", error)
+      setSnackbar({
+        open: true,
+        message: `Error al guardar el registro: ${error instanceof Error ? error.message : "Error desconocido"}`,
+        severity: "error",
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async (index: number) => {
+    const item = arcoDesinfeccionData[index]
+    
+    if (!item.id) {
+      setSnackbar({ open: true, message: "Error: No se puede eliminar el registro", severity: "error" })
+      return
     }
 
-    if (editMode && editIndex !== null) {
-      // Actualizar elemento existente
-      setArcoDesinfeccionData((prev) => 
-        prev.map((item, index) => 
-          index === editIndex ? arcoDesinfeccionItem : item
-        )
-      )
-    } else {
-      // Agregar nuevo elemento
-      setArcoDesinfeccionData((prev) => [...prev, arcoDesinfeccionItem])
+    if (!window.confirm("¿Estás seguro de que deseas eliminar este registro?")) {
+      return
     }
-    
-    handleClose()
+
+    setLoading(true)
+    try {
+      await deleteArcoDesinfeccion(token, item.id, record!.id)
+      setSnackbar({ open: true, message: "Registro eliminado exitosamente", severity: "success" })
+      
+      // Recargar los datos
+      const registros = await getArcoDesinfeccionByFarmId(currentFarm!.id, token, record!.id)
+      const convertedData = (registros.data.items as APIArcoDesinfeccion[]).map(convertAPItoLocal)
+      setArcoDesinfeccionData(convertedData)
+    } catch (error) {
+      console.error("Error al eliminar:", error)
+      setSnackbar({
+        open: true,
+        message: `Error al eliminar el registro: ${error instanceof Error ? error.message : "Error desconocido"}`,
+        severity: "error",
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -235,26 +342,10 @@ export function ArcoDesinfeccionSection() {
           {/* Page Content */}
           <Box sx={{ flexGrow: 1, p: 3, bgcolor: "grey.50" }}>
             <Paper elevation={1} sx={{ borderRadius: 2 }}>
-              {/* Header */}
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  p: 3,
-                  borderBottom: 1,
-                  borderColor: "divider",
-                }}
-              >
+{/* Header */}
+              <Box sx={sectionHeaderStyle}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  <Box
-                    sx={{
-                      width: 4,
-                      height: 32,
-                      bgcolor: "primary.main",
-                      borderRadius: 2,
-                    }}
-                  />
+                  <Box sx={headerBarStyle} />
                   <Typography variant="h5" fontWeight={600}>
                     Arco de desinfección
                   </Typography>
@@ -263,15 +354,20 @@ export function ArcoDesinfeccionSection() {
                   variant="contained" 
                   color="secondary" 
                   startIcon={<Add />} 
-                  sx={{ textTransform: "none" }}
+                  sx={buttonStyles.primary}
                   onClick={handleOpen}
                 >
                   Agregar nuevo
                 </Button>
               </Box>
 
-              <TableContainer>
-                <Table>
+              {loading ? (
+                <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "400px" }}>
+                  <CircularProgress />
+                </Box>
+              ) : (
+                <TableContainer>
+                  <Table>
                   <TableHead sx={{ bgcolor: "grey.100" }}>
                     <TableRow>
                       <TableCell>
@@ -322,17 +418,10 @@ export function ArcoDesinfeccionSection() {
                         <TableCell>{formatDateToDisplay(item.fecha)}</TableCell>
                         <TableCell>
                           <Box sx={{ display: "flex", gap: 1 }}>
-                            <Button
+<Button
                               size="small"
                               variant="contained"
-                              sx={{
-                                bgcolor: "#facc15",
-                                color: "grey.900",
-                                textTransform: "none",
-                                "&:hover": {
-                                  bgcolor: "#eab308",
-                                },
-                              }}
+                              sx={buttonStyles.edit}
                               onClick={() => handleEdit(index)}
                             >
                               Editar
@@ -340,18 +429,18 @@ export function ArcoDesinfeccionSection() {
                             <Button
                               size="small"
                               variant="outlined"
-                              sx={{
-                                borderColor: "#93c5fd",
-                                color: "#2563eb",
-                                textTransform: "none",
-                                "&:hover": {
-                                  bgcolor: "#eff6ff",
-                                  borderColor: "#93c5fd",
-                                },
-                              }}
+                              sx={buttonStyles.secondary}
                               onClick={() => handleVerMas(index)}
                             >
                               Ver más
+                            </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="error"
+                              onClick={() => handleDelete(index)}
+                            >
+                              Eliminar
                             </Button>
                           </Box>
                         </TableCell>
@@ -360,6 +449,7 @@ export function ArcoDesinfeccionSection() {
                   </TableBody>
                 </Table>
               </TableContainer>
+              )}
             </Paper>
           </Box>
         </Box>
@@ -378,9 +468,9 @@ export function ArcoDesinfeccionSection() {
             <ThemeProvider theme={theme}>
               <Box sx={{ minHeight: "auto", bgcolor: "#f9fafb", p: 3 }}>
                 <Paper sx={{ maxWidth: 1024, mx: "auto", borderRadius: 2, overflow: "hidden" }}>
-                  {/* Header dinámico según el modo */}
+{/* Header dinámico según el modo */}
                   <Box sx={{ 
-                    bgcolor: viewMode ? "#64748b" : editMode ? "#f59e0b" : "#22d3ee", 
+                    bgcolor: viewMode ? headerColors.view : editMode ? headerColors.edit : headerColors.create, 
                     px: 3, 
                     py: 2, 
                     display: "flex", 
@@ -390,11 +480,11 @@ export function ArcoDesinfeccionSection() {
                     <Box sx={{ 
                       width: 4, 
                       height: 24, 
-                      bgcolor: viewMode ? "#94a3b8" : editMode ? "#fbbf24" : "#67e8f9", 
+                      bgcolor: viewMode ? headerAccentColors.view : editMode ? headerAccentColors.edit : headerAccentColors.create, 
                       borderRadius: 0.5 
                     }} />
                     <Typography variant="h6" sx={{ color: "white", fontWeight: 500 }}>
-                      {viewMode ? "Detalle de arco de desinfección" : editMode ? "Editar arco de desinfección" : "Registro de arco de desinfección"}
+                      {viewMode ? "Detalle de arco de desinfección" : currentRegistroId ? "Editar arco de desinfección" : "Registro de arco de desinfección"}
                     </Typography>
                   </Box>
 
@@ -441,28 +531,42 @@ export function ArcoDesinfeccionSection() {
                     {/* Responsable y Fecha */}
                     <Grid container spacing={3} sx={{ mb: 3 }}>
                       <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          select={!viewMode}
-                          label="Responsable"
-                          variant="standard"
-                          value={formData.responsable}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, responsable: e.target.value }))}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
-                        >
-                          {!viewMode && RESPONSABLES.map((responsable) => (
-                            <MenuItem key={responsable} value={responsable}>
-                              {responsable}
-                            </MenuItem>
-                          ))}
-                        </TextField>
+                        {viewMode ? (
+                          <TextField
+                            fullWidth
+                            label="Responsable"
+                            variant="standard"
+                            value={formData.responsable}
+                            InputProps={{
+                              readOnly: true,
+                            }}
+                            sx={{
+                              "& .MuiInputBase-input": {
+                                color: "text.secondary",
+                              },
+                            }}
+                          />
+                        ) : (
+                          <TextField
+                            fullWidth
+                            select
+                            label="Responsable"
+                            variant="standard"
+                            value={formData.responsable}
+                            onChange={(e) => setFormData((prev) => ({ ...prev, responsable: e.target.value }))}
+                            sx={{
+                              "& .MuiInputBase-input": {
+                                color: "text.primary",
+                              },
+                            }}
+                          >
+                            {staff.map((person) => (
+                              <MenuItem key={person.id} value={person.id}>
+                                {person.nombre} {person.apellidos}
+                              </MenuItem>
+                            ))}
+                          </TextField>
+                        )}
                       </Grid>
                       <Grid item xs={6}>
                         <TextField
@@ -574,7 +678,8 @@ export function ArcoDesinfeccionSection() {
                         <Button
                           variant="outlined"
                           onClick={handleClose}
-                          sx={{ textTransform: "none", color: "#2563eb", borderColor: "#93c5fd" }}
+                          sx={buttonStyles.close}
+                          disabled={saving}
                         >
                           Cerrar
                         </Button>
@@ -583,16 +688,19 @@ export function ArcoDesinfeccionSection() {
                           <Button
                             variant="outlined"
                             onClick={handleClose}
-                            sx={{ textTransform: "none", color: "#2563eb", borderColor: "#93c5fd" }}
+                            sx={buttonStyles.cancel}
+                            disabled={saving}
                           >
                             Cancelar
                           </Button>
                           <Button
                             variant="contained"
                             onClick={handleSubmit}
-                            sx={{ textTransform: "none" }}
+                            sx={buttonStyles.save}
+                            disabled={saving}
+                            startIcon={saving ? <CircularProgress size={20} /> : undefined}
                           >
-                            {editMode ? "Actualizar" : "Guardar"}
+                            {saving ? "Guardando..." : currentRegistroId ? "Actualizar" : "Guardar"}
                           </Button>
                         </>
                       )}
@@ -603,6 +711,22 @@ export function ArcoDesinfeccionSection() {
             </ThemeProvider>
           </DialogContent>
         </Dialog>
+
+        {/* Snackbar para notificaciones */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Box>
     </ThemeProvider>
   )

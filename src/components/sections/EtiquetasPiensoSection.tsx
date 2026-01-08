@@ -20,6 +20,7 @@ import {
 } from "@mui/material"
 import { Add, KeyboardArrowDown, CloudUpload, Download } from "@mui/icons-material"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
+import { buttonStyles, headerColors, headerAccentColors } from "./buttonStyles"
 
 const theme = createTheme({
   palette: {
@@ -258,7 +259,7 @@ export function EtiquetasPiensoSection() {
                   variant="contained" 
                   color="secondary" 
                   startIcon={<Add />} 
-                  sx={{ textTransform: "none" }}
+                  sx={buttonStyles.save}
                   onClick={handleOpen}
                 >
                   Agregar nuevo
@@ -337,11 +338,10 @@ export function EtiquetasPiensoSection() {
                               size="small"
                               variant="contained"
                               sx={{
-                                bgcolor: "#facc15",
+                                bgcolor: "#eab308",
                                 color: "grey.900",
-                                textTransform: "none",
                                 "&:hover": {
-                                  bgcolor: "#eab308",
+                                  bgcolor: "#ca8a04",
                                 },
                               }}
                               onClick={() => handleEdit(index)}
@@ -354,7 +354,6 @@ export function EtiquetasPiensoSection() {
                               sx={{
                                 borderColor: "#93c5fd",
                                 color: "#2563eb",
-                                textTransform: "none",
                                 "&:hover": {
                                   bgcolor: "#eff6ff",
                                   borderColor: "#93c5fd",
@@ -386,149 +385,146 @@ export function EtiquetasPiensoSection() {
           }}
         >
           <DialogContent sx={{ p: 0 }}>
-            <ThemeProvider theme={theme}>
-              <Box sx={{ minHeight: "auto", bgcolor: "#f9fafb", p: 3 }}>
-                <Paper sx={{ maxWidth: 1024, mx: "auto", borderRadius: 2, overflow: "hidden" }}>
-                  {/* Header dinámico según el modo */}
+            <Box sx={{ minHeight: "auto", bgcolor: "#f9fafb", p: 3 }}>
+              <Paper sx={{ maxWidth: 1024, mx: "auto", borderRadius: 2, overflow: "hidden" }}>
+                {/* Header dinámico según el modo */}
+                <Box sx={{ 
+                  bgcolor: viewMode ? headerColors.view : editMode ? headerColors.edit : headerColors.create, 
+                  px: 3, 
+                  py: 2, 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: 1 
+                }}>
                   <Box sx={{ 
-                    bgcolor: viewMode ? "#64748b" : editMode ? "#f59e0b" : "#22d3ee", 
-                    px: 3, 
-                    py: 2, 
-                    display: "flex", 
-                    alignItems: "center", 
-                    gap: 1 
-                  }}>
-                    <Box sx={{ 
-                      width: 4, 
-                      height: 24, 
-                      bgcolor: viewMode ? "#94a3b8" : editMode ? "#fbbf24" : "#67e8f9", 
-                      borderRadius: 0.5 
-                    }} />
-                    <Typography variant="h6" sx={{ color: "white", fontWeight: 500 }}>
-                      {viewMode ? "Detalle de etiqueta de pienso" : editMode ? "Editar etiqueta de pienso" : "Registro de etiqueta de pienso"}
+                    width: 4, 
+                    height: 24, 
+                    bgcolor: viewMode ? headerAccentColors.view : editMode ? headerAccentColors.edit : headerAccentColors.create, 
+                    borderRadius: 0.5 
+                  }} />
+                  <Typography variant="h6" sx={{ color: "white", fontWeight: 500 }}>
+                    {viewMode ? "Detalle de etiqueta de pienso" : editMode ? "Editar etiqueta de pienso" : "Registro de etiqueta de pienso"}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ p: 3 }}>
+                  {/* Nombre */}
+                  <TextField
+                    fullWidth
+                    placeholder="Nombre de la etiqueta"
+                    variant="standard"
+                    value={formData.nombre}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, nombre: e.target.value }))}
+                    sx={{ 
+                      mb: 3,
+                      "& .MuiInputBase-input": {
+                        color: viewMode ? "text.secondary" : "text.primary",
+                      },
+                    }}
+                    InputProps={{
+                      readOnly: viewMode,
+                    }}
+                  />
+
+                  {/* Upload de archivo */}
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="subtitle2" sx={{ mb: 2, color: "text.primary" }}>
+                      Archivo de etiqueta
                     </Typography>
+                    
+                    {!viewMode && (
+                      <Button
+                        component="label"
+                        variant="outlined"
+                        startIcon={<CloudUpload />}
+                        sx={{ 
+                          borderStyle: "dashed",
+                          borderWidth: 2,
+                          p: 2,
+                          width: "100%",
+                          height: 80,
+                        }}
+                      >
+                        {formData.archivo ? 
+                          `Archivo seleccionado: ${formData.archivo.name}` : 
+                          "Seleccionar archivo PDF"
+                        }
+                        <input
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg,.png"
+                          hidden
+                          onChange={handleFileChange}
+                        />
+                      </Button>
+                    )}
+
+                    {viewMode && editIndex !== null && etiquetasPiensoData[editIndex].archivo && (
+                      <Box sx={{ 
+                        border: 1, 
+                        borderColor: "grey.300", 
+                        borderRadius: 1, 
+                        p: 2,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between"
+                      }}>
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                            {etiquetasPiensoData[editIndex].archivo!.nombre}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {formatFileSize(etiquetasPiensoData[editIndex].archivo!.tamaño)} • 
+                            Subido el {formatDateToDisplay(etiquetasPiensoData[editIndex].archivo!.fecha)}
+                          </Typography>
+                        </Box>
+                        <IconButton 
+                          onClick={() => handleDownload(etiquetasPiensoData[editIndex].archivo!)}
+                          sx={{ color: "primary.main" }}
+                        >
+                          <Download />
+                        </IconButton>
+                      </Box>
+                    )}
+
+                    {formData.archivo && (
+                      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+                        Tamaño: {formatFileSize(formData.archivo.size)}
+                      </Typography>
+                    )}
                   </Box>
 
-                  <Box sx={{ p: 3 }}>
-                    {/* Nombre */}
-                    <TextField
-                      fullWidth
-                      placeholder="Nombre de la etiqueta"
-                      variant="standard"
-                      value={formData.nombre}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, nombre: e.target.value }))}
-                      sx={{ 
-                        mb: 3,
-                        "& .MuiInputBase-input": {
-                          color: viewMode ? "text.secondary" : "text.primary",
-                        },
-                      }}
-                      InputProps={{
-                        readOnly: viewMode,
-                      }}
-                    />
-
-                    {/* Upload de archivo */}
-                    <Box sx={{ mb: 3 }}>
-                      <Typography variant="subtitle2" sx={{ mb: 2, color: "text.primary" }}>
-                        Archivo de etiqueta
-                      </Typography>
-                      
-                      {!viewMode && (
-                        <Button
-                          component="label"
-                          variant="outlined"
-                          startIcon={<CloudUpload />}
-                          sx={{ 
-                            textTransform: "none",
-                            borderStyle: "dashed",
-                            borderWidth: 2,
-                            p: 2,
-                            width: "100%",
-                            height: 80,
-                          }}
-                        >
-                          {formData.archivo ? 
-                            `Archivo seleccionado: ${formData.archivo.name}` : 
-                            "Seleccionar archivo PDF"
-                          }
-                          <input
-                            type="file"
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            hidden
-                            onChange={handleFileChange}
-                          />
-                        </Button>
-                      )}
-
-                      {viewMode && editIndex !== null && etiquetasPiensoData[editIndex].archivo && (
-                        <Box sx={{ 
-                          border: 1, 
-                          borderColor: "grey.300", 
-                          borderRadius: 1, 
-                          p: 2,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between"
-                        }}>
-                          <Box>
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              {etiquetasPiensoData[editIndex].archivo!.nombre}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {formatFileSize(etiquetasPiensoData[editIndex].archivo!.tamaño)} • 
-                              Subido el {formatDateToDisplay(etiquetasPiensoData[editIndex].archivo!.fecha)}
-                            </Typography>
-                          </Box>
-                          <IconButton 
-                            onClick={() => handleDownload(etiquetasPiensoData[editIndex].archivo!)}
-                            sx={{ color: "primary.main" }}
-                          >
-                            <Download />
-                          </IconButton>
-                        </Box>
-                      )}
-
-                      {formData.archivo && (
-                        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
-                          Tamaño: {formatFileSize(formData.archivo.size)}
-                        </Typography>
-                      )}
-                    </Box>
-
-                    {/* Botones dinámicos según el modo */}
-                    <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-                      {viewMode ? (
+                  {/* Botones dinámicos según el modo */}
+                  <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+                    {viewMode ? (
+                      <Button
+                        variant="outlined"
+                        onClick={handleClose}
+                        sx={buttonStyles.close}
+                      >
+                        Cerrar
+                      </Button>
+                    ) : (
+                      <>
                         <Button
                           variant="outlined"
                           onClick={handleClose}
-                          sx={{ textTransform: "none", color: "#2563eb", borderColor: "#93c5fd" }}
+                          sx={buttonStyles.close}
                         >
-                          Cerrar
+                          Cancelar
                         </Button>
-                      ) : (
-                        <>
-                          <Button
-                            variant="outlined"
-                            onClick={handleClose}
-                            sx={{ textTransform: "none", color: "#2563eb", borderColor: "#93c5fd" }}
-                          >
-                            Cancelar
-                          </Button>
-                          <Button
-                            variant="contained"
-                            onClick={handleSubmit}
-                            sx={{ textTransform: "none" }}
-                          >
-                            {editMode ? "Actualizar" : "Guardar"}
-                          </Button>
-                        </>
-                      )}
-                    </Box>
+                        <Button
+                          variant="contained"
+                          onClick={handleSubmit}
+                          sx={buttonStyles.save}
+                        >
+                          {editMode ? "Actualizar" : "Guardar"}
+                        </Button>
+                      </>
+                    )}
                   </Box>
-                </Paper>
-              </Box>
-            </ThemeProvider>
+                </Box>
+              </Paper>
+            </Box>
           </DialogContent>
         </Dialog>
       </Box>

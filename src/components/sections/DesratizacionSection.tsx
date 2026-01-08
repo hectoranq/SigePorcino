@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Box,
   Typography,
@@ -17,9 +17,23 @@ import {
   TextField,
   Grid,
   MenuItem,
+  CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material"
 import { Add, KeyboardArrowDown } from "@mui/icons-material"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
+import { buttonStyles, headerColors, headerAccentColors} from "./buttonStyles"
+import useUserStore from "../../_store/user"
+import useFarmFormStore from "../../_store/farm"
+import { listStaff, Staff } from "../../action/PersonalRegisterPocket"
+import {
+  createDesratizacion,
+  updateDesratizacion,
+  deleteDesratizacion,
+  getDesratizacionByFarmId,
+  Desratizacion as APIDesratizacion,
+} from "../../action/DesratizacionPocket"
 
 const theme = createTheme({
   palette: {
@@ -34,6 +48,7 @@ const theme = createTheme({
 })
 
 interface DesratizacionData {
+  id?: string
   aplicador: string
   dni: string
   rodenticida: string
@@ -41,21 +56,24 @@ interface DesratizacionData {
   trampaAdhesiva: string
   fecha: string
   supervisado: string
+  supervisadoId?: string
   fechaCreacion: string
   fechaUltimaActualizacion: string
 }
 
-const SUPERVISORES = [
-  "Juan Carlos Martínez",
-  "María Elena González",
-  "Pedro Antonio López",
-  "Ana Isabel Rodríguez",
-  "José Manuel Fernández",
-  "Carmen Rosa Torres",
-  "Francisco Javier Silva"
-]
-
 export function DesratizacionSection() {
+  const { token, record } = useUserStore()
+  const { currentFarm } = useFarmFormStore()
+  const [staff, setStaff] = useState<Staff[]>([])
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [currentRegistroId, setCurrentRegistroId] = useState<string | null>(null)
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean
+    message: string
+    severity: "success" | "error" | "info" | "warning"
+  }>({ open: false, message: "", severity: "info" })
+
   // Estados para el popup
   const [open, setOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
@@ -71,91 +89,62 @@ export function DesratizacionSection() {
     supervisado: "",
   })
 
+  // Cargar personal al montar el componente
+  useEffect(() => {
+    const loadStaff = async () => {
+      if (!currentFarm?.id || !token || !record?.id) return
+
+      try {
+        const response = await listStaff(token, record.id, currentFarm.id)
+        setStaff(response.data.items as Staff[])
+      } catch (error) {
+        console.error("Error loading staff:", error)
+      }
+    }
+
+    loadStaff()
+  }, [currentFarm, token, record])
+
   // Estado para la tabla de desratización
-  const [desratizacionData, setDesratizacionData] = useState<DesratizacionData[]>([
-    {
-      aplicador: "Jose Antonio Capdevilla Torrejon",
-      dni: "12345678A",
-      rodenticida: "Warfarina 0.005%",
-      ceboAtrayente: "Cebo granulado",
-      trampaAdhesiva: "Trampa adhesiva XL",
-      fecha: "2023-07-12",
-      supervisado: "Juan Carlos Martínez",
-      fechaCreacion: "12/07/2023",
-      fechaUltimaActualizacion: "15/07/2023",
-    },
-    {
-      aplicador: "Mario Antonio Alvarez Peredo",
-      dni: "87654321B",
-      rodenticida: "Brodifacoum 0.005%",
-      ceboAtrayente: "Cebo en bloque",
-      trampaAdhesiva: "Trampa adhesiva estándar",
-      fecha: "2024-05-30",
-      supervisado: "María Elena González",
-      fechaCreacion: "30/05/2024",
-      fechaUltimaActualizacion: "02/06/2024",
-    },
-    {
-      aplicador: "Juana Adriana Obregon",
-      dni: "11223344C",
-      rodenticida: "Difenacoum 0.005%",
-      ceboAtrayente: "Cebo líquido",
-      trampaAdhesiva: "Trampa adhesiva grande",
-      fecha: "2023-02-01",
-      supervisado: "Pedro Antonio López",
-      fechaCreacion: "01/02/2023",
-      fechaUltimaActualizacion: "05/02/2023",
-    },
-  ])
+  const [desratizacionData, setDesratizacionData] = useState<DesratizacionData[]>([])
 
-  const handleOpen = () => {
-    setEditMode(false)
-    setViewMode(false)
-    setEditIndex(null)
-    setOpen(true)
+  // Función para convertir de API a formato local
+  const convertAPItoLocal = (apiData: APIDesratizacion): DesratizacionData => {
+    // Buscar el staff para obtener el nombre completo
+    const supervisor = staff.find(s => s.id === apiData.supervisado)
+    const supervisorNombre = supervisor 
+      ? `${supervisor.nombre} ${supervisor.apellidos}` 
+      : ""
+
+    return {
+      id: apiData.id,
+      aplicador: apiData.aplicador,
+      dni: apiData.dni,
+      rodenticida: apiData.rodenticida,
+      ceboAtrayente: apiData.cebo_atrayente,
+      trampaAdhesiva: apiData.trampa_adhesiva,
+      fecha: apiData.fecha,
+      supervisado: supervisorNombre,
+      supervisadoId: apiData.supervisado,
+      fechaCreacion: apiData.created ? formatDateToDisplay(apiData.created) : "",
+      fechaUltimaActualizacion: apiData.updated ? formatDateToDisplay(apiData.updated) : "",
+    }
   }
 
-  // Función para abrir en modo edición
-  const handleEdit = (index: number) => {
-    const item = desratizacionData[index]
-    
-    setFormData({
-      aplicador: item.aplicador,
-      dni: item.dni,
-      rodenticida: item.rodenticida,
-      ceboAtrayente: item.ceboAtrayente,
-      trampaAdhesiva: item.trampaAdhesiva,
-      fecha: item.fecha,
-      supervisado: item.supervisado,
-    })
-    
-    setEditMode(true)
-    setViewMode(false)
-    setEditIndex(index)
-    setOpen(true)
+  // Función para convertir de formato local a API
+  const convertLocalToAPI = (localData: DesratizacionData) => {
+    return {
+      farm: currentFarm!.id,
+      user: record!.id,
+      aplicador: localData.aplicador,
+      dni: localData.dni,
+      rodenticida: localData.rodenticida,
+      cebo_atrayente: localData.ceboAtrayente,
+      trampa_adhesiva: localData.trampaAdhesiva,
+      fecha: localData.fecha,
+      supervisado: localData.supervisadoId || localData.supervisado || "",
+    }
   }
-
-  // NUEVA FUNCIÓN PARA "VER MÁS"
-  const handleVerMas = (index: number) => {
-    const item = desratizacionData[index]
-    
-    setFormData({
-      aplicador: item.aplicador,
-      dni: item.dni,
-      rodenticida: item.rodenticida,
-      ceboAtrayente: item.ceboAtrayente,
-      trampaAdhesiva: item.trampaAdhesiva,
-      fecha: item.fecha,
-      supervisado: item.supervisado,
-    })
-    
-    setEditMode(false)
-    setViewMode(true) // ACTIVAR MODO VISUALIZACIÓN
-    setEditIndex(index)
-    setOpen(true)
-  }
-
-  
 
   // Función para convertir fecha de YYYY-MM-DD a DD/MM/YYYY
   const formatDateToDisplay = (dateString: string) => {
@@ -168,11 +157,100 @@ export function DesratizacionSection() {
     })
   }
 
+  // Cargar personal al montar el componente
+  useEffect(() => {
+    const loadStaff = async () => {
+      if (!currentFarm?.id || !token || !record?.id) return
+
+      try {
+        const response = await listStaff(token, record.id, currentFarm.id)
+        setStaff(response.data.items as Staff[])
+      } catch (error) {
+        console.error("Error loading staff:", error)
+      }
+    }
+
+    loadStaff()
+  }, [currentFarm, token, record])
+
+  // Cargar registros de desratización
+  useEffect(() => {
+    const loadDesratizacion = async () => {
+      if (!currentFarm?.id || !token || !record?.id || staff.length === 0) return
+
+      setLoading(true)
+      try {
+        const response = await getDesratizacionByFarmId(token, currentFarm.id, record.id)
+        const registros = (response.data.items as APIDesratizacion[]).map(convertAPItoLocal)
+        setDesratizacionData(registros)
+      } catch (error) {
+        console.error("Error loading desratizacion:", error)
+        setSnackbar({
+          open: true,
+          message: "Error al cargar los registros de desratización",
+          severity: "error",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadDesratizacion()
+  }, [currentFarm, token, record, staff])
+
+  const loadRegistroToForm = (registro: DesratizacionData) => {
+    setFormData({
+      aplicador: registro.aplicador,
+      dni: registro.dni,
+      rodenticida: registro.rodenticida,
+      ceboAtrayente: registro.ceboAtrayente,
+      trampaAdhesiva: registro.trampaAdhesiva,
+      fecha: registro.fecha,
+      supervisado: registro.supervisadoId || "",
+    })
+    setCurrentRegistroId(registro.id || null)
+    setEditMode(true)
+    setViewMode(false)
+    setOpen(true)
+  }
+
+  const handleOpen = () => {
+    setEditMode(false)
+    setViewMode(false)
+    setEditIndex(null)
+    setCurrentRegistroId(null)
+    setOpen(true)
+  }
+
+  const handleEdit = (index: number) => {
+    loadRegistroToForm(desratizacionData[index])
+  }
+
+  const handleVerMas = (index: number) => {
+    const item = desratizacionData[index]
+    
+    setFormData({
+      aplicador: item.aplicador,
+      dni: item.dni,
+      rodenticida: item.rodenticida,
+      ceboAtrayente: item.ceboAtrayente,
+      trampaAdhesiva: item.trampaAdhesiva,
+      fecha: item.fecha,
+      supervisado: item.supervisadoId || "",
+    })
+    
+    setEditMode(false)
+    setViewMode(true)
+    setEditIndex(index)
+    setOpen(true)
+  }
+
   const handleClose = () => {
     setOpen(false)
     setEditMode(false)
     setViewMode(false) // RESETEAR MODO VISUALIZACIÓN
     setEditIndex(null)
+    setCurrentRegistroId(null)
     setFormData({
       aplicador: "",
       dni: "",
@@ -184,42 +262,75 @@ export function DesratizacionSection() {
     })
   }
 
-  const handleSubmit = () => {
-    console.log("Datos de desratización:", formData)
-
-    // Validar que los campos requeridos estén llenos
-    if (!formData.aplicador || !formData.dni || !formData.fecha) {
-      alert("Por favor, completa todos los campos requeridos")
+  const handleSubmit = async () => {
+    if (!currentFarm?.id || !token || !record?.id) {
+      setSnackbar({
+        open: true,
+        message: "Faltan datos necesarios para guardar el registro",
+        severity: "error",
+      })
       return
     }
 
-    const desratizacionItem = {
-      aplicador: formData.aplicador,
-      dni: formData.dni,
-      rodenticida: formData.rodenticida,
-      ceboAtrayente: formData.ceboAtrayente,
-      trampaAdhesiva: formData.trampaAdhesiva,
-      fecha: formData.fecha,
-      supervisado: formData.supervisado,
-      fechaCreacion: editMode 
-        ? desratizacionData[editIndex!].fechaCreacion 
-        : formatDateToDisplay(formData.fecha),
-      fechaUltimaActualizacion: formatDateToDisplay(formData.fecha),
+    // Validar que los campos requeridos estén llenos
+    if (!formData.aplicador || !formData.dni || !formData.fecha) {
+      setSnackbar({
+        open: true,
+        message: "Por favor, completa todos los campos requeridos",
+        severity: "error",
+      })
+      return
     }
 
-    if (editMode && editIndex !== null) {
-      // Actualizar elemento existente
-      setDesratizacionData((prev) => 
-        prev.map((item, index) => 
-          index === editIndex ? desratizacionItem : item
-        )
-      )
-    } else {
-      // Agregar nuevo elemento
-      setDesratizacionData((prev) => [...prev, desratizacionItem])
+    setSaving(true)
+    try {
+      const dataToSend = convertLocalToAPI({
+        aplicador: formData.aplicador,
+        dni: formData.dni,
+        rodenticida: formData.rodenticida,
+        ceboAtrayente: formData.ceboAtrayente,
+        trampaAdhesiva: formData.trampaAdhesiva,
+        fecha: formData.fecha,
+        supervisado: "",
+        supervisadoId: formData.supervisado,
+        fechaCreacion: "",
+        fechaUltimaActualizacion: "",
+      })
+
+      if (currentRegistroId) {
+        // Actualizar registro existente
+        await updateDesratizacion(token, currentRegistroId, dataToSend, record.id)
+        setSnackbar({
+          open: true,
+          message: "Registro de desratización actualizado exitosamente",
+          severity: "success",
+        })
+      } else {
+        // Crear nuevo registro
+        await createDesratizacion(token, dataToSend)
+        setSnackbar({
+          open: true,
+          message: "Registro de desratización creado exitosamente",
+          severity: "success",
+        })
+      }
+
+      // Recargar la lista
+      const response = await getDesratizacionByFarmId(token, currentFarm.id, record.id)
+      const registros = (response.data.items as APIDesratizacion[]).map(convertAPItoLocal)
+      setDesratizacionData(registros)
+
+      handleClose()
+    } catch (error) {
+      console.error("Error al guardar el registro:", error)
+      setSnackbar({
+        open: true,
+        message: "Error al guardar el registro de desratización",
+        severity: "error",
+      })
+    } finally {
+      setSaving(false)
     }
-    
-    handleClose()
   }
 
   return (
@@ -258,15 +369,20 @@ export function DesratizacionSection() {
                   variant="contained" 
                   color="secondary" 
                   startIcon={<Add />} 
-                  sx={{ textTransform: "none" }}
+                  sx={buttonStyles.save}
                   onClick={handleOpen}
                 >
                   Agregar nuevo
                 </Button>
               </Box>
 
-              <TableContainer>
-                <Table>
+              {loading ? (
+                <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+                  <CircularProgress />
+                </Box>
+              ) : (
+                <TableContainer>
+                  <Table>
                   <TableHead sx={{ bgcolor: "grey.100" }}>
                     <TableRow>
                       <TableCell>
@@ -327,14 +443,7 @@ export function DesratizacionSection() {
                             <Button
                               size="small"
                               variant="contained"
-                              sx={{
-                                bgcolor: "#facc15",
-                                color: "grey.900",
-                                textTransform: "none",
-                                "&:hover": {
-                                  bgcolor: "#eab308",
-                                },
-                              }}
+                              sx={buttonStyles.edit}
                               onClick={() => handleEdit(index)}
                             >
                               Editar
@@ -345,7 +454,6 @@ export function DesratizacionSection() {
                               sx={{
                                 borderColor: "#93c5fd",
                                 color: "#2563eb",
-                                textTransform: "none",
                                 "&:hover": {
                                   bgcolor: "#eff6ff",
                                   borderColor: "#93c5fd",
@@ -362,6 +470,7 @@ export function DesratizacionSection() {
                   </TableBody>
                 </Table>
               </TableContainer>
+              )}
             </Paper>
           </Box>
         </Box>
@@ -377,210 +486,248 @@ export function DesratizacionSection() {
           }}
         >
           <DialogContent sx={{ p: 0 }}>
-            <ThemeProvider theme={theme}>
-              <Box sx={{ minHeight: "auto", bgcolor: "#f9fafb", p: 3 }}>
-                <Paper sx={{ maxWidth: 1024, mx: "auto", borderRadius: 2, overflow: "hidden" }}>
-                  {/* HEADER DINÁMICO SEGÚN EL MODO */}
+            <Box sx={{ minHeight: "auto", bgcolor: "#f9fafb", p: 3 }}>
+              <Paper sx={{ maxWidth: 1024, mx: "auto", borderRadius: 2, overflow: "hidden" }}>
+                {/* HEADER DINÁMICO SEGÚN EL MODO */}
+                <Box sx={{ 
+                  bgcolor: viewMode ? headerColors.view : editMode ? headerColors.edit : headerColors.create, 
+                  px: 3, 
+                  py: 2, 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: 1 
+                }}>
                   <Box sx={{ 
-                    bgcolor: viewMode ? "#64748b" : editMode ? "#f59e0b" : "#22d3ee", 
-                    px: 3, 
-                    py: 2, 
-                    display: "flex", 
-                    alignItems: "center", 
-                    gap: 1 
-                  }}>
-                    <Box sx={{ 
-                      width: 4, 
-                      height: 24, 
-                      bgcolor: viewMode ? "#94a3b8" : editMode ? "#fbbf24" : "#67e8f9", 
-                      borderRadius: 0.5 
-                    }} />
-                    <Typography variant="h6" sx={{ color: "white", fontWeight: 500 }}>
-                      {viewMode ? "Detalle de desratización" : editMode ? "Editar desratización" : "Registro de desratización"}
-                    </Typography>
-                  </Box>
+                    width: 4, 
+                    height: 24, 
+                    bgcolor: viewMode ? headerAccentColors.view : editMode ? headerAccentColors.edit : headerAccentColors.create, 
+                    borderRadius: 0.5 
+                  }} />
+                  <Typography variant="h6" sx={{ color: "white", fontWeight: 500 }}>
+                    {viewMode ? "Detalle de desratización" : currentRegistroId ? "Editar desratización" : "Registro de desratización"}
+                  </Typography>
+                </Box>
 
-                  <Box sx={{ p: 3 }}>
-                    {/* Aplicador y DNI */}
-                    <Grid container spacing={3} sx={{ mb: 3 }}>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          placeholder="Aplicador"
-                          variant="standard"
-                          value={formData.aplicador}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, aplicador: e.target.value }))}
-                          InputProps={{
-                            readOnly: viewMode, // SOLO LECTURA EN MODO VISUALIZACIÓN
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          placeholder="DNI"
-                          variant="standard"
-                          value={formData.dni}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, dni: e.target.value }))}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
-                        />
-                      </Grid>
+                <Box sx={{ p: 3 }}>
+                  {/* Aplicador y DNI */}
+                  <Grid container spacing={3} sx={{ mb: 3 }}>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        label="Aplicador"
+                        placeholder="Nombre Completo"
+                        variant="filled"
+                        value={formData.aplicador}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, aplicador: e.target.value }))}
+                        InputProps={{
+                          readOnly: viewMode,
+                        }}
+                        sx={{
+                          "& .MuiInputBase-input": {
+                            color: viewMode ? "text.secondary" : "text.primary",
+                          },
+                        }}
+                      />
                     </Grid>
-
-                    {/* Rodenticida y Cebo atrayente */}
-                    <Grid container spacing={3} sx={{ mb: 3 }}>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          placeholder="Rodenticida"
-                          variant="standard"
-                          value={formData.rodenticida}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, rodenticida: e.target.value }))}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          placeholder="Cebo atrayente de roedores"
-                          variant="standard"
-                          value={formData.ceboAtrayente}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, ceboAtrayente: e.target.value }))}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
-                        />
-                      </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        label="DNI"
+                        placeholder="Identificador de identidad"
+                        variant="filled"
+                        value={formData.dni}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, dni: e.target.value }))}
+                        InputProps={{
+                          readOnly: viewMode,
+                        }}
+                        sx={{
+                          "& .MuiInputBase-input": {
+                            color: viewMode ? "text.secondary" : "text.primary",
+                          },
+                        }}
+                      />
                     </Grid>
+                  </Grid>
 
-                    {/* Trampa adhesiva */}
-                    <TextField
-                      fullWidth
-                      placeholder="Trampa adhesiva de roedores"
-                      variant="standard"
-                      value={formData.trampaAdhesiva}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, trampaAdhesiva: e.target.value }))}
-                      sx={{ 
-                        mb: 3,
-                        "& .MuiInputBase-input": {
-                          color: viewMode ? "text.secondary" : "text.primary",
-                        },
-                      }}
-                      InputProps={{
-                        readOnly: viewMode,
-                      }}
-                    />
+                  {/* Rodenticida y Cebo atrayente */}
+                  <Grid container spacing={3} sx={{ mb: 3 }}>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        label="Rodenticida"
+                        placeholder="Ej: Bromadiolona 0.005%"
+                        variant="filled"
+                        value={formData.rodenticida}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, rodenticida: e.target.value }))}
+                        InputProps={{
+                          readOnly: viewMode,
+                        }}
+                        sx={{
+                          "& .MuiInputBase-input": {
+                            color: viewMode ? "text.secondary" : "text.primary",
+                          },
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        label="Cebo atrayente"
+                        placeholder="Cebo atrayente de roedores"
+                        variant="filled"
+                        value={formData.ceboAtrayente}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, ceboAtrayente: e.target.value }))}
+                        InputProps={{
+                          readOnly: viewMode,
+                        }}
+                        sx={{
+                          "& .MuiInputBase-input": {
+                            color: viewMode ? "text.secondary" : "text.primary",
+                          },
+                        }}
+                      />
+                    </Grid>
+                  </Grid>
 
-                    {/* Fecha y Supervisado */}
-                    <Grid container spacing={3} sx={{ mb: 3 }}>
-                      <Grid item xs={6}>
+                  {/* Trampa adhesiva */}
+                  <TextField
+                    fullWidth
+                    label="Trampa adhesiva"
+                    placeholder="Trampa adhesiva de roedores"
+                    variant="filled"
+                    value={formData.trampaAdhesiva}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, trampaAdhesiva: e.target.value }))}
+                    sx={{ 
+                      mb: 3,
+                      "& .MuiInputBase-input": {
+                        color: viewMode ? "text.secondary" : "text.primary",
+                      },
+                    }}
+                    InputProps={{
+                      readOnly: viewMode,
+                    }}
+                  />
+
+                  {/* Fecha y Supervisado */}
+                  <Grid container spacing={3} sx={{ mb: 3 }}>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        label="Fecha"
+                        type="date"
+                        variant="filled"
+                        value={formData.fecha}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, fecha: e.target.value }))}
+                        InputLabelProps={{
+                          shrink: true,
+                        }}
+                        InputProps={{
+                          readOnly: viewMode,
+                        }}
+                        sx={{
+                          "& .MuiInputBase-input": {
+                            color: viewMode ? "text.secondary" : "text.primary",
+                          },
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={6}>
+                      {viewMode ? (
                         <TextField
                           fullWidth
-                          label="Fecha"
-                          type="date"
-                          variant="standard"
-                          value={formData.fecha}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, fecha: e.target.value }))}
-                          InputLabelProps={{
-                            shrink: true,
-                          }}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          select={!viewMode} // DESACTIVAR SELECT EN MODO VISUALIZACIÓN
                           label="Supervisado"
-                          variant="standard"
+                          variant="filled"
+                          value={
+                            staff.find(s => s.id === formData.supervisado)
+                              ? `${staff.find(s => s.id === formData.supervisado)!.nombre} ${staff.find(s => s.id === formData.supervisado)!.apellidos}`
+                              : ""
+                          }
+                          InputProps={{
+                            readOnly: true,
+                          }}
+                          sx={{
+                            "& .MuiInputBase-input": {
+                              color: "text.secondary",
+                            },
+                          }}
+                        />
+                      ) : (
+                        <TextField
+                          fullWidth
+                          select
+                          label="Supervisado"
+                          variant="filled"
                           value={formData.supervisado}
                           onChange={(e) => setFormData((prev) => ({ ...prev, supervisado: e.target.value }))}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
                           sx={{
                             "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
+                              color: "text.primary",
                             },
                           }}
                         >
-                          {!viewMode && SUPERVISORES.map((supervisor) => (
-                            <MenuItem key={supervisor} value={supervisor}>
-                              {supervisor}
+                          {staff.map((person) => (
+                            <MenuItem key={person.id} value={person.id}>
+                              {person.nombre} {person.apellidos}
                             </MenuItem>
                           ))}
                         </TextField>
-                      </Grid>
+                      )}
                     </Grid>
+                  </Grid>
 
-                    {/* BOTONES DINÁMICOS SEGÚN EL MODO */}
-                    <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-                      {viewMode ? (
-                        // SOLO BOTÓN CERRAR EN MODO VISUALIZACIÓN
+                  {/* BOTONES DINÁMICOS SEGÚN EL MODO */}
+                  <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+                    {viewMode ? (
+                      <Button
+                        variant="outlined"
+                        onClick={handleClose}
+                        sx={buttonStyles.close}
+                      >
+                        Cerrar
+                      </Button>
+                    ) : (
+                      <>
                         <Button
                           variant="outlined"
                           onClick={handleClose}
-                          sx={{ textTransform: "none", color: "#2563eb", borderColor: "#93c5fd" }}
+                          sx={buttonStyles.close}
+                          disabled={saving}
                         >
-                          Cerrar
+                          Cancelar
                         </Button>
-                      ) : (
-                        // BOTONES DE EDICIÓN EN OTROS MODOS
-                        <>
-                          <Button
-                            variant="outlined"
-                            onClick={handleClose}
-                            sx={{ textTransform: "none", color: "#2563eb", borderColor: "#93c5fd" }}
-                          >
-                            Cancelar
-                          </Button>
-                          <Button
-                            variant="contained"
-                            onClick={handleSubmit}
-                            sx={{ textTransform: "none" }}
-                          >
-                            {editMode ? "Actualizar" : "Guardar"}
-                          </Button>
-                        </>
-                      )}
-                    </Box>
+                        <Button
+                          variant="contained"
+                          onClick={handleSubmit}
+                          sx={buttonStyles.save}
+                          disabled={saving}
+                          startIcon={saving ? <CircularProgress size={20} /> : undefined}
+                        >
+                          {saving ? "Guardando..." : currentRegistroId ? "Actualizar" : "Guardar"}
+                        </Button>
+                      </>
+                    )}
                   </Box>
-                </Paper>
-              </Box>
-            </ThemeProvider>
+                </Box>
+              </Paper>
+            </Box>
           </DialogContent>
         </Dialog>
+
+        {/* Snackbar para notificaciones */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Box>
     </ThemeProvider>
   )

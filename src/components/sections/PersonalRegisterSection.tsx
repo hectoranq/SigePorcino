@@ -1,10 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Box,
   Typography,
-
   Paper,
   Table,
   TableBody,
@@ -21,13 +20,27 @@ import {
   FormGroup,
   Checkbox,
   InputAdornment,
+  Snackbar,
+  Alert,
+  CircularProgress,
+  DialogTitle,
+  DialogActions,
 } from "@mui/material"
 import {
   Add,
   KeyboardArrowDown,
   CalendarToday,
+  Delete,
 } from "@mui/icons-material"
+import {
+  listStaff,
+  createStaff,
+  updateStaff,
+  deleteStaff,
+  Staff,
+} from "../../action/PersonalRegisterPocket"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
+import { buttonStyles } from "./buttonStyles"
 
 const theme = createTheme({
   palette: {
@@ -41,13 +54,26 @@ const theme = createTheme({
   },
 })
 
-export function PersonalRegisterSection() {
+interface PersonalRegisterSectionProps {
+  token: string;
+  userId: string;
+  farmId?: string;
+}
+
+export function PersonalRegisterSection({ token, userId, farmId }: PersonalRegisterSectionProps) {
+  const [staffData, setStaffData] = useState<Staff[]>([])
+  const [loading, setLoading] = useState(false)
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" })
   
 
   // Estado para el popup
   const [open, setOpen] = useState(false)
-  const [editMode, setEditMode] = useState(false) // Nuevo estado para modo edición
-  const [editIndex, setEditIndex] = useState<number | null>(null) // Índice del elemento a editar
+  const [editMode, setEditMode] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null)
+  
+  // Estados para el diálogo de confirmación de eliminación
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
+  const [staffToDelete, setStaffToDelete] = useState<string | null>(null)
   
   const [formData, setFormData] = useState({
     dni: "",
@@ -62,30 +88,35 @@ export function PersonalRegisterSection() {
     tareas: [] as string[],
   })
 
-  // Estado para la tabla de personal
-  const [staffData, setStaffData] = useState([
-    {
-      dni: "2566113",
-      nombre: "Jose Antonio Capdevilla Torrejon",
-      telefono: "75266312",
-      fechaInicio: "12/07/2023",
-      fechaFinalizacion: "12/07/2025",
-    },
-    {
-      dni: "2566113",
-      nombre: "Mario Antonio Alvarez Peredo",
-      telefono: "60547811",
-      fechaInicio: "30/05/2024",
-      fechaFinalizacion: "31/12/2024",
-    },
-    {
-      dni: "2566113",
-      nombre: "Juana Adriana Obregon",
-      telefono: "70142889",
-      fechaInicio: "01/02/2023",
-      fechaFinalizacion: "31/12/2024",
-    },
-  ])
+  // Cargar personal al montar el componente
+  useEffect(() => {
+    loadStaff()
+  }, [token, userId, farmId])
+
+  const loadStaff = async () => {
+    if (!token || !userId) {
+      console.error("❌ Token o userId no disponibles")
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await listStaff(token, userId, farmId)
+      if (response.success) {
+        setStaffData(response.data.items as Staff[] || [])
+        console.log("✅ Personal cargado:", response.data.items.length)
+      }
+    } catch (error: any) {
+      console.error("❌ Error al cargar personal:", error)
+      setSnackbar({
+        open: true,
+        message: error.message || "Error al cargar personal",
+        severity: "error",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleCheckboxChange = (value: string, category: "titulaciones" | "tareas") => {
     setFormData(prev => ({
@@ -98,30 +129,32 @@ export function PersonalRegisterSection() {
 
   const handleOpen = () => {
     setEditMode(false)
-    setEditIndex(null)
+    setEditId(null)
     setOpen(true)
   }
 
-  // Nueva función para abrir en modo edición
-  const handleEdit = (index: number) => {
-    const person = staffData[index]
-    const [nombre, ...apellidos] = person.nombre.split(' ')
+  // Función para abrir en modo edición
+  const handleEdit = (id: string) => {
+    const person = staffData.find(p => p.id === id)
+    if (!person) return
+
+    console.log("Editar personal:", person)
     
     setFormData({
       dni: person.dni,
-      nombre: nombre,
-      apellidos: apellidos.join(' '),
+      nombre: person.nombre,
+      apellidos: person.apellidos,
       telefono: person.telefono,
-      correo: "", // Si no tienes este dato, déjalo vacío
-      fechaInicio: convertDateFormat(person.fechaInicio),
-      fechaFinalizacion: convertDateFormat(person.fechaFinalizacion),
-      experiencia: "",
-      titulaciones: [],
-      tareas: [],
+      correo: person.correo,
+      fechaInicio: person.fecha_inicio,
+      fechaFinalizacion: person.fecha_finalizacion,
+      experiencia: person.experiencia || "",
+      titulaciones: person.titulaciones || [],
+      tareas: person.tareas || [],
     })
     
     setEditMode(true)
-    setEditIndex(index)
+    setEditId(id)
     setOpen(true)
   }
 
@@ -146,7 +179,7 @@ export function PersonalRegisterSection() {
   const handleClose = () => {
     setOpen(false)
     setEditMode(false)
-    setEditIndex(null)
+    setEditId(null)
     setFormData({
       dni: "",
       nombre: "",
@@ -161,36 +194,117 @@ export function PersonalRegisterSection() {
     })
   }
 
-  const handleSubmit = () => {
-    console.log("Datos del personal:", formData)
-
-    // Validar que los campos requeridos estén llenos
-    if (!formData.dni || !formData.nombre || !formData.apellidos || !formData.telefono) {
-      alert("Por favor, completa todos los campos requeridos")
+  const handleSubmit = async () => {
+    if (!token || !userId || !farmId) {
+      setSnackbar({
+        open: true,
+        message: "Faltan datos de sesión (token, userId o farmId)",
+        severity: "error",
+      })
       return
     }
 
-    const personData = {
-      dni: formData.dni,
-      nombre: `${formData.nombre} ${formData.apellidos}`,
-      telefono: formData.telefono,
-      fechaInicio: formatDateToDisplay(formData.fechaInicio),
-      fechaFinalizacion: formatDateToDisplay(formData.fechaFinalizacion),
+    // Validar campos requeridos
+    if (!formData.dni || !formData.nombre || !formData.apellidos || !formData.telefono || !formData.correo) {
+      setSnackbar({
+        open: true,
+        message: "Por favor, completa todos los campos requeridos",
+        severity: "error",
+      })
+      return
     }
 
-    if (editMode && editIndex !== null) {
-      // Actualizar persona existente
-      setStaffData((prev) => 
-        prev.map((person, index) => 
-          index === editIndex ? personData : person
-        )
-      )
-    } else {
-      // Agregar nueva persona
-      setStaffData((prev) => [...prev, personData])
+    const data = {
+      dni: formData.dni,
+      nombre: formData.nombre,
+      apellidos: formData.apellidos,
+      telefono: formData.telefono,
+      correo: formData.correo,
+      fecha_inicio: formData.fechaInicio,
+      fecha_finalizacion: formData.fechaFinalizacion,
+      experiencia: formData.experiencia,
+      titulaciones: formData.titulaciones,
+      tareas: formData.tareas,
+      farm: farmId,
+      user: userId,
     }
-    
-    handleClose()
+
+    setLoading(true)
+    try {
+      if (editMode && editId) {
+        // Actualizar personal existente
+        const response = await updateStaff(token, editId, data, userId)
+        if (response.success) {
+          setSnackbar({
+            open: true,
+            message: "Personal actualizado exitosamente",
+            severity: "success",
+          })
+          await loadStaff()
+          handleClose()
+        }
+      } else {
+        // Crear nuevo personal
+        const response = await createStaff(token, data)
+        if (response.success) {
+          setSnackbar({
+            open: true,
+            message: "Personal registrado exitosamente",
+            severity: "success",
+          })
+          await loadStaff()
+          handleClose()
+        }
+      }
+    } catch (error: any) {
+      console.error("❌ Error al guardar personal:", error)
+      setSnackbar({
+        open: true,
+        message: error.message || "Error al guardar el personal",
+        severity: "error",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Funciones para eliminar
+  const handleEliminarClick = (id: string) => {
+    setStaffToDelete(id)
+    setOpenDeleteDialog(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!staffToDelete || !token || !userId) return
+
+    setLoading(true)
+    try {
+      const response = await deleteStaff(token, staffToDelete, userId)
+      if (response.success) {
+        setSnackbar({
+          open: true,
+          message: "Personal eliminado exitosamente",
+          severity: "success",
+        })
+        await loadStaff()
+      }
+    } catch (error: any) {
+      console.error("❌ Error al eliminar personal:", error)
+      setSnackbar({
+        open: true,
+        message: error.message || "Error al eliminar el personal",
+        severity: "error",
+      })
+    } finally {
+      setLoading(false)
+      setOpenDeleteDialog(false)
+      setStaffToDelete(null)
+    }
+  }
+
+  const handleCancelDelete = () => {
+    setOpenDeleteDialog(false)
+    setStaffToDelete(null)
   }
 
   
@@ -231,7 +345,7 @@ export function PersonalRegisterSection() {
                   variant="contained"
                   color="secondary"
                   startIcon={<Add />}
-                  sx={{ textTransform: "none" }}
+                  sx={buttonStyles.save}
                   onClick={handleOpen}
                 >
                   Agregar nuevo
@@ -281,56 +395,86 @@ export function PersonalRegisterSection() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {staffData.map((person, index) => (
-                      <TableRow
-                        key={index}
-                        sx={{
-                          "&:hover": {
-                            bgcolor: "grey.50",
-                          },
-                        }}
-                      >
-                        <TableCell>{person.dni}</TableCell>
-                        <TableCell>{person.nombre}</TableCell>
-                        <TableCell>{person.telefono}</TableCell>
-                        <TableCell>{person.fechaInicio}</TableCell>
-                        <TableCell>{person.fechaFinalizacion}</TableCell>
-                        <TableCell>
-                          <Box sx={{ display: "flex", gap: 1 }}>
-                            <Button
-                              size="small"
-                              variant="contained"
-                              sx={{
-                                bgcolor: "#facc15", // yellow-400
-                                color: "grey.900",
-                                textTransform: "none",
-                                "&:hover": {
-                                  bgcolor: "#eab308", // yellow-500
-                                },
-                              }}
-                              onClick={() => handleEdit(index)} // Agregar onClick
-                            >
-                              Editar
-                            </Button>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              sx={{
-                                borderColor: "#93c5fd", // blue-300
-                                color: "#2563eb", // blue-600
-                                textTransform: "none",
-                                "&:hover": {
-                                  bgcolor: "#eff6ff", // blue-50
-                                  borderColor: "#93c5fd",
-                                },
-                              }}
-                            >
-                              Ver más
-                            </Button>
-                          </Box>
+                    {loading && staffData.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                          <CircularProgress size={40} />
+                          <Typography sx={{ mt: 2 }}>Cargando personal...</Typography>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : staffData.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                          <Typography color="text.secondary">
+                            No hay personal registrado
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      staffData.map((person) => (
+                        <TableRow
+                          key={person.id}
+                          sx={{
+                            "&:hover": {
+                              bgcolor: "grey.50",
+                            },
+                          }}
+                        >
+                          <TableCell>{person.dni}</TableCell>
+                          <TableCell>{person.nombre} {person.apellidos}</TableCell>
+                          <TableCell>{person.telefono}</TableCell>
+                          <TableCell>{formatDateToDisplay(person.fecha_inicio)}</TableCell>
+                          <TableCell>{formatDateToDisplay(person.fecha_finalizacion)}</TableCell>
+                          <TableCell>
+                            <Box sx={{ display: "flex", gap: 1 }}>
+                              <Button
+                                size="small"
+                                variant="contained"
+                                sx={{
+                                  bgcolor: "#eab308",
+                                  color: "grey.900",
+                                  "&:hover": {
+                                    bgcolor: "#ca8a04",
+                                  },
+                                }}
+                                onClick={() => handleEdit(person.id!)}
+                              >
+                                Editar
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                sx={{
+                                  borderColor: "#93c5fd",
+                                  color: "#2563eb",
+                                  "&:hover": {
+                                    bgcolor: "#eff6ff",
+                                    borderColor: "#93c5fd",
+                                  },
+                                }}
+                              >
+                                Ver más
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="contained"
+                                startIcon={<Delete />}
+                                onClick={() => handleEliminarClick(person.id!)}
+                                sx={{
+                                  bgcolor: "#f44336",
+                                  color: "white",
+                                  "&:hover": {
+                                    bgcolor: "#d32f2f",
+                                  },
+                                }}
+                              >
+                                Eliminar
+                              </Button>
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -349,250 +493,304 @@ export function PersonalRegisterSection() {
           }}
         >
           <DialogContent sx={{ p: 0 }}>
-            <ThemeProvider theme={theme}>
-              <Box sx={{ minHeight: "auto", bgcolor: "#f9fafb", p: 3 }}>
-                <Paper sx={{ maxWidth: 1024, mx: "auto", borderRadius: 2, overflow: "hidden" }}>
-                  <Box
-                    sx={{
-                      bgcolor: "#22d3ee",
-                      px: 3,
-                      py: 2,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 1,
-                    }}
-                  >
-                    <Box sx={{ width: 4, height: 24, bgcolor: "#67e8f9", borderRadius: 0.5 }} />
-                    <Typography variant="h6" sx={{ color: "white", fontWeight: 500 }}>
-                      {editMode ? "Editar personal" : "Registro de personal"}
-                    </Typography>
+            <Box sx={{ minHeight: "auto", bgcolor: "#f9fafb", p: 3 }}>
+              <Paper sx={{ maxWidth: 1024, mx: "auto", borderRadius: 2, overflow: "hidden" }}>
+                <Box
+                  sx={{
+                    bgcolor: "#22d3ee",
+                    px: 3,
+                    py: 2,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                  }}
+                >
+                  <Box sx={{ width: 4, height: 24, bgcolor: "#67e8f9", borderRadius: 0.5 }} />
+                  <Typography variant="h6" sx={{ color: "white", fontWeight: 500 }}>
+                    {editMode ? "Editar personal" : "Registro de personal"}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ p: 3 }}>
+                  {/* DNI */}
+                  <TextField
+                    fullWidth
+                    placeholder="DNI"
+                    variant="standard"
+                    value={formData.dni}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, dni: e.target.value }))}
+                    sx={{ mb: 3 }}
+                  />
+
+                  {/* Name and Surnames */}
+                  <Grid container spacing={3} sx={{ mb: 3 }}>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        placeholder="Nombre"
+                        variant="standard"
+                        value={formData.nombre}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, nombre: e.target.value }))}
+                      />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        placeholder="Apellidos"
+                        variant="standard"
+                        value={formData.apellidos}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, apellidos: e.target.value }))}
+                      />
+                    </Grid>
+                  </Grid>
+
+                  {/* Phone and Email */}
+                  <Grid container spacing={3} sx={{ mb: 3 }}>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        placeholder="Teléfono"
+                        variant="standard"
+                        value={formData.telefono}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, telefono: e.target.value }))}
+                      />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        placeholder="Correo electrónico"
+                        type="email"
+                        variant="standard"
+                        value={formData.correo}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, correo: e.target.value }))}
+                      />
+                    </Grid>
+                  </Grid>
+
+                  {/* Dates */}
+                  <Grid container spacing={3} sx={{ mb: 3 }}>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        placeholder="Fecha de inicio"
+                        type="date"
+                        variant="standard"
+                        value={formData.fechaInicio}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, fechaInicio: e.target.value }))}
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <CalendarToday sx={{ color: "#6b7280", fontSize: 20 }} />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        fullWidth
+                        placeholder="Fecha de finalización"
+                        type="date"
+                        variant="standard"
+                        value={formData.fechaFinalizacion}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, fechaFinalizacion: e.target.value }))}
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <CalendarToday sx={{ color: "#6b7280", fontSize: 20 }} />
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
+                  </Grid>
+
+                  {/* Experience */}
+                  <TextField
+                    fullWidth
+                    placeholder="Experiencia previa"
+                    variant="standard"
+                    value={formData.experiencia}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, experiencia: e.target.value }))}
+                    sx={{ mb: 3 }}
+                  />
+
+                  {/* Qualifications and Tasks */}
+                  <Grid container spacing={3} sx={{ mb: 3 }}>
+                    <Grid item xs={6}>
+                      <Typography variant="subtitle1" fontWeight={500} gutterBottom>
+                        Titulaciones
+                      </Typography>
+                      <FormGroup>
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={formData.titulaciones.includes("Bachillerato")}
+                              onChange={() => handleCheckboxChange("Bachillerato", "titulaciones")}
+                              sx={{ "&.Mui-checked": { color: "#22c55e" } }}
+                            />
+                          }
+                          label="Bachillerato"
+                        />
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={formData.titulaciones.includes("FP Agraria")}
+                              onChange={() => handleCheckboxChange("FP Agraria", "titulaciones")}
+                              sx={{ "&.Mui-checked": { color: "#22c55e" } }}
+                            />
+                          }
+                          label="FP Agraria"
+                        />
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={formData.titulaciones.includes("Licenciatura")}
+                              onChange={() => handleCheckboxChange("Licenciatura", "titulaciones")}
+                              sx={{ "&.Mui-checked": { color: "#22c55e" } }}
+                            />
+                          }
+                          label="Licenciatura"
+                        />
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={formData.titulaciones.includes("Doctorado")}
+                              onChange={() => handleCheckboxChange("Doctorado", "titulaciones")}
+                              sx={{ "&.Mui-checked": { color: "#22c55e" } }}
+                            />
+                          }
+                          label="Doctorado"
+                        />
+                      </FormGroup>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="subtitle1" fontWeight={500} gutterBottom>
+                        Tareas
+                      </Typography>
+                      <FormGroup>
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={formData.tareas.includes("Manejo de personal")}
+                              onChange={() => handleCheckboxChange("Manejo de personal", "tareas")}
+                              sx={{ "&.Mui-checked": { color: "#22c55e" } }}
+                            />
+                          }
+                          label="Manejo de personal"
+                        />
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={formData.tareas.includes("Control de calidad")}
+                              onChange={() => handleCheckboxChange("Control de calidad", "tareas")}
+                              sx={{ "&.Mui-checked": { color: "#22c55e" } }}
+                            />
+                          }
+                          label="Control de calidad"
+                        />
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={formData.tareas.includes("Planificación")}
+                              onChange={() => handleCheckboxChange("Planificación", "tareas")}
+                              sx={{ "&.Mui-checked": { color: "#22c55e" } }}
+                            />
+                          }
+                          label="Planificación"
+                        />
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={formData.tareas.includes("Gestión de recursos")}
+                              onChange={() => handleCheckboxChange("Gestión de recursos", "tareas")}
+                              sx={{ "&.Mui-checked": { color: "#22c55e" } }}
+                            />
+                          }
+                          label="Gestión de recursos"
+                        />
+                      </FormGroup>
+                    </Grid>
+                  </Grid>
+
+                  {/* Buttons */}
+                  <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+                    <Button
+                      variant="outlined"
+                      onClick={handleClose}
+                      sx={buttonStyles.close}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      variant="contained"
+                      onClick={handleSubmit}
+                      sx={buttonStyles.save}
+                    >
+                      {editMode ? "Actualizar" : "Guardar"}
+                    </Button>
                   </Box>
-
-                  <Box sx={{ p: 3 }}>
-                    {/* DNI */}
-                    <TextField
-                      fullWidth
-                      placeholder="DNI"
-                      variant="standard"
-                      value={formData.dni}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, dni: e.target.value }))}
-                      sx={{ mb: 3 }}
-                    />
-
-                    {/* Name and Surnames */}
-                    <Grid container spacing={3} sx={{ mb: 3 }}>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          placeholder="Nombre"
-                          variant="standard"
-                          value={formData.nombre}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, nombre: e.target.value }))}
-                        />
-                      </Grid>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          placeholder="Apellidos"
-                          variant="standard"
-                          value={formData.apellidos}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, apellidos: e.target.value }))}
-                        />
-                      </Grid>
-                    </Grid>
-
-                    {/* Phone and Email */}
-                    <Grid container spacing={3} sx={{ mb: 3 }}>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          placeholder="Teléfono"
-                          variant="standard"
-                          value={formData.telefono}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, telefono: e.target.value }))}
-                        />
-                      </Grid>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          placeholder="Correo electrónico"
-                          type="email"
-                          variant="standard"
-                          value={formData.correo}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, correo: e.target.value }))}
-                        />
-                      </Grid>
-                    </Grid>
-
-                    {/* Dates */}
-                    <Grid container spacing={3} sx={{ mb: 3 }}>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          placeholder="Fecha de inicio"
-                          type="date"
-                          variant="standard"
-                          value={formData.fechaInicio}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, fechaInicio: e.target.value }))}
-                          InputProps={{
-                            endAdornment: (
-                              <InputAdornment position="end">
-                                <CalendarToday sx={{ color: "#6b7280", fontSize: 20 }} />
-                              </InputAdornment>
-                            ),
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={6}>
-                        <TextField
-                          fullWidth
-                          placeholder="Fecha de finalización"
-                          type="date"
-                          variant="standard"
-                          value={formData.fechaFinalizacion}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, fechaFinalizacion: e.target.value }))}
-                          InputProps={{
-                            endAdornment: (
-                              <InputAdornment position="end">
-                                <CalendarToday sx={{ color: "#6b7280", fontSize: 20 }} />
-                              </InputAdornment>
-                            ),
-                          }}
-                        />
-                      </Grid>
-                    </Grid>
-
-                    {/* Experience */}
-                    <TextField
-                      fullWidth
-                      placeholder="Experiencia previa"
-                      variant="standard"
-                      value={formData.experiencia}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, experiencia: e.target.value }))}
-                      sx={{ mb: 3 }}
-                    />
-
-                    {/* Qualifications and Tasks */}
-                    <Grid container spacing={3} sx={{ mb: 3 }}>
-                      <Grid item xs={6}>
-                        <Typography variant="subtitle1" fontWeight={500} gutterBottom>
-                          Titulaciones
-                        </Typography>
-                        <FormGroup>
-                          <FormControlLabel
-                            control={
-                              <Checkbox
-                                checked={formData.titulaciones.includes("Bachillerato")}
-                                onChange={() => handleCheckboxChange("Bachillerato", "titulaciones")}
-                                sx={{ "&.Mui-checked": { color: "#22c55e" } }}
-                              />
-                            }
-                            label="Bachillerato"
-                          />
-                          <FormControlLabel
-                            control={
-                              <Checkbox
-                                checked={formData.titulaciones.includes("FP Agraria")}
-                                onChange={() => handleCheckboxChange("FP Agraria", "titulaciones")}
-                                sx={{ "&.Mui-checked": { color: "#22c55e" } }}
-                              />
-                            }
-                            label="FP Agraria"
-                          />
-                          <FormControlLabel
-                            control={
-                              <Checkbox
-                                checked={formData.titulaciones.includes("Licenciatura")}
-                                onChange={() => handleCheckboxChange("Licenciatura", "titulaciones")}
-                                sx={{ "&.Mui-checked": { color: "#22c55e" } }}
-                              />
-                            }
-                            label="Licenciatura"
-                          />
-                          <FormControlLabel
-                            control={
-                              <Checkbox
-                                checked={formData.titulaciones.includes("Doctorado")}
-                                onChange={() => handleCheckboxChange("Doctorado", "titulaciones")}
-                                sx={{ "&.Mui-checked": { color: "#22c55e" } }}
-                              />
-                            }
-                            label="Doctorado"
-                          />
-                        </FormGroup>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography variant="subtitle1" fontWeight={500} gutterBottom>
-                          Tareas
-                        </Typography>
-                        <FormGroup>
-                          <FormControlLabel
-                            control={
-                              <Checkbox
-                                checked={formData.tareas.includes("Manejo de personal")}
-                                onChange={() => handleCheckboxChange("Manejo de personal", "tareas")}
-                                sx={{ "&.Mui-checked": { color: "#22c55e" } }}
-                              />
-                            }
-                            label="Manejo de personal"
-                          />
-                          <FormControlLabel
-                            control={
-                              <Checkbox
-                                checked={formData.tareas.includes("Control de calidad")}
-                                onChange={() => handleCheckboxChange("Control de calidad", "tareas")}
-                                sx={{ "&.Mui-checked": { color: "#22c55e" } }}
-                              />
-                            }
-                            label="Control de calidad"
-                          />
-                          <FormControlLabel
-                            control={
-                              <Checkbox
-                                checked={formData.tareas.includes("Planificación")}
-                                onChange={() => handleCheckboxChange("Planificación", "tareas")}
-                                sx={{ "&.Mui-checked": { color: "#22c55e" } }}
-                              />
-                            }
-                            label="Planificación"
-                          />
-                          <FormControlLabel
-                            control={
-                              <Checkbox
-                                checked={formData.tareas.includes("Gestión de recursos")}
-                                onChange={() => handleCheckboxChange("Gestión de recursos", "tareas")}
-                                sx={{ "&.Mui-checked": { color: "#22c55e" } }}
-                              />
-                            }
-                            label="Gestión de recursos"
-                          />
-                        </FormGroup>
-                      </Grid>
-                    </Grid>
-
-                    {/* Buttons */}
-                    <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-                      <Button
-                        variant="outlined"
-                        onClick={handleClose}
-                        sx={{ textTransform: "none", color: "#2563eb", borderColor: "#93c5fd" }}
-                      >
-                        Cancelar
-                      </Button>
-                      <Button
-                        variant="contained"
-                        onClick={handleSubmit}
-                        sx={{ textTransform: "none" }}
-                      >
-                        {editMode ? "Actualizar" : "Guardar"}
-                      </Button>
-                    </Box>
-                  </Box>
-                </Paper>
-              </Box>
-            </ThemeProvider>
+                </Box>
+              </Paper>
+            </Box>
           </DialogContent>
         </Dialog>
+
+        {/* Dialog de confirmación de eliminación */}
+        <Dialog
+          open={openDeleteDialog}
+          onClose={handleCancelDelete}
+          maxWidth="xs"
+          fullWidth
+        >
+          <DialogTitle>
+            ¿Confirmar eliminación?
+          </DialogTitle>
+          <DialogContent>
+            <Typography>
+              ¿Estás seguro de que deseas eliminar a{" "}
+              <strong>
+                {staffToDelete
+                  ? staffData.find(s => s.id === staffToDelete)?.nombre
+                  : ""}
+              </strong>?
+              Esta acción no se puede deshacer.
+            </Typography>
+          </DialogContent>
+          <DialogActions sx={{ p: 2 }}>
+            <Button
+              onClick={handleCancelDelete}
+              variant="outlined"
+              color="inherit"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConfirmDelete}
+              variant="contained"
+              color="error"
+              startIcon={<Delete />}
+            >
+              Eliminar
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Snackbar para mensajes */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Box>
     </ThemeProvider>
   )

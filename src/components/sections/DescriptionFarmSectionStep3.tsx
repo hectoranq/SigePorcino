@@ -12,6 +12,7 @@ import {
   Typography,
   Grid,
 } from "@mui/material"
+import { buttonStyles } from "./buttonStyles"
 
 interface Props {
   onNext: () => void;
@@ -437,28 +438,24 @@ const DescriptionFarmSectionStep3: React.FC<Props> = ({ onNext, onBack }) => {
       </Box>
 
       {/* Navigation buttons */}
-     <section className="form-grid-2-cols">
-                    <Button
-                      variant="outlined"
-                      color="secondary"
-                      className="btnatras"
-                      sx={{ mr: 2 }}
-                       onClick={onBack}
-                    >
-                      Atras
-                    </Button>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      className="btnsiguiente"
-                      onClick={() => {
-     
-      onNext();
-    }}
-                    >
-                      Siguiente
-                    </Button>
-                  </section>
+      <Box sx={{ display: "flex", justifyContent: "space-between", mt: 4 }}>
+        <Button
+          variant="outlined"
+          sx={buttonStyles.back}
+          onClick={onBack}
+        >
+          Atrás
+        </Button>
+        <Button
+          variant="contained"
+          sx={buttonStyles.next}
+          onClick={() => {
+            onNext();
+          }}
+        >
+          Siguiente
+        </Button>
+      </Box>
     </Paper>     
     );
 };

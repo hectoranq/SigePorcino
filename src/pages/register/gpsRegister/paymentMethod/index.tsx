@@ -6,9 +6,9 @@ import { fetchPlans, registerCompanyData, registerPersonData } from "../../../..
 import FileUpload from "../../../../components/fileUpload/fileUpload";
 import Image from 'next/image';
 import RegisterImage from '../../../../assets/img/sigeRegister.jpg';
-import useUserFormStore from "../../../../_store/index"; // Ajusta la ruta si es necesario
-import usePersonalInfoStore from "../../../../_store/personal"; // Ajusta la ruta si es necesario
-import useFarmFormStore from "../../../../_store/farm"; // Ajusta la ruta si es necesario
+import useUserFormStore from "../../../../_store/index";
+import usePersonalInfoStore from "../../../../_store/personal";
+import useFarmFormStore from "../../../../_store/farm";
 import { registerFarm } from "../../../../action/registerFarm";
 import { registerPayment } from "../../../../action/registerPayment";
 
@@ -22,7 +22,6 @@ const PaymentMethod = () => {
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [openSuccessSnackbar, setOpenSuccessSnackbar] = useState(false);
-
 
   useEffect(() => {
     const loadPlans = async () => {
@@ -43,8 +42,6 @@ const PaymentMethod = () => {
     router.push('/register/gpsRegister');
   };
 
-
-
   const handleCardSelect = (planId: string) => {
     setSelectedPlanId(planId);
   };
@@ -63,27 +60,36 @@ const PaymentMethod = () => {
     console.log("Tipo:", registroTipo);
 
     if (registroTipo === "empresa") {
-     
-
       if (!selectedPlanId || !selectedFile) {
         alert("Por favor, selecciona un plan y un archivo.");
         return;
       }
-       const companyData = useUserFormStore.getState().formData;
+      
+      const companyData = useUserFormStore.getState().formData;
       console.log("Datos de empresa:", companyData);
+      
       // Convertir companyData a FormData
       const formData = new FormData();
       Object.entries(companyData).forEach(([key, value]) => {
         formData.append(key, value as string);
       });
 
-      const farmData = useFarmFormStore.getState().formData;
+      // CAMBIO: Usar currentFarm en lugar de formData
+      const farmData = useFarmFormStore.getState().currentFarm;
+      
+      if (!farmData) {
+        setOpenSnackbar(true);
+        setErrorMessage("No se encontraron datos de la granja. Por favor, regresa y completa la información.");
+        return;
+      }
+      
       console.log("Datos de granja:", farmData);
       const formDataFarm = new FormData();
       Object.entries(farmData).forEach(([key, value]) => {
-        formDataFarm.append(key, value as string);
+        if (value !== null && value !== undefined) {
+          formDataFarm.append(key, value as string);
+        }
       });
-      // Llamar a registerCompany
 
       let userId = typeof window !== "undefined" ? localStorage.getItem('last_user_id') : null;
       let user = null;
@@ -116,8 +122,9 @@ const PaymentMethod = () => {
         router.push('/');
       } catch (error) {
         console.error("Error al registrar empresa:", error);
+        setOpenSnackbar(true);
+        setErrorMessage("Error al guardar datos:" + (error?.message || "Error desconocido"));
       }
-
 
     } else if (registroTipo === "persona_fisica") {
       const personData = usePersonalInfoStore.getState().formData;
@@ -134,39 +141,50 @@ const PaymentMethod = () => {
         formData.append(key, value as string);
       });
 
-      const farmData = useFarmFormStore.getState().formData;
+      // CAMBIO: Usar currentFarm en lugar de formData
+      const farmData = useFarmFormStore.getState().currentFarm;
+      
+      if (!farmData) {
+        setOpenSnackbar(true);
+        setErrorMessage("No se encontraron datos de la granja. Por favor, regresa y completa la información.");
+        return;
+      }
+      
       console.log("Datos de granja:", farmData);
       const formDataFarm = new FormData();
       Object.entries(farmData).forEach(([key, value]) => {
-        formDataFarm.append(key, value as string);
+        if (value !== null && value !== undefined) {
+          formDataFarm.append(key, value as string);
+        }
       });
-      // Llamar a registerCompany
+
       let userId = typeof window !== "undefined" ? localStorage.getItem('last_user_id') : null;
       let user = null;
+      
       try {
         if (!userId) {
           user = await registerPersonData(formData);
           if (!user.success) {
-            console.error("Error al registrar la empresa:", user.message);
+            console.error("Error al registrar la persona:", user.message);
             setOpenSnackbar(true);
-            setErrorMessage("Error al guardar datos:"+user.message || "Error al registrar la empresa");
+            setErrorMessage("Error al guardar datos:" + (user.message || "Error al registrar la persona"));
             return;
           }
           userId = user.data.id;
           localStorage.setItem('last_user_id', userId);
         }
+        
         await registerFarm(formDataFarm, userId);
         const file = selectedFile;
         await registerPayment({ user_id: userId, plan_id: selectedPlanId, file });
         setSuccessMessage("¡Registro exitoso!");
         setOpenSuccessSnackbar(true);
-        router.push('/'); // Si quieres redirigir después, puedes poner un setTimeout
+        router.push('/');
       } catch (error) {
         console.error("Error al registrar persona física:", error);
         setOpenSnackbar(true);
-        setErrorMessage("Error al guardar datos:"+error.message || "Error al registrar persona física");
+        setErrorMessage("Error al guardar datos:" + (error?.message || "Error al registrar persona física"));
       }
-
 
     } else {
       console.log("Tipo de registro no definido en localStorage.");
@@ -262,9 +280,7 @@ const PaymentMethod = () => {
       <TextField
         label="Código de cupón"
         variant="filled"
-        name="farm_name"
-        // value={formData.farm_name}
-        // onChange={handleInputChange}
+        name="coupon_code"
       />
       <section className="form-grid-main">
         <section className="form-grid-2-cols">
