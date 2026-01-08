@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import {
   Box,
   Typography,
@@ -22,8 +22,21 @@ import {
   RadioGroup,
   Divider,
   IconButton,
+  CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material"
 import { Add, Edit, Visibility, Delete } from "@mui/icons-material"
+import useUserStore from "../../_store/user"
+import useFarmFormStore from "../../_store/farm"
+import {
+  createPlanFormacion,
+  updatePlanFormacion,
+  deletePlanFormacion,
+  getPlanFormacionByFarmId,
+  type PlanFormacion as PlanFormacionAPI,
+  type CursoFormacion as CursoFormacionAPI,
+} from "../../action/PlanFormacionPocket"
 
 interface CursoFormacion {
   descripcion: string
@@ -31,6 +44,7 @@ interface CursoFormacion {
 }
 
 interface PlanFormacion {
+  id?: string
   // Cursos de formación
   cursosFormacion: CursoFormacion[]
   // Registros de personal
@@ -47,23 +61,20 @@ const buttonStyles = {
 }
 
 export function PlanFormacionSection() {
-  const [registros, setRegistros] = useState<PlanFormacion[]>([
-    {
-      cursosFormacion: [
-        {
-          descripcion: "Bienestar animal en explotaciones porcinas",
-          horasLectivas: "20",
-        },
-        {
-          descripcion: "Bioseguridad y manejo sanitario",
-          horasLectivas: "15",
-        },
-      ],
-      personalConFormacion: "si",
-      personalConExperiencia: "si",
-      personalConTitulacion: "si",
-    },
-  ])
+  const { token, record } = useUserStore()
+  const { currentFarm } = useFarmFormStore()
+
+  const [registros, setRegistros] = useState<PlanFormacion[]>([])
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [currentPlanId, setCurrentPlanId] = useState<string | null>(null)
+
+  // Snackbar states
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean
+    message: string
+    severity: "success" | "error" | "info" | "warning"
+  }>({ open: false, message: "", severity: "success" })
 
   const [open, setOpen] = useState(false)
   const [modoEdicion, setModoEdicion] = useState(false)
@@ -85,6 +96,76 @@ export function PlanFormacionSection() {
   const [nuevoCursoHoras, setNuevoCursoHoras] = useState("")
   const [mostrarInputCurso, setMostrarInputCurso] = useState(false)
 
+  // Cargar planes al montar el componente
+  useEffect(() => {
+    loadPlanesFormacion()
+  }, [currentFarm, token, record])
+
+  const loadPlanesFormacion = async () => {
+    if (!currentFarm || !record?.id || !token) {
+      console.log("⚠️ No hay farmId o usuario disponible")
+      return
+    }
+
+    setLoading(true)
+    try {
+      const result = await getPlanFormacionByFarmId(token, record.id, currentFarm.id)
+      if (result && result.length > 0) {
+        const convertedPlans = result.map(convertAPItoLocal)
+        setRegistros(convertedPlans)
+        console.log("✅ Planes de formación cargados:", result.length)
+      } else {
+        setRegistros([])
+        console.log("ℹ️ No hay planes de formación para esta granja")
+      }
+    } catch (error) {
+      console.error("❌ Error al cargar planes de formación:", error)
+      setSnackbar({
+        open: true,
+        message: "Error al cargar los planes de formación",
+        severity: "error",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Convertir de formato API (snake_case) a formato local (camelCase)
+  const convertAPItoLocal = (apiData: PlanFormacionAPI): PlanFormacion => {
+    return {
+      id: apiData.id,
+      cursosFormacion: apiData.cursos_formacion || [],
+      personalConFormacion: apiData.personal_con_formacion || "",
+      personalConExperiencia: apiData.personal_con_experiencia || "",
+      personalConTitulacion: apiData.personal_con_titulacion || "",
+    }
+  }
+
+  // Convertir de formato local (camelCase) a formato API (snake_case)
+  const convertLocalToAPI = (localData: PlanFormacion) => {
+    return {
+      cursos_formacion: localData.cursosFormacion,
+      personal_con_formacion: localData.personalConFormacion,
+      personal_con_experiencia: localData.personalConExperiencia,
+      personal_con_titulacion: localData.personalConTitulacion,
+      farm: currentFarm!.id!,
+    }
+  }
+
+  const loadPlanToForm = (plan: PlanFormacion) => {
+    setFormData({
+      cursosFormacion: plan.cursosFormacion,
+      personalConFormacion: plan.personalConFormacion,
+      personalConExperiencia: plan.personalConExperiencia,
+      personalConTitulacion: plan.personalConTitulacion,
+    })
+    if (plan.id) {
+      setCurrentPlanId(plan.id)
+    }
+    setModoEdicion(true)
+    setOpen(true)
+  }
+
   const handleAgregarNuevo = () => {
     setOpen(true)
   }
@@ -93,6 +174,7 @@ export function PlanFormacionSection() {
     setOpen(false)
     setModoEdicion(false)
     setIndiceEdicion(null)
+    setCurrentPlanId(null)
     setFormData({
       cursosFormacion: [],
       personalConFormacion: "",
@@ -136,20 +218,53 @@ export function PlanFormacionSection() {
     }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (modoEdicion && indiceEdicion !== null) {
-      // Actualizar registro existente
-      setRegistros((prev) => prev.map((reg, index) => (index === indiceEdicion ? formData : reg)))
-      console.log("Plan de formación actualizado:", formData)
-    } else {
-      // Agregar nuevo registro
-      setRegistros((prev) => [...prev, formData])
-      console.log("Plan de formación registrado:", formData)
+
+    if (!token || !record?.id || !currentFarm?.id) {
+      setSnackbar({
+        open: true,
+        message: "Error: No hay información de usuario o granja",
+        severity: "error",
+      })
+      return
     }
-    
-    handleClose()
+
+    setSaving(true)
+    try {
+      const apiData = convertLocalToAPI(formData)
+
+      if (currentPlanId) {
+        // Actualizar plan existente
+        await updatePlanFormacion(token, currentPlanId, record.id, apiData)
+        setSnackbar({
+          open: true,
+          message: "Plan de formación actualizado exitosamente",
+          severity: "success",
+        })
+      } else {
+        // Crear nuevo plan
+        await createPlanFormacion(token, record.id, apiData)
+        setSnackbar({
+          open: true,
+          message: "Plan de formación creado exitosamente",
+          severity: "success",
+        })
+      }
+
+      // Recargar la lista de planes
+      await loadPlanesFormacion()
+      handleClose()
+    } catch (error: any) {
+      console.error("❌ Error al guardar plan de formación:", error)
+      setSnackbar({
+        open: true,
+        message: error?.message || "Error al guardar el plan de formación",
+        severity: "error",
+      })
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleCancelar = () => {
@@ -157,10 +272,10 @@ export function PlanFormacionSection() {
   }
 
   const handleEditar = (index: number) => {
-    setModoEdicion(true)
+    const plan = registros[index]
+    loadPlanToForm(plan)
     setIndiceEdicion(index)
-    setFormData({ ...registros[index] })
-    setOpen(true)
+    console.log("Editar plan:", plan)
   }
 
   const handleVerMas = (index: number) => {
@@ -178,13 +293,42 @@ export function PlanFormacionSection() {
     setOpenDeleteDialog(true)
   }
 
-  const handleConfirmDelete = () => {
-    if (registroToDelete !== null) {
-      setRegistros((prev) => prev.filter((_, index) => index !== registroToDelete))
-      console.log("Registro eliminado:", registros[registroToDelete])
+  const handleConfirmDelete = async () => {
+    if (registroToDelete === null || !token || !record?.id) {
+      return
     }
-    setOpenDeleteDialog(false)
-    setRegistroToDelete(null)
+
+    const plan = registros[registroToDelete]
+    if (!plan.id) {
+      setSnackbar({
+        open: true,
+        message: "Error: No se puede eliminar un plan sin ID",
+        severity: "error",
+      })
+      return
+    }
+
+    setSaving(true)
+    try {
+      await deletePlanFormacion(token, plan.id, record.id)
+      setSnackbar({
+        open: true,
+        message: "Plan de formación eliminado exitosamente",
+        severity: "success",
+      })
+      await loadPlanesFormacion()
+    } catch (error: any) {
+      console.error("❌ Error al eliminar plan de formación:", error)
+      setSnackbar({
+        open: true,
+        message: error?.message || "Error al eliminar el plan de formación",
+        severity: "error",
+      })
+    } finally {
+      setSaving(false)
+      setOpenDeleteDialog(false)
+      setRegistroToDelete(null)
+    }
   }
 
   const handleCancelDelete = () => {
@@ -239,6 +383,11 @@ export function PlanFormacionSection() {
 
           {/* Table */}
           <TableContainer>
+            {loading ? (
+              <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+                <CircularProgress />
+              </Box>
+            ) : (
             <Table>
               <TableHead>
                 <TableRow sx={{ bgcolor: "#f8f9fa" }}>
@@ -311,6 +460,7 @@ export function PlanFormacionSection() {
                 ))}
               </TableBody>
             </Table>
+            )}
           </TableContainer>
         </Paper>
 
@@ -627,19 +777,35 @@ export function PlanFormacionSection() {
             </form>
           </DialogContent>
           <DialogActions sx={{ p: 2 }}>
-            <Button onClick={handleCancelar} variant="outlined" sx={buttonStyles.primary}>
+            <Button onClick={handleCancelar} variant="outlined" sx={buttonStyles.primary} disabled={saving}>
               Cancelar
             </Button>
             <Button
               onClick={handleSubmit}
               variant="contained"
-              disabled={formData.cursosFormacion.length === 0}
+              disabled={formData.cursosFormacion.length === 0 || saving}
               sx={buttonStyles.primary}
             >
-              {modoEdicion ? "Actualizar" : "Registrar"}
+              {saving ? <CircularProgress size={24} /> : (modoEdicion ? "Actualizar" : "Registrar")}
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* Snackbar para notificaciones */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Container>
     </Box>
   )

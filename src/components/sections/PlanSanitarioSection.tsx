@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import {
   Box,
   Typography,
@@ -21,8 +21,22 @@ import {
   RadioGroup,
   FormControlLabel,
   IconButton,
+  Snackbar,
+  Alert,
+  CircularProgress,
 } from "@mui/material"
 import { Add, Edit, Visibility, Delete, AttachFile, Close } from "@mui/icons-material"
+import {
+  getPlanSanitarioByFarmId,
+  createPlanSanitario,
+  updatePlanSanitario,
+  deletePlanSanitario,
+  type PlanSanitario as PlanSanitarioAPI,
+  type CreatePlanSanitarioData,
+  type UpdatePlanSanitarioData,
+} from "../../action/PlanSanitarioPocket"
+import useUserStore from "../../_store/user"
+import useFarmFormStore from "../../_store/farm"
 
 interface PlanSanitario {
   planVacunacion: string
@@ -47,22 +61,17 @@ const buttonStyles = {
 }
 
 export function PlanSanitarioSection() {
-  const [registros, setRegistros] = useState<PlanSanitario[]>([
-    {
-      planVacunacion: "si",
-      planVacunacionArchivo: null,
-      planVacunacionObservaciones: "Plan actualizado 2024",
-      planDesparasitacion: "si",
-      planDesparasitacionArchivo: null,
-      planDesparasitacionObservaciones: "Desparasitación trimestral",
-      protocoloVigilancia: "si",
-      protocoloVigilanciaArchivo: null,
-      protocoloVigilanciaObservaciones: "Revisión diaria por veterinario",
-      programaMuestreo: "si",
-      programaMuestreoArchivo: null,
-      programaMuestreoObservaciones: "Muestreo según normativa ADS",
-    },
-  ])
+  const { token, record } = useUserStore()
+  const { currentFarm } = useFarmFormStore()
+
+  const [registros, setRegistros] = useState<PlanSanitario[]>([])
+  const [currentPlanId, setCurrentPlanId] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success" as "success" | "error" | "info" | "warning",
+  })
 
   const [open, setOpen] = useState(false)
   const [modoEdicion, setModoEdicion] = useState(false)
@@ -87,7 +96,75 @@ export function PlanSanitarioSection() {
   const [openViewDialog, setOpenViewDialog] = useState(false)
   const [selectedRegistro, setSelectedRegistro] = useState<PlanSanitario | null>(null)
 
+  // Cargar planes sanitarios al montar el componente
+  useEffect(() => {
+    loadPlanesSanitarios()
+  }, [currentFarm, token, record])
+
+  const loadPlanesSanitarios = async () => {
+    if (!currentFarm || !record?.id || !token) {
+      console.log("⚠️ No hay farmId o usuario disponible")
+      return
+    }
+
+    setLoading(true)
+    try {
+      const result = await getPlanSanitarioByFarmId(token, record.id, currentFarm.id)
+
+      if (result && result.length > 0) {
+        const planesConvertidos = result.map((plan) => ({
+          id: plan.id,
+          planVacunacion: plan.plan_vacunacion,
+          planVacunacionArchivo: null,
+          planVacunacionObservaciones: plan.plan_vacunacion_observaciones,
+          planDesparasitacion: plan.plan_desparasitacion,
+          planDesparasitacionArchivo: null,
+          planDesparasitacionObservaciones: plan.plan_desparasitacion_observaciones,
+          protocoloVigilancia: plan.protocolo_vigilancia,
+          protocoloVigilanciaArchivo: null,
+          protocoloVigilanciaObservaciones: plan.protocolo_vigilancia_observaciones,
+          programaMuestreo: plan.programa_muestreo,
+          programaMuestreoArchivo: null,
+          programaMuestreoObservaciones: plan.programa_muestreo_observaciones,
+        }))
+        setRegistros(planesConvertidos)
+        console.log("✅ Planes sanitarios cargados:", planesConvertidos.length)
+      } else {
+        setRegistros([])
+        console.log("ℹ️ No se encontraron planes sanitarios")
+      }
+    } catch (error) {
+      console.error("❌ Error al cargar planes sanitarios:", error)
+      setSnackbar({
+        open: true,
+        message: "Error al cargar planes sanitarios",
+        severity: "error",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadPlanToForm = (plan: any) => {
+    setFormData({
+      planVacunacion: plan.planVacunacion,
+      planVacunacionArchivo: null,
+      planVacunacionObservaciones: plan.planVacunacionObservaciones,
+      planDesparasitacion: plan.planDesparasitacion,
+      planDesparasitacionArchivo: null,
+      planDesparasitacionObservaciones: plan.planDesparasitacionObservaciones,
+      protocoloVigilancia: plan.protocoloVigilancia,
+      protocoloVigilanciaArchivo: null,
+      protocoloVigilanciaObservaciones: plan.protocoloVigilanciaObservaciones,
+      programaMuestreo: plan.programaMuestreo,
+      programaMuestreoArchivo: null,
+      programaMuestreoObservaciones: plan.programaMuestreoObservaciones,
+    })
+    setCurrentPlanId(plan.id || null)
+  }
+
   const handleAgregarNuevo = () => {
+    setCurrentPlanId(null)
     setOpen(true)
   }
 
@@ -95,6 +172,7 @@ export function PlanSanitarioSection() {
     setOpen(false)
     setModoEdicion(false)
     setIndiceEdicion(null)
+    setCurrentPlanId(null)
     setFormData({
       planVacunacion: "",
       planVacunacionArchivo: null,
@@ -132,18 +210,100 @@ export function PlanSanitarioSection() {
     }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (modoEdicion && indiceEdicion !== null) {
-      setRegistros((prev) => prev.map((reg, index) => (index === indiceEdicion ? formData : reg)))
-      console.log("Plan sanitario actualizado:", formData)
-    } else {
-      setRegistros((prev) => [...prev, formData])
-      console.log("Plan sanitario registrado:", formData)
+    if (!record?.id || !token || !currentFarm) {
+      setSnackbar({
+        open: true,
+        message: "No hay información de usuario o granja",
+        severity: "error",
+      })
+      return
     }
 
-    handleClose()
+    setLoading(true)
+    try {
+      if (currentPlanId) {
+        // Actualizar plan existente
+        const updateData: UpdatePlanSanitarioData = {
+          plan_vacunacion: formData.planVacunacion,
+          plan_vacunacion_observaciones: formData.planVacunacionObservaciones,
+          plan_desparasitacion: formData.planDesparasitacion,
+          plan_desparasitacion_observaciones: formData.planDesparasitacionObservaciones,
+          protocolo_vigilancia: formData.protocoloVigilancia,
+          protocolo_vigilancia_observaciones: formData.protocoloVigilanciaObservaciones,
+          programa_muestreo: formData.programaMuestreo,
+          programa_muestreo_observaciones: formData.programaMuestreoObservaciones,
+          farm: currentFarm.id,
+        }
+
+        if (formData.planVacunacionArchivo) {
+          updateData.plan_vacunacion_archivo = formData.planVacunacionArchivo
+        }
+        if (formData.planDesparasitacionArchivo) {
+          updateData.plan_desparasitacion_archivo = formData.planDesparasitacionArchivo
+        }
+        if (formData.protocoloVigilanciaArchivo) {
+          updateData.protocolo_vigilancia_archivo = formData.protocoloVigilanciaArchivo
+        }
+        if (formData.programaMuestreoArchivo) {
+          updateData.programa_muestreo_archivo = formData.programaMuestreoArchivo
+        }
+
+        await updatePlanSanitario(token, currentPlanId, record.id, updateData)
+        setSnackbar({
+          open: true,
+          message: "Plan sanitario actualizado exitosamente",
+          severity: "success",
+        })
+      } else {
+        // Crear nuevo plan
+        const createData: CreatePlanSanitarioData = {
+          plan_vacunacion: formData.planVacunacion,
+          plan_vacunacion_observaciones: formData.planVacunacionObservaciones,
+          plan_desparasitacion: formData.planDesparasitacion,
+          plan_desparasitacion_observaciones: formData.planDesparasitacionObservaciones,
+          protocolo_vigilancia: formData.protocoloVigilancia,
+          protocolo_vigilancia_observaciones: formData.protocoloVigilanciaObservaciones,
+          programa_muestreo: formData.programaMuestreo,
+          programa_muestreo_observaciones: formData.programaMuestreoObservaciones,
+          farm: currentFarm.id,
+        }
+
+        if (formData.planVacunacionArchivo) {
+          createData.plan_vacunacion_archivo = formData.planVacunacionArchivo
+        }
+        if (formData.planDesparasitacionArchivo) {
+          createData.plan_desparasitacion_archivo = formData.planDesparasitacionArchivo
+        }
+        if (formData.protocoloVigilanciaArchivo) {
+          createData.protocolo_vigilancia_archivo = formData.protocoloVigilanciaArchivo
+        }
+        if (formData.programaMuestreoArchivo) {
+          createData.programa_muestreo_archivo = formData.programaMuestreoArchivo
+        }
+
+        await createPlanSanitario(token, record.id, createData)
+        setSnackbar({
+          open: true,
+          message: "Plan sanitario registrado exitosamente",
+          severity: "success",
+        })
+      }
+
+      handleClose()
+      await loadPlanesSanitarios()
+    } catch (error: any) {
+      console.error("❌ Error al guardar plan sanitario:", error)
+      setSnackbar({
+        open: true,
+        message: error?.message || "Error al guardar plan sanitario",
+        severity: "error",
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleCancelar = () => {
@@ -153,7 +313,7 @@ export function PlanSanitarioSection() {
   const handleEditar = (index: number) => {
     setModoEdicion(true)
     setIndiceEdicion(index)
-    setFormData({ ...registros[index] })
+    loadPlanToForm(registros[index])
     setOpen(true)
   }
 
@@ -172,13 +332,48 @@ export function PlanSanitarioSection() {
     setOpenDeleteDialog(true)
   }
 
-  const handleConfirmDelete = () => {
-    if (registroToDelete !== null) {
-      setRegistros((prev) => prev.filter((_, index) => index !== registroToDelete))
-      console.log("Registro eliminado:", registros[registroToDelete])
+  const handleConfirmDelete = async () => {
+    if (registroToDelete === null || !record?.id || !token) {
+      setOpenDeleteDialog(false)
+      setRegistroToDelete(null)
+      return
     }
-    setOpenDeleteDialog(false)
-    setRegistroToDelete(null)
+
+    const planToDelete = registros[registroToDelete]
+    const planId = (planToDelete as any).id
+
+    if (!planId) {
+      setSnackbar({
+        open: true,
+        message: "No se puede eliminar: ID no disponible",
+        severity: "error",
+      })
+      setOpenDeleteDialog(false)
+      setRegistroToDelete(null)
+      return
+    }
+
+    setLoading(true)
+    try {
+      await deletePlanSanitario(token, planId, record.id)
+      setSnackbar({
+        open: true,
+        message: "Plan sanitario eliminado exitosamente",
+        severity: "success",
+      })
+      await loadPlanesSanitarios()
+    } catch (error: any) {
+      console.error("❌ Error al eliminar plan sanitario:", error)
+      setSnackbar({
+        open: true,
+        message: error?.message || "Error al eliminar plan sanitario",
+        severity: "error",
+      })
+    } finally {
+      setLoading(false)
+      setOpenDeleteDialog(false)
+      setRegistroToDelete(null)
+    }
   }
 
   const handleCancelDelete = () => {
@@ -655,6 +850,42 @@ export function PlanSanitarioSection() {
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* Snackbar para notificaciones */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+
+        {/* Loading overlay */}
+        {loading && (
+          <Box
+            sx={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              bgcolor: "rgba(0, 0, 0, 0.5)",
+              zIndex: 9999,
+            }}
+          >
+            <CircularProgress />
+          </Box>
+        )}
       </Container>
     </Box>
   )

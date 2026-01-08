@@ -50,7 +50,7 @@ import MainSection from "../../components/sections/MainSection";
 import useUserStore from "../../_store/user";
 import { fetchFarmsByUserId, parametersGroupsAndSpeciesGrouped, fetchParameters } from "../../data/repository";
 import MainDescriptionFarm from "../../components/sections/MainDescriptionFarm";
-import TrainingCoursesPage from "../../components/sections/TrainingCoursesSection";
+import { TrainingCoursesSection } from "../../components/sections/TrainingCoursesSection";
 import { PersonalRegisterSection } from "../../components/sections/PersonalRegisterSection";
 import LinkedCompaniesManagersPage from "../../components/sections/LinkedCompaniesManagersSection";
 import { DesratizacionSection } from "../../components/sections/DesratizacionSection";
@@ -915,7 +915,9 @@ const Home = () => {
             </Breadcrumbs>
 
             {/* Renderizado condicional del contenido */}
-            {activeSection === "cursos_formacion" && <TrainingCoursesPage />}
+            {activeSection === "cursos_formacion" && <TrainingCoursesSection token={token}
+                userId={userId}
+                farmId={currentFarm?.id}/>}
 
             {activeSection === "main" && <MainSection />}
 

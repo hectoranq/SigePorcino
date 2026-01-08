@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import {
   Box,
   Typography,
@@ -29,8 +29,22 @@ import {
   Chip,
   OutlinedInput,
   SelectChangeEvent,
+  Snackbar,
+  Alert,
+  CircularProgress,
 } from "@mui/material"
 import { Add, Edit, Visibility, Delete } from "@mui/icons-material"
+import {
+  createPlanBioseguridad,
+  updatePlanBioseguridad,
+  deletePlanBioseguridad,
+  getPlanBioseguridadByFarmId,
+  PlanBioseguridad as PlanBioseguridadAPI,
+  CreatePlanBioseguridadData,
+  UpdatePlanBioseguridadData,
+} from "../../action/PlanBioseguridadPocket"
+import useUserStore from "../../_store/user"
+import useFarmFormStore from "../../_store/farm"
 
 interface PlanBioseguridad {
   // Animales y material genético
@@ -105,6 +119,17 @@ const buttonStyles = {
 }
 
 export function PlanBioseguridadSection() {
+  const { token, record } = useUserStore()
+  const { currentFarm } = useFarmFormStore()
+  
+  const [loading, setLoading] = useState(false)
+  const [snackbar, setSnackbar] = useState({ 
+    open: false, 
+    message: "", 
+    severity: "success" as "success" | "error" 
+  })
+  const [currentPlanId, setCurrentPlanId] = useState<string | null>(null)
+
   // Mock data para proveedores (debería venir de otro componente/API)
   const proveedoresDisponibles = [
     "Empresa Genética Porcina S.A.",
@@ -175,6 +200,106 @@ export function PlanBioseguridadSection() {
       medidasCorrectoras: "Protocolo de incidencias documentado",
     },
   ])
+
+  // Cargar planes de bioseguridad al montar el componente o cambiar de granja
+  useEffect(() => {
+    loadPlanesBioseguridad()
+  }, [token, record.id, currentFarm?.id])
+
+  const loadPlanesBioseguridad = async () => {
+    if (!token || !record.id || !currentFarm?.id) {
+      console.log("⚠️ Esperando token, userId o farmId...")
+      return
+    }
+
+    setLoading(true)
+    try {
+      const planes = await getPlanBioseguridadByFarmId(token, record.id, currentFarm.id)
+      if (planes && planes.length > 0) {
+        // Convertir datos de API a formato del componente
+        const planesConverted = planes.map(plan => convertAPItoComponent(plan))
+        setRegistros(planesConverted)
+        console.log("✅ Planes de bioseguridad cargados:", planes.length)
+        
+        // Cargar el primer plan en el formulario si estamos en modo edición
+        if (planesConverted.length > 0) {
+          const planToLoad = planes[0]
+          setCurrentPlanId(planToLoad.id || null)
+        }
+      }
+    } catch (error: any) {
+      console.error("❌ Error al cargar planes de bioseguridad:", error)
+      setSnackbar({
+        open: true,
+        message: error.message || "Error al cargar planes de bioseguridad",
+        severity: "error",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const convertAPItoComponent = (plan: PlanBioseguridadAPI): PlanBioseguridad => {
+    return {
+      proveedoresAcreditados: plan.proveedores_acreditados,
+      inspeccionEntrada: plan.inspeccion_entrada,
+      inspeccionEntradaObs: plan.inspeccion_entrada_obs,
+      cuarentena: plan.cuarentena,
+      cuarentenaObs: plan.cuarentena_obs,
+      consumoElectricidad: plan.consumo_electricidad,
+      entradasCombustible: plan.entradas_combustible,
+      registroConsumoObs: plan.registro_consumo_obs,
+      limpiezaDesinfeccion: plan.limpieza_desinfeccion,
+      limpiezaDesinfeccionProtocolo: plan.limpieza_desinfeccion_protocolo,
+      desinsectacion: plan.desinsectacion,
+      desinsectacionProtocolo: plan.desinsectacion_protocolo,
+      desratizacion: plan.desratizacion,
+      desratizacionProtocolo: plan.desratizacion_protocolo,
+      controlDiarioInstalaciones: plan.control_diario_instalaciones,
+      controlDiarioInstalacionesProtocolo: plan.control_diario_instalaciones_protocolo,
+      muelleCargaDescargaObs: plan.muelle_carga_descarga_obs,
+      protocoloManejoAnimales: plan.protocolo_manejo_animales,
+      protocoloManejoAnimalesObs: plan.protocolo_manejo_animales_obs,
+      utilizacionMaterialGenetico: plan.utilizacion_material_genetico,
+      utilizacionMaterialGeneticoProveedor: plan.utilizacion_material_genetico_proveedor,
+      utilizacionMaterialGeneticoObs: plan.utilizacion_material_genetico_obs,
+      registroEntradas: plan.registro_entradas,
+      registroEntradasObs: plan.registro_entradas_obs,
+      vestuariosSeparacion: plan.vestuarios_separacion,
+      vestuariosSeparacionObs: plan.vestuarios_separacion_obs,
+      ropaCalzadoExclusivo: plan.ropa_calzado_exclusivo,
+      ropaCalzadoProtocolo: plan.ropa_calzado_protocolo,
+      ropaCalzadoPersonal: plan.ropa_calzado_personal,
+      protocoloAccesoPersonas: plan.protocolo_acceso_personas,
+      protocoloAccesoPersonasTexto: plan.protocolo_acceso_personas_texto,
+      indicacionesCarteleria: plan.indicaciones_carteleria,
+      indicacionesCarteleriaObs: plan.indicaciones_carteleria_obs,
+      arcoDesinfeccion: plan.arco_desinfeccion,
+      vadoSanitario: plan.vado_sanitario,
+      mochila: plan.mochila,
+      controlVehiculosProductos: plan.control_vehiculos_productos,
+      controlVehiculosLimpieza: plan.control_vehiculos_limpieza,
+      controlVehiculosObs: plan.control_vehiculos_obs,
+      descargaSacosPienso: plan.descarga_sacos_pienso,
+      descargaSacosProveedores: plan.descarga_sacos_proveedores,
+      descargaGranel: plan.descarga_granel,
+      descargaGranelProveedores: plan.descarga_granel_proveedores,
+      sistemasuministroAlimentos: plan.sistema_suministro_alimentos,
+      descargaSacosDescripcion: plan.descarga_sacos_descripcion,
+      descargaGranelDescripcion: plan.descarga_granel_descripcion,
+      almacenamientoSacosDescripcion: plan.almacenamiento_sacos_descripcion,
+      almacenamientoGranelDescripcion: plan.almacenamiento_granel_descripcion,
+      analiticasAgua: plan.analiticas_agua,
+      limpiezaTuberiasAgua: plan.limpieza_tuberias_agua,
+      controlSuministroAguaObs: plan.control_suministro_agua_obs,
+      mantenimientoAislamiento: plan.mantenimiento_aislamiento,
+      mantenimientoAislamientoObs: plan.mantenimiento_aislamiento_obs,
+      descripcionSistemaManejo: plan.descripcion_sistema_manejo,
+      empresasServiciosAuxiliares: plan.empresas_servicios_auxiliares,
+      protocolosAutocontrol: plan.protocolos_autocontrol,
+      medidasCorrectoras: plan.medidas_correctoras,
+    }
+  }
 
   const [open, setOpen] = useState(false)
   const [modoEdicion, setModoEdicion] = useState(false)
@@ -252,6 +377,7 @@ export function PlanBioseguridadSection() {
     setOpen(false)
     setModoEdicion(false)
     setIndiceEdicion(null)
+    setCurrentPlanId(null)
     setFormData({
       proveedoresAcreditados: [],
       inspeccionEntrada: "",
@@ -328,28 +454,149 @@ export function PlanBioseguridadSection() {
     }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (modoEdicion && indiceEdicion !== null) {
-      setRegistros((prev) => prev.map((reg, index) => (index === indiceEdicion ? formData : reg)))
-      console.log("Plan de bioseguridad actualizado:", formData)
-    } else {
-      setRegistros((prev) => [...prev, formData])
-      console.log("Plan de bioseguridad registrado:", formData)
+    if (!token || !record.id) {
+      setSnackbar({
+        open: true,
+        message: "Debe iniciar sesión para gestionar planes de bioseguridad",
+        severity: "error",
+      })
+      return
     }
 
-    handleClose()
+    if (!currentFarm?.id) {
+      setSnackbar({
+        open: true,
+        message: "Debe seleccionar una granja",
+        severity: "error",
+      })
+      return
+    }
+
+    // Convertir datos del componente a formato API
+    const dataToSave: CreatePlanBioseguridadData = {
+      proveedores_acreditados: formData.proveedoresAcreditados,
+      inspeccion_entrada: formData.inspeccionEntrada,
+      inspeccion_entrada_obs: formData.inspeccionEntradaObs,
+      cuarentena: formData.cuarentena,
+      cuarentena_obs: formData.cuarentenaObs,
+      consumo_electricidad: formData.consumoElectricidad,
+      entradas_combustible: formData.entradasCombustible,
+      registro_consumo_obs: formData.registroConsumoObs,
+      limpieza_desinfeccion: formData.limpiezaDesinfeccion,
+      limpieza_desinfeccion_protocolo: formData.limpiezaDesinfeccionProtocolo,
+      desinsectacion: formData.desinsectacion,
+      desinsectacion_protocolo: formData.desinsectacionProtocolo,
+      desratizacion: formData.desratizacion,
+      desratizacion_protocolo: formData.desratizacionProtocolo,
+      control_diario_instalaciones: formData.controlDiarioInstalaciones,
+      control_diario_instalaciones_protocolo: formData.controlDiarioInstalacionesProtocolo,
+      muelle_carga_descarga_obs: formData.muelleCargaDescargaObs,
+      protocolo_manejo_animales: formData.protocoloManejoAnimales,
+      protocolo_manejo_animales_obs: formData.protocoloManejoAnimalesObs,
+      utilizacion_material_genetico: formData.utilizacionMaterialGenetico,
+      utilizacion_material_genetico_proveedor: formData.utilizacionMaterialGeneticoProveedor,
+      utilizacion_material_genetico_obs: formData.utilizacionMaterialGeneticoObs,
+      registro_entradas: formData.registroEntradas,
+      registro_entradas_obs: formData.registroEntradasObs,
+      vestuarios_separacion: formData.vestuariosSeparacion,
+      vestuarios_separacion_obs: formData.vestuariosSeparacionObs,
+      ropa_calzado_exclusivo: formData.ropaCalzadoExclusivo,
+      ropa_calzado_protocolo: formData.ropaCalzadoProtocolo,
+      ropa_calzado_personal: formData.ropaCalzadoPersonal,
+      protocolo_acceso_personas: formData.protocoloAccesoPersonas,
+      protocolo_acceso_personas_texto: formData.protocoloAccesoPersonasTexto,
+      indicaciones_carteleria: formData.indicacionesCarteleria,
+      indicaciones_carteleria_obs: formData.indicacionesCarteleriaObs,
+      arco_desinfeccion: formData.arcoDesinfeccion,
+      vado_sanitario: formData.vadoSanitario,
+      mochila: formData.mochila,
+      control_vehiculos_productos: formData.controlVehiculosProductos,
+      control_vehiculos_limpieza: formData.controlVehiculosLimpieza,
+      control_vehiculos_obs: formData.controlVehiculosObs,
+      descarga_sacos_pienso: formData.descargaSacosPienso,
+      descarga_sacos_proveedores: formData.descargaSacosProveedores,
+      descarga_granel: formData.descargaGranel,
+      descarga_granel_proveedores: formData.descargaGranelProveedores,
+      sistema_suministro_alimentos: formData.sistemasuministroAlimentos,
+      descarga_sacos_descripcion: formData.descargaSacosDescripcion,
+      descarga_granel_descripcion: formData.descargaGranelDescripcion,
+      almacenamiento_sacos_descripcion: formData.almacenamientoSacosDescripcion,
+      almacenamiento_granel_descripcion: formData.almacenamientoGranelDescripcion,
+      analiticas_agua: formData.analiticasAgua,
+      limpieza_tuberias_agua: formData.limpiezaTuberiasAgua,
+      control_suministro_agua_obs: formData.controlSuministroAguaObs,
+      mantenimiento_aislamiento: formData.mantenimientoAislamiento,
+      mantenimiento_aislamiento_obs: formData.mantenimientoAislamientoObs,
+      descripcion_sistema_manejo: formData.descripcionSistemaManejo,
+      empresas_servicios_auxiliares: formData.empresasServiciosAuxiliares,
+      protocolos_autocontrol: formData.protocolosAutocontrol,
+      medidas_correctoras: formData.medidasCorrectoras,
+      farm: currentFarm.id,
+    }
+
+    setLoading(true)
+    try {
+      let response
+      if (modoEdicion && currentPlanId) {
+        // Actualizar plan existente
+        response = await updatePlanBioseguridad(token, currentPlanId, record.id, dataToSave)
+        if (response.success) {
+          setSnackbar({
+            open: true,
+            message: "Plan de bioseguridad actualizado exitosamente",
+            severity: "success",
+          })
+          await loadPlanesBioseguridad()
+        }
+      } else {
+        // Crear nuevo plan
+        response = await createPlanBioseguridad(token, record.id, dataToSave)
+        if (response.success) {
+          setSnackbar({
+            open: true,
+            message: "Plan de bioseguridad registrado exitosamente",
+            severity: "success",
+          })
+          await loadPlanesBioseguridad()
+        }
+      }
+      handleClose()
+    } catch (error: any) {
+      console.error("❌ Error al guardar plan de bioseguridad:", error)
+      setSnackbar({
+        open: true,
+        message: error.message || "Error al guardar el plan de bioseguridad",
+        severity: "error",
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleCancelar = () => {
     handleClose()
   }
 
-  const handleEditar = (index: number) => {
+  const handleEditar = async (index: number) => {
     setModoEdicion(true)
     setIndiceEdicion(index)
     setFormData({ ...registros[index] })
+    
+    // Obtener el ID del plan desde la API
+    if (token && record.id && currentFarm?.id) {
+      try {
+        const planes = await getPlanBioseguridadByFarmId(token, record.id, currentFarm.id)
+        if (planes && planes[index]) {
+          setCurrentPlanId(planes[index].id || null)
+        }
+      } catch (error) {
+        console.error("Error al obtener ID del plan:", error)
+      }
+    }
+    
     setOpen(true)
   }
 
@@ -368,13 +615,39 @@ export function PlanBioseguridadSection() {
     setOpenDeleteDialog(true)
   }
 
-  const handleConfirmDelete = () => {
-    if (registroToDelete !== null) {
-      setRegistros((prev) => prev.filter((_, index) => index !== registroToDelete))
-      console.log("Registro eliminado:", registros[registroToDelete])
+  const handleConfirmDelete = async () => {
+    if (registroToDelete === null || !token || !record.id || !currentFarm?.id) {
+      return
     }
-    setOpenDeleteDialog(false)
-    setRegistroToDelete(null)
+
+    setLoading(true)
+    try {
+      const planes = await getPlanBioseguridadByFarmId(token, record.id, currentFarm.id)
+      if (planes && planes[registroToDelete]?.id) {
+        const planId = planes[registroToDelete].id!
+        const response = await deletePlanBioseguridad(token, planId, record.id)
+        
+        if (response.success) {
+          setSnackbar({
+            open: true,
+            message: "Plan de bioseguridad eliminado exitosamente",
+            severity: "success",
+          })
+          await loadPlanesBioseguridad()
+        }
+      }
+    } catch (error: any) {
+      console.error("❌ Error al eliminar plan de bioseguridad:", error)
+      setSnackbar({
+        open: true,
+        message: error.message || "Error al eliminar el plan de bioseguridad",
+        severity: "error",
+      })
+    } finally {
+      setLoading(false)
+      setOpenDeleteDialog(false)
+      setRegistroToDelete(null)
+    }
   }
 
   const handleCancelDelete = () => {
@@ -1097,14 +1370,30 @@ export function PlanBioseguridadSection() {
             </form>
           </DialogContent>
           <DialogActions sx={{ p: 2 }}>
-            <Button onClick={handleCancelar} variant="outlined" sx={buttonStyles.primary}>
+            <Button onClick={handleCancelar} variant="outlined" sx={buttonStyles.primary} disabled={loading}>
               Cancelar
             </Button>
-            <Button onClick={handleSubmit} variant="contained" sx={buttonStyles.primary}>
-              {modoEdicion ? "Actualizar" : "Registrar"}
+            <Button onClick={handleSubmit} variant="contained" sx={buttonStyles.primary} disabled={loading}>
+              {loading ? <CircularProgress size={24} color="inherit" /> : modoEdicion ? "Actualizar" : "Registrar"}
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* Snackbar para notificaciones */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Container>
     </Box>
   )

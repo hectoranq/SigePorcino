@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import {
   Box,
   Typography,
@@ -12,7 +12,19 @@ import {
   Select,
   MenuItem,
   Divider,
+  Snackbar,
+  Alert,
+  CircularProgress,
 } from "@mui/material"
+import {
+  createPlanLDD,
+  CreatePlanLDDData,
+  getPlanLDDByFarmId,
+  PlanLDD,
+  updatePlanLDD
+} from "../../action/PlanLDDPocket"
+import useUserStore from "../../_store/user"
+import useFarmFormStore from "../../_store/farm"
 
 interface PlanLLDFormData {
   productos: {
@@ -46,6 +58,96 @@ interface PlanLLDFormData {
 }
 
 export function PlanLLDSection() {
+  const { token, record } = useUserStore()
+  const { currentFarm } = useFarmFormStore()
+  
+  const [planesLDD, setPlanesLDD] = useState<PlanLDD[]>([])
+  const [currentPlanId, setCurrentPlanId] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [snackbar, setSnackbar] = useState({ 
+    open: false, 
+    message: "", 
+    severity: "success" as "success" | "error" 
+  })
+
+  // Cargar planes LDD al montar el componente o cambiar de granja
+  useEffect(() => {
+    loadPlanesLDD()
+  }, [token, record.id, currentFarm?.id])
+
+  const loadPlanesLDD = async () => {
+    if (!token || !record.id || !currentFarm?.id) {
+      console.log("⚠️ Esperando token, userId o farmId...")
+      return
+    }
+
+    setLoading(true)
+    try {
+      const planes = await getPlanLDDByFarmId(token, record.id, currentFarm.id)
+      if (planes && planes.length > 0) {
+        setPlanesLDD(planes)
+        console.log("✅ Planes LDD cargados:", planes.length)
+        
+        // Cargar el primer plan en el formulario (el más reciente por el sort)
+        const planToLoad = planes[0]
+        loadPlanToForm(planToLoad)
+      }
+    } catch (error: any) {
+      console.error("❌ Error al cargar planes LDD:", error)
+      setSnackbar({
+        open: true,
+        message: error.message || "Error al cargar planes LDD",
+        severity: "error",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadPlanToForm = (plan: PlanLDD) => {
+    setFormData({
+      productos: {
+        despedac: plan.productos.despedac,
+        zotal: plan.productos.zotal,
+        ratibromPellet: plan.productos.ratibromPellet,
+        ratibromCeboFresco: plan.productos.ratibromCeboFresco,
+      },
+      instalaciones: {
+        paredes: plan.instalaciones.paredes,
+        suelos: plan.instalaciones.suelos,
+        comederosSilos: plan.instalaciones.comederosSilos,
+      },
+      aparatos: {
+        maquinasLavado: plan.aparatos.maquinasLavado,
+        pulverizadores: plan.aparatos.pulverizadores,
+        desinfectante: plan.aparatos.desinfectante,
+      },
+      trabajadorSeleccionado: plan.trabajador_seleccionado || "",
+      trabajadorNombre: plan.trabajador_nombre,
+      descripcionLimpieza: plan.descripcion_limpieza,
+      descripcionDesinsectacion: plan.descripcion_desinsectacion,
+      descripcionDesratizacion: plan.descripcion_desratizacion,
+      instalacionesPeriodicidad: plan.instalaciones_periodicidad,
+      utiliajePeriodicidad: plan.utiliaje_periodicidad,
+      trabajadorAnalisisSeleccionado: plan.trabajador_analisis_seleccionado || "",
+      trabajadorAnalisisNombre: plan.trabajador_analisis_nombre,
+      equiposPeriodicidad: plan.equipos_periodicidad,
+      utensiliosPeriodicidad: plan.utensilios_periodicidad,
+      archivoGranja: plan.archivo.archivoGranja,
+    })
+
+    // Cargar los arrays extras
+    setProductosExtra(plan.productos.extras || [])
+    setInstalacionesExtra(plan.instalaciones.extras || [])
+    setAparatosExtra(plan.aparatos.extras || [])
+    setArchivoExtra(plan.archivo.extras || [])
+
+    // Guardar el ID del plan para actualización posterior
+    setCurrentPlanId(plan.id || null)
+
+    console.log("✅ Plan LDD cargado en el formulario:", plan.id)
+  }
+
   const [formData, setFormData] = useState<PlanLLDFormData>({
     productos: {
       despedac: false,
@@ -122,13 +224,112 @@ export function PlanLLDSection() {
     }
   }
 
-  const handleSubmit = () => {
-    console.log("Datos del Plan LLD:", formData)
-    console.log("Productos extra:", productosExtra)
-    console.log("Instalaciones extra:", instalacionesExtra)
-    console.log("Aparatos extra:", aparatosExtra)
-    console.log("Archivo extra:", archivoExtra)
-    alert("✅ Plan LLD registrado exitosamente")
+  const handleSubmit = async () => {
+    if (!token || !record.id) {
+      setSnackbar({
+        open: true,
+        message: "Debe iniciar sesión para crear un plan LDD",
+        severity: "error",
+      })
+      return
+    }
+
+    if (!currentFarm?.id) {
+      setSnackbar({
+        open: true,
+        message: "Debe seleccionar una granja",
+        severity: "error",
+      })
+      return
+    }
+
+    // Validaciones básicas
+    if (!formData.trabajadorNombre.trim()) {
+      setSnackbar({
+        open: true,
+        message: "Debe ingresar el nombre del trabajador",
+        severity: "error",
+      })
+      return
+    }
+
+    if (!formData.trabajadorAnalisisNombre.trim()) {
+      setSnackbar({
+        open: true,
+        message: "Debe ingresar el nombre del trabajador de análisis",
+        severity: "error",
+      })
+      return
+    }
+
+    const data: CreatePlanLDDData = {
+      productos: {
+        ...formData.productos,
+        extras: productosExtra,
+      },
+      instalaciones: {
+        ...formData.instalaciones,
+        extras: instalacionesExtra,
+      },
+      aparatos: {
+        ...formData.aparatos,
+        extras: aparatosExtra,
+      },
+      trabajador_seleccionado: formData.trabajadorSeleccionado || undefined,
+      trabajador_nombre: formData.trabajadorNombre,
+      descripcion_limpieza: formData.descripcionLimpieza,
+      descripcion_desinsectacion: formData.descripcionDesinsectacion,
+      descripcion_desratizacion: formData.descripcionDesratizacion,
+      instalaciones_periodicidad: formData.instalacionesPeriodicidad,
+      utiliaje_periodicidad: formData.utiliajePeriodicidad,
+      trabajador_analisis_seleccionado: formData.trabajadorAnalisisSeleccionado || undefined,
+      trabajador_analisis_nombre: formData.trabajadorAnalisisNombre,
+      equipos_periodicidad: formData.equiposPeriodicidad,
+      utensilios_periodicidad: formData.utensiliosPeriodicidad,
+      archivo: {
+        archivoGranja: formData.archivoGranja,
+        extras: archivoExtra,
+      },
+      farm: currentFarm.id,
+    }
+
+    setLoading(true)
+    try {
+      let response
+      if (currentPlanId) {
+        // Actualizar plan existente
+        response = await updatePlanLDD(token, currentPlanId, record.id, data)
+        if (response.success) {
+          setSnackbar({
+            open: true,
+            message: "Plan LDD actualizado exitosamente",
+            severity: "success",
+          })
+          await loadPlanesLDD() // Recargar lista
+        }
+      } else {
+        // Crear nuevo plan
+        response = await createPlanLDD(token, record.id, data)
+        if (response.success) {
+          setSnackbar({
+            open: true,
+            message: "Plan LDD registrado exitosamente",
+            severity: "success",
+          })
+          handleCancel() // Limpiar formulario
+          await loadPlanesLDD() // Recargar lista
+        }
+      }
+    } catch (error: any) {
+      console.error("❌ Error al guardar plan LDD:", error)
+      setSnackbar({
+        open: true,
+        message: error.message || "Error al guardar el plan LDD",
+        severity: "error",
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleCancel = () => {
@@ -167,6 +368,7 @@ export function PlanLLDSection() {
     setInstalacionesExtra([])
     setAparatosExtra([])
     setArchivoExtra([])
+    setCurrentPlanId(null)
   }
 
   return (
@@ -588,6 +790,7 @@ export function PlanLLDSection() {
                 },
               }}
               onClick={handleCancel}
+              disabled={loading}
             >
               Cancelar
             </Button>
@@ -605,11 +808,28 @@ export function PlanLLDSection() {
                 },
               }}
               onClick={handleSubmit}
+              disabled={loading}
             >
-              Registrar
+              {loading ? <CircularProgress size={24} color="inherit" /> : "Registrar"}
             </Button>
           </Box>
         </Paper>
+
+        {/* Snackbar para notificaciones */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Container>
     </Box>
   )

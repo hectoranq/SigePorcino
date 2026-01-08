@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import {
   Box,
   Typography,
@@ -24,10 +24,23 @@ import {
   RadioGroup,
   Divider,
   IconButton,
+  CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material"
 import { Add, Edit, Visibility, Delete, Close } from "@mui/icons-material"
+import useUserStore from "../../_store/user"
+import useFarmFormStore from "../../_store/farm"
+import {
+  createPlanGestionAmbiental,
+  updatePlanGestionAmbiental,
+  deletePlanGestionAmbiental,
+  getPlanGestionAmbientalByFarmId,
+  PlanGestionAmbiental as APIPlanGestionAmbiental,
+} from "../../action/PlanGestionAmbientalPocket"
 
 interface PlanGestionAmbiental {
+  id?: string
   // Equipamiento disponible
   caudalimetro: boolean
   higrometro: boolean
@@ -84,47 +97,18 @@ const buttonStyles = {
 }
 
 export function PlanGestionAmbientalSection() {
-  const [registros, setRegistros] = useState<PlanGestionAmbiental[]>([
-    {
-      caudalimetro: true,
-      higrometro: true,
-      luximetro: false,
-      equipamientoAdicional: ["Termómetro digital"],
-      consumoAguaRegistro: "si",
-      consumoEnergeticoRegistro: "si",
-      lineaElectrica: true,
-      generador: false,
-      energiaSolar: true,
-      sistemaEnergeticoAdicional: [],
-      ventilacionForzada: true,
-      ventilacionNatural: false,
-      calefaccionSueloRadiante: true,
-      controlTermicoAdicional: [],
-      bebederosCazoleta: true,
-      revisionDiariaFugas: true,
-      aprovisionamientoAguaLluvia: false,
-      equiposAltaPresion: true,
-      sonometro: true,
-      extractores: true,
-      ventiladores: true,
-      equipamientoRuidoAdicional: [],
-      sistemaMedicionGases: "si",
-      especificarGases: "CO2, NH3",
-      ruidos: true,
-      particulasPolvo: true,
-      olores: true,
-      medidasAdicionales: [],
-      sistemaRecogidaEstiercol: "Fosas de recogida bajo slat",
-      produccionAnualEstimada: "2500 m³",
-      frecuenciaVaciado: "Cada 6 meses",
-      balsaAlmacenamiento: "Balsa impermeabilizada de 3000 m³",
-      superficieAgricola: "50 hectáreas identificadas",
-      operadoresAutorizados: "Agro Services S.L.",
-      instalacionesTratamiento: "Planta de compostaje autorizada",
-      fichaSeguimientoPurin: true,
-      gestionEstiercolAdicional: [],
-    },
-  ])
+  const { token, record } = useUserStore()
+  const { currentFarm } = useFarmFormStore()
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [currentPlanId, setCurrentPlanId] = useState<string | null>(null)
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean
+    message: string
+    severity: "success" | "error" | "info" | "warning"
+  }>({ open: false, message: "", severity: "info" })
+
+  const [registros, setRegistros] = useState<PlanGestionAmbiental[]>([])
 
   const [open, setOpen] = useState(false)
   const [formData, setFormData] = useState<PlanGestionAmbiental>({
@@ -186,12 +170,133 @@ export function PlanGestionAmbientalSection() {
   const [nuevaGestionEstiercol, setNuevaGestionEstiercol] = useState("")
   const [mostrarInputGestionEstiercol, setMostrarInputGestionEstiercol] = useState(false)
 
+  // Función para convertir de API a formato local
+  const convertAPItoLocal = (apiData: APIPlanGestionAmbiental): PlanGestionAmbiental => {
+    return {
+      id: apiData.id,
+      caudalimetro: apiData.caudalimetro,
+      higrometro: apiData.higrometro,
+      luximetro: apiData.luximetro,
+      equipamientoAdicional: apiData.equipamiento_adicional || [],
+      consumoAguaRegistro: apiData.consumo_agua_registro,
+      consumoEnergeticoRegistro: apiData.consumo_energetico_registro,
+      lineaElectrica: apiData.linea_electrica,
+      generador: apiData.generador,
+      energiaSolar: apiData.energia_solar,
+      sistemaEnergeticoAdicional: apiData.sistema_energetico_adicional || [],
+      ventilacionForzada: apiData.ventilacion_forzada,
+      ventilacionNatural: apiData.ventilacion_natural,
+      calefaccionSueloRadiante: apiData.calefaccion_suelo_radiante,
+      controlTermicoAdicional: apiData.control_termico_adicional || [],
+      bebederosCazoleta: apiData.bebederos_cazoleta,
+      revisionDiariaFugas: apiData.revision_diaria_fugas,
+      aprovisionamientoAguaLluvia: apiData.aprovisionamiento_agua_lluvia,
+      equiposAltaPresion: apiData.equipos_alta_presion,
+      sonometro: apiData.sonometro,
+      extractores: apiData.extractores,
+      ventiladores: apiData.ventiladores,
+      equipamientoRuidoAdicional: apiData.equipamiento_ruido_adicional || [],
+      sistemaMedicionGases: apiData.sistema_medicion_gases,
+      especificarGases: apiData.especificar_gases,
+      ruidos: apiData.ruidos,
+      particulasPolvo: apiData.particulas_polvo,
+      olores: apiData.olores,
+      medidasAdicionales: apiData.medidas_adicionales || [],
+      sistemaRecogidaEstiercol: apiData.sistema_recogida_estiercol,
+      produccionAnualEstimada: apiData.produccion_anual_estimada,
+      frecuenciaVaciado: apiData.frecuencia_vaciado,
+      balsaAlmacenamiento: apiData.balsa_almacenamiento,
+      superficieAgricola: apiData.superficie_agricola,
+      operadoresAutorizados: apiData.operadores_autorizados,
+      instalacionesTratamiento: apiData.instalaciones_tratamiento,
+      fichaSeguimientoPurin: apiData.ficha_seguimiento_purin,
+      gestionEstiercolAdicional: apiData.gestion_estiercol_adicional || [],
+    }
+  }
+
+  // Función para convertir de formato local a API
+  const convertLocalToAPI = (localData: PlanGestionAmbiental) => {
+    return {
+      farm: currentFarm!.id,
+      user: record!.id,
+      caudalimetro: localData.caudalimetro,
+      higrometro: localData.higrometro,
+      luximetro: localData.luximetro,
+      equipamiento_adicional: localData.equipamientoAdicional,
+      consumo_agua_registro: localData.consumoAguaRegistro,
+      consumo_energetico_registro: localData.consumoEnergeticoRegistro,
+      linea_electrica: localData.lineaElectrica,
+      generador: localData.generador,
+      energia_solar: localData.energiaSolar,
+      sistema_energetico_adicional: localData.sistemaEnergeticoAdicional,
+      ventilacion_forzada: localData.ventilacionForzada,
+      ventilacion_natural: localData.ventilacionNatural,
+      calefaccion_suelo_radiante: localData.calefaccionSueloRadiante,
+      control_termico_adicional: localData.controlTermicoAdicional,
+      bebederos_cazoleta: localData.bebederosCazoleta,
+      revision_diaria_fugas: localData.revisionDiariaFugas,
+      aprovisionamiento_agua_lluvia: localData.aprovisionamientoAguaLluvia,
+      equipos_alta_presion: localData.equiposAltaPresion,
+      sonometro: localData.sonometro,
+      extractores: localData.extractores,
+      ventiladores: localData.ventiladores,
+      equipamiento_ruido_adicional: localData.equipamientoRuidoAdicional,
+      sistema_medicion_gases: localData.sistemaMedicionGases,
+      especificar_gases: localData.especificarGases,
+      ruidos: localData.ruidos,
+      particulas_polvo: localData.particulasPolvo,
+      olores: localData.olores,
+      medidas_adicionales: localData.medidasAdicionales,
+      sistema_recogida_estiercol: localData.sistemaRecogidaEstiercol,
+      produccion_anual_estimada: localData.produccionAnualEstimada,
+      frecuencia_vaciado: localData.frecuenciaVaciado,
+      balsa_almacenamiento: localData.balsaAlmacenamiento,
+      superficie_agricola: localData.superficieAgricola,
+      operadores_autorizados: localData.operadoresAutorizados,
+      instalaciones_tratamiento: localData.instalacionesTratamiento,
+      ficha_seguimiento_purin: localData.fichaSeguimientoPurin,
+      gestion_estiercol_adicional: localData.gestionEstiercolAdicional,
+    }
+  }
+
+  // Cargar planes al montar el componente
+  useEffect(() => {
+    const loadPlanes = async () => {
+      if (!currentFarm?.id || !token) return
+
+      setLoading(true)
+      try {
+        const response = await getPlanGestionAmbientalByFarmId(token, currentFarm.id, record.id)
+        const planes = (response.data.items as APIPlanGestionAmbiental[]).map(convertAPItoLocal)
+        setRegistros(planes)
+      } catch (error) {
+        console.error("Error loading planes:", error)
+        setSnackbar({
+          open: true,
+          message: "Error al cargar los planes de gestión ambiental",
+          severity: "error",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadPlanes()
+  }, [currentFarm, token])
+
+  const loadPlanToForm = (plan: PlanGestionAmbiental) => {
+    setFormData(plan)
+    setCurrentPlanId(plan.id || null)
+    setOpen(true)
+  }
+
   const handleAgregarNuevo = () => {
     setOpen(true)
   }
 
   const handleClose = () => {
     setOpen(false)
+    setCurrentPlanId(null)
     setFormData({
       caudalimetro: false,
       higrometro: false,
@@ -361,11 +466,56 @@ export function PlanGestionAmbientalSection() {
     }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setRegistros((prev) => [...prev, formData])
-    handleClose()
-    console.log("Plan de gestión ambiental registrado:", formData)
+
+    if (!currentFarm?.id || !token || !record?.id) {
+      setSnackbar({
+        open: true,
+        message: "Faltan datos necesarios para guardar el plan",
+        severity: "error",
+      })
+      return
+    }
+
+    setSaving(true)
+    try {
+      const dataToSend = convertLocalToAPI(formData)
+
+      if (currentPlanId) {
+        // Actualizar plan existente
+        await updatePlanGestionAmbiental(token, currentPlanId, dataToSend, record.id)
+        setSnackbar({
+          open: true,
+          message: "Plan de gestión ambiental actualizado exitosamente",
+          severity: "success",
+        })
+      } else {
+        // Crear nuevo plan
+        await createPlanGestionAmbiental(token, dataToSend)
+        setSnackbar({
+          open: true,
+          message: "Plan de gestión ambiental creado exitosamente",
+          severity: "success",
+        })
+      }
+
+      // Recargar la lista
+      const response = await getPlanGestionAmbientalByFarmId(token, currentFarm.id, record.id)
+      const planes = (response.data.items as APIPlanGestionAmbiental[]).map(convertAPItoLocal)
+      setRegistros(planes)
+
+      handleClose()
+    } catch (error) {
+      console.error("Error al guardar el plan:", error)
+      setSnackbar({
+        open: true,
+        message: "Error al guardar el plan de gestión ambiental",
+        severity: "error",
+      })
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleCancelar = () => {
@@ -373,7 +523,7 @@ export function PlanGestionAmbientalSection() {
   }
 
   const handleEditar = (index: number) => {
-    console.log("Editar registro:", registros[index])
+    loadPlanToForm(registros[index])
   }
 
   const handleVerMas = (index: number) => {
@@ -391,10 +541,38 @@ export function PlanGestionAmbientalSection() {
     setOpenDeleteDialog(true)
   }
 
-  const handleConfirmDelete = () => {
-    if (registroToDelete !== null) {
-      setRegistros((prev) => prev.filter((_, index) => index !== registroToDelete))
-      console.log("Registro eliminado:", registros[registroToDelete])
+  const handleConfirmDelete = async () => {
+    if (registroToDelete !== null && token && currentFarm?.id) {
+      try {
+        const registroId = registros[registroToDelete]?.id
+        if (!registroId) {
+          setSnackbar({
+            open: true,
+            message: "No se pudo encontrar el ID del registro",
+            severity: "error",
+          })
+          return
+        }
+
+        await deletePlanGestionAmbiental(token, registroId, record.id)
+        setSnackbar({
+          open: true,
+          message: "Plan de gestión ambiental eliminado exitosamente",
+          severity: "success",
+        })
+
+        // Recargar la lista
+        const response = await getPlanGestionAmbientalByFarmId(token, currentFarm.id, record.id)
+        const planes = (response.data.items as APIPlanGestionAmbiental[]).map(convertAPItoLocal)
+        setRegistros(planes)
+      } catch (error) {
+        console.error("Error al eliminar el plan:", error)
+        setSnackbar({
+          open: true,
+          message: "Error al eliminar el plan de gestión ambiental",
+          severity: "error",
+        })
+      }
     }
     setOpenDeleteDialog(false)
     setRegistroToDelete(null)
@@ -457,19 +635,24 @@ export function PlanGestionAmbientalSection() {
           </Box>
 
           {/* Table */}
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow sx={{ bgcolor: "#f8f9fa" }}>
-                  <TableCell sx={{ fontWeight: 600, color: "#666", fontSize: "0.875rem", py: 2 }}>
-                    Medidas para la optimización del uso de agua y energía
-                  </TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 600, color: "#666", fontSize: "0.875rem", py: 2 }}>
-                    Acciones
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
+          {loading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow sx={{ bgcolor: "#f8f9fa" }}>
+                    <TableCell sx={{ fontWeight: 600, color: "#666", fontSize: "0.875rem", py: 2 }}>
+                      Medidas para la optimización del uso de agua y energía
+                    </TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 600, color: "#666", fontSize: "0.875rem", py: 2 }}>
+                      Acciones
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
                 {registros.map((registro, index) => (
                   <TableRow
                     key={index}
@@ -531,6 +714,7 @@ export function PlanGestionAmbientalSection() {
               </TableBody>
             </Table>
           </TableContainer>
+          )}
         </Paper>
 
         {/* Dialog de confirmación de eliminación */}
@@ -814,7 +998,7 @@ export function PlanGestionAmbientalSection() {
         {/* Dialog/Popup de registro */}
         <Dialog open={open} onClose={handleClose} maxWidth="lg" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
           <DialogTitle sx={{ bgcolor: "#00bcd4", color: "white", fontWeight: 600 }}>
-            Agregar Plan de Gestión Ambiental
+            {currentPlanId ? "Editar Plan de Gestión Ambiental" : "Agregar Plan de Gestión Ambiental"}
           </DialogTitle>
           <DialogContent sx={{ mt: 2 }}>
             <form onSubmit={handleSubmit}>
@@ -1547,14 +1731,36 @@ export function PlanGestionAmbientalSection() {
             </form>
           </DialogContent>
           <DialogActions sx={{ p: 2 }}>
-            <Button onClick={handleCancelar} variant="outlined" sx={buttonStyles.primary}>
+            <Button onClick={handleCancelar} variant="outlined" sx={buttonStyles.primary} disabled={saving}>
               Cancelar
             </Button>
-            <Button onClick={handleSubmit} variant="contained" sx={buttonStyles.primary}>
-              Registrar
+            <Button
+              onClick={handleSubmit}
+              variant="contained"
+              sx={buttonStyles.primary}
+              disabled={saving}
+              startIcon={saving ? <CircularProgress size={20} /> : undefined}
+            >
+              {saving ? "Guardando..." : currentPlanId ? "Actualizar" : "Registrar"}
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* Snackbar para notificaciones */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Container>
     </Box>
   )

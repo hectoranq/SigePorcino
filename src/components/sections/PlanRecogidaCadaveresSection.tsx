@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import {
   Box,
   Typography,
@@ -21,16 +21,25 @@ import {
   Select,
   MenuItem,
   Divider,
+  CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material"
 import { Add, KeyboardArrowDown, Delete } from "@mui/icons-material"
+import { listStaff, type Staff } from "../../action/PersonalRegisterPocket"
+import useUserStore from "../../_store/user"
+import useFarmFormStore from "../../_store/farm"
+import {
+  createPlanRecogidaCadaveres,
+  updatePlanRecogidaCadaveres,
+  deletePlanRecogidaCadaveres,
+  getPlanRecogidaCadaveresByFarmId,
+  type PlanRecogidaCadaveres as PlanRecogidaCadaveresAPI,
+} from "../../action/PlanRecogidaCadaveresPocket"
 
-const GESTORES_AUTORIZADOS = [
-  { id: "1", name: "Gestor autorizado 1" },
-  { id: "2", name: "Gestor autorizado 2" },
-  { id: "3", name: "Gestor autorizado 3" },
-]
 
 interface PlanRecogidaCadaveres {
+  id?: string
   sistemaRecogidaCadaveres: string
   gestorAutorizadoCadaveres: string
   ubicacionContenedoresCadaveres: string
@@ -40,16 +49,22 @@ interface PlanRecogidaCadaveres {
 }
 
 export function PlanRecogidaCadaveresSection() {
-  const [registros, setRegistros] = useState<PlanRecogidaCadaveres[]>([
-    {
-      sistemaRecogidaCadaveres: "Contenedores refrigerados con recogida semanal",
-      gestorAutorizadoCadaveres: "Gestor autorizado 1",
-      ubicacionContenedoresCadaveres: "Zona norte de la granja, junto al almacén",
-      sistemaRecogidaSandach: "Contenedores específicos SANDACH categoría 2",
-      gestorAutorizadoSandach: "Gestor autorizado 2",
-      ubicacionContenedoresSandach: "Área de almacenamiento sanitario, zona este",
-    },
-  ])
+  const { token, record } = useUserStore()
+  const { currentFarm } = useFarmFormStore()
+
+  const [staffList, setStaffList] = useState<Staff[]>([])
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [currentPlanId, setCurrentPlanId] = useState<string | null>(null)
+
+  // Snackbar states
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean
+    message: string
+    severity: "success" | "error" | "info" | "warning"
+  }>({ open: false, message: "", severity: "success" })
+
+  const [registros, setRegistros] = useState<PlanRecogidaCadaveres[]>([])
 
   const [open, setOpen] = useState(false)
   const [formData, setFormData] = useState<PlanRecogidaCadaveres>({
@@ -66,12 +81,114 @@ export function PlanRecogidaCadaveresSection() {
   const [openViewDialog, setOpenViewDialog] = useState(false)
   const [selectedRegistro, setSelectedRegistro] = useState<PlanRecogidaCadaveres | null>(null)
 
+  // Cargar lista de personal y planes al montar el componente
+  useEffect(() => {
+    loadStaffList()
+    loadPlanes()
+  }, [currentFarm, token, record])
+
+  const loadStaffList = async () => {
+    if (!currentFarm || !record?.id || !token) {
+      console.log("⚠️ No hay farmId o usuario disponible")
+      return
+    }
+
+    setLoading(true)
+    try {
+      const result = await listStaff(token, record.id, currentFarm.id)
+      if (result.success && result.data) {
+        setStaffList(result.data.items as Staff[])
+        console.log("✅ Personal cargado:", result.data.items.length)
+      }
+    } catch (error) {
+      console.error("❌ Error al cargar personal:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadPlanes = async () => {
+    if (!currentFarm || !record?.id || !token) {
+      console.log("⚠️ No hay farmId o usuario disponible")
+      return
+    }
+
+    setLoading(true)
+    try {
+      const result = await getPlanRecogidaCadaveresByFarmId(token, record.id, currentFarm.id)
+      if (result && result.length > 0) {
+        const convertedPlans = result.map(convertAPItoLocal)
+        setRegistros(convertedPlans)
+        console.log("✅ Planes de recogida de cadáveres cargados:", result.length)
+      } else {
+        setRegistros([])
+        console.log("ℹ️ No hay planes de recogida de cadáveres para esta granja")
+      }
+    } catch (error) {
+      console.error("❌ Error al cargar planes de recogida de cadáveres:", error)
+      setSnackbar({
+        open: true,
+        message: "Error al cargar los planes de recogida de cadáveres",
+        severity: "error",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Convertir de formato API (snake_case) a formato local (camelCase)
+  const convertAPItoLocal = (apiData: PlanRecogidaCadaveresAPI): PlanRecogidaCadaveres => {
+    return {
+      id: apiData.id,
+      sistemaRecogidaCadaveres: apiData.sistema_recogida_cadaveres || "",
+      gestorAutorizadoCadaveres: apiData.gestor_autorizado_cadaveres || "",
+      ubicacionContenedoresCadaveres: apiData.ubicacion_contenedores_cadaveres || "",
+      sistemaRecogidaSandach: apiData.sistema_recogida_sandach || "",
+      gestorAutorizadoSandach: apiData.gestor_autorizado_sandach || "",
+      ubicacionContenedoresSandach: apiData.ubicacion_contenedores_sandach || "",
+    }
+  }
+
+  // Convertir de formato local (camelCase) a formato API (snake_case)
+  const convertLocalToAPI = (localData: PlanRecogidaCadaveres) => {
+    return {
+      sistema_recogida_cadaveres: localData.sistemaRecogidaCadaveres,
+      gestor_autorizado_cadaveres: localData.gestorAutorizadoCadaveres,
+      ubicacion_contenedores_cadaveres: localData.ubicacionContenedoresCadaveres,
+      sistema_recogida_sandach: localData.sistemaRecogidaSandach,
+      gestor_autorizado_sandach: localData.gestorAutorizadoSandach,
+      ubicacion_contenedores_sandach: localData.ubicacionContenedoresSandach,
+      farm: currentFarm!.id!,
+    }
+  }
+
+  const loadPlanToForm = (plan: PlanRecogidaCadaveres) => {
+    setFormData({
+      sistemaRecogidaCadaveres: plan.sistemaRecogidaCadaveres,
+      gestorAutorizadoCadaveres: plan.gestorAutorizadoCadaveres,
+      ubicacionContenedoresCadaveres: plan.ubicacionContenedoresCadaveres,
+      sistemaRecogidaSandach: plan.sistemaRecogidaSandach,
+      gestorAutorizadoSandach: plan.gestorAutorizadoSandach,
+      ubicacionContenedoresSandach: plan.ubicacionContenedoresSandach,
+    })
+    if (plan.id) {
+      setCurrentPlanId(plan.id)
+    }
+    setOpen(true)
+  }
+
+  const getStaffNameById = (id: string) => {
+    const staff = staffList.find((s) => s.id === id)
+    return staff ? `${staff.nombre} ${staff.apellidos}` : id
+  }
+
   const handleAgregarNuevo = () => {
     setOpen(true)
   }
 
   const handleClose = () => {
     setOpen(false)
+    setCurrentPlanId(null)
     setFormData({
       sistemaRecogidaCadaveres: "",
       gestorAutorizadoCadaveres: "",
@@ -89,16 +206,53 @@ export function PlanRecogidaCadaveresSection() {
     }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const nuevoRegistro: PlanRecogidaCadaveres = {
-      ...formData,
+    if (!token || !record?.id || !currentFarm?.id) {
+      setSnackbar({
+        open: true,
+        message: "Error: No hay información de usuario o granja",
+        severity: "error",
+      })
+      return
     }
 
-    setRegistros((prev) => [...prev, nuevoRegistro])
-    handleClose()
-    console.log("Plan de recogida de cadáveres registrado:", nuevoRegistro)
+    setSaving(true)
+    try {
+      const apiData = convertLocalToAPI(formData)
+
+      if (currentPlanId) {
+        // Actualizar plan existente
+        await updatePlanRecogidaCadaveres(token, currentPlanId, record.id, apiData)
+        setSnackbar({
+          open: true,
+          message: "Plan de recogida de cadáveres actualizado exitosamente",
+          severity: "success",
+        })
+      } else {
+        // Crear nuevo plan
+        await createPlanRecogidaCadaveres(token, record.id, apiData)
+        setSnackbar({
+          open: true,
+          message: "Plan de recogida de cadáveres creado exitosamente",
+          severity: "success",
+        })
+      }
+
+      // Recargar la lista de planes
+      await loadPlanes()
+      handleClose()
+    } catch (error: any) {
+      console.error("❌ Error al guardar plan de recogida de cadáveres:", error)
+      setSnackbar({
+        open: true,
+        message: error?.message || "Error al guardar el plan de recogida de cadáveres",
+        severity: "error",
+      })
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleCancelar = () => {
@@ -106,7 +260,9 @@ export function PlanRecogidaCadaveresSection() {
   }
 
   const handleEditar = (index: number) => {
-    console.log("Editar registro:", registros[index])
+    const plan = registros[index]
+    loadPlanToForm(plan)
+    console.log("Editar plan:", plan)
   }
 
   const handleVerMas = (index: number) => {
@@ -124,13 +280,42 @@ export function PlanRecogidaCadaveresSection() {
     setOpenDeleteDialog(true)
   }
 
-  const handleConfirmDelete = () => {
-    if (registroToDelete !== null) {
-      setRegistros((prev) => prev.filter((_, index) => index !== registroToDelete))
-      console.log("Registro eliminado:", registros[registroToDelete])
+  const handleConfirmDelete = async () => {
+    if (registroToDelete === null || !token || !record?.id) {
+      return
     }
-    setOpenDeleteDialog(false)
-    setRegistroToDelete(null)
+
+    const plan = registros[registroToDelete]
+    if (!plan.id) {
+      setSnackbar({
+        open: true,
+        message: "Error: No se puede eliminar un plan sin ID",
+        severity: "error",
+      })
+      return
+    }
+
+    setSaving(true)
+    try {
+      await deletePlanRecogidaCadaveres(token, plan.id, record.id)
+      setSnackbar({
+        open: true,
+        message: "Plan de recogida de cadáveres eliminado exitosamente",
+        severity: "success",
+      })
+      await loadPlanes()
+    } catch (error: any) {
+      console.error("❌ Error al eliminar plan de recogida de cadáveres:", error)
+      setSnackbar({
+        open: true,
+        message: error?.message || "Error al eliminar el plan de recogida de cadáveres",
+        severity: "error",
+      })
+    } finally {
+      setSaving(false)
+      setOpenDeleteDialog(false)
+      setRegistroToDelete(null)
+    }
   }
 
   const handleCancelDelete = () => {
@@ -188,6 +373,11 @@ export function PlanRecogidaCadaveresSection() {
 
           {/* Table */}
           <TableContainer>
+            {loading ? (
+              <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+                <CircularProgress />
+              </Box>
+            ) : (
             <Table>
               <TableHead sx={{ bgcolor: "#f5f5f5" }}>
                 <TableRow>
@@ -235,13 +425,13 @@ export function PlanRecogidaCadaveresSection() {
                       {registro.sistemaRecogidaCadaveres.substring(0, 40)}...
                     </TableCell>
                     <TableCell sx={{ color: "text.primary" }}>
-                      {registro.gestorAutorizadoCadaveres}
+                      {getStaffNameById(registro.gestorAutorizadoCadaveres)}
                     </TableCell>
                     <TableCell sx={{ color: "text.primary" }}>
                       {registro.sistemaRecogidaSandach.substring(0, 40)}...
                     </TableCell>
                     <TableCell sx={{ color: "text.primary" }}>
-                      {registro.gestorAutorizadoSandach}
+                      {getStaffNameById(registro.gestorAutorizadoSandach)}
                     </TableCell>
                     <TableCell>
                       <Box sx={{ display: "flex", gap: 1 }}>
@@ -298,6 +488,7 @@ export function PlanRecogidaCadaveresSection() {
                 ))}
               </TableBody>
             </Table>
+            )}
           </TableContainer>
         </Paper>
 
@@ -349,7 +540,7 @@ export function PlanRecogidaCadaveresSection() {
                     Gestor Autorizado
                   </Typography>
                   <Typography variant="body1" sx={{ mb: 2 }}>
-                    {selectedRegistro.gestorAutorizadoCadaveres}
+                    {getStaffNameById(selectedRegistro.gestorAutorizadoCadaveres)}
                   </Typography>
                 </Grid>
                 <Grid item xs={12} md={6}>
@@ -382,7 +573,7 @@ export function PlanRecogidaCadaveresSection() {
                     Gestor Autorizado SANDACH
                   </Typography>
                   <Typography variant="body1" sx={{ mb: 2 }}>
-                    {selectedRegistro.gestorAutorizadoSandach}
+                    {getStaffNameById(selectedRegistro.gestorAutorizadoSandach)}
                   </Typography>
                 </Grid>
                 <Grid item xs={12} md={6}>
@@ -406,7 +597,7 @@ export function PlanRecogidaCadaveresSection() {
         {/* Dialog/Popup de registro */}
         <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
           <DialogTitle sx={{ bgcolor: "#00bcd4", color: "white" }}>
-            Agregar Plan de Recogida de Cadáveres
+            {currentPlanId ? "Editar" : "Agregar"} Plan de Recogida de Cadáveres
           </DialogTitle>
           <DialogContent sx={{ mt: 2 }}>
             <form onSubmit={handleSubmit}>
@@ -446,11 +637,21 @@ export function PlanRecogidaCadaveresSection() {
                     <MenuItem value="">
                       <em>Seleccionar gestor autorizado</em>
                     </MenuItem>
-                    {GESTORES_AUTORIZADOS.map((gestor) => (
-                      <MenuItem key={gestor.id} value={gestor.name}>
-                        {gestor.name}
+                    {loading ? (
+                      <MenuItem disabled>
+                        <CircularProgress size={20} />
                       </MenuItem>
-                    ))}
+                    ) : staffList.length > 0 ? (
+                      staffList.map((staff) => (
+                        <MenuItem key={staff.id} value={staff.id}>
+                          {staff.nombre} {staff.apellidos}
+                        </MenuItem>
+                      ))
+                    ) : (
+                      <MenuItem disabled>
+                        <em>No hay personal disponible</em>
+                      </MenuItem>
+                    )}
                   </Select>
                 </Grid>
 
@@ -504,11 +705,21 @@ export function PlanRecogidaCadaveresSection() {
                     <MenuItem value="">
                       <em>Seleccionar gestor autorizado</em>
                     </MenuItem>
-                    {GESTORES_AUTORIZADOS.map((gestor) => (
-                      <MenuItem key={gestor.id} value={gestor.name}>
-                        {gestor.name}
+                    {loading ? (
+                      <MenuItem disabled>
+                        <CircularProgress size={20} />
                       </MenuItem>
-                    ))}
+                    ) : staffList.length > 0 ? (
+                      staffList.map((staff) => (
+                        <MenuItem key={staff.id} value={staff.id}>
+                          {staff.nombre} {staff.apellidos}
+                        </MenuItem>
+                      ))
+                    ) : (
+                      <MenuItem disabled>
+                        <em>No hay personal disponible</em>
+                      </MenuItem>
+                    )}
                   </Select>
                 </Grid>
 
@@ -526,14 +737,30 @@ export function PlanRecogidaCadaveresSection() {
             </form>
           </DialogContent>
           <DialogActions sx={{ p: 2 }}>
-            <Button onClick={handleCancelar} variant="outlined" color="inherit">
+            <Button onClick={handleCancelar} variant="outlined" color="inherit" disabled={saving}>
               Cancelar
             </Button>
-            <Button onClick={handleSubmit} variant="contained" color="primary">
-              Registrar
+            <Button onClick={handleSubmit} variant="contained" color="primary" disabled={saving}>
+              {saving ? <CircularProgress size={24} /> : (currentPlanId ? "Actualizar" : "Registrar")}
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* Snackbar para notificaciones */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Container>
     </Box>
   )

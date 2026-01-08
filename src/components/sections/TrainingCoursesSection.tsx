@@ -10,7 +10,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TableSortLabel, // <- Agregar esta línea
+  TableSortLabel,
   Paper,
   Dialog,
   DialogContent,
@@ -18,9 +18,27 @@ import {
   Grid,
   Container,
   styled,
+  CircularProgress,
+  Alert,
+  IconButton,
 } from "@mui/material"
-import { Add } from "@mui/icons-material"
-import { useState } from "react"
+import { Add, Delete, Edit, Visibility } from "@mui/icons-material"
+import { useState, useEffect } from "react"
+import {
+  listTrainingCourses,
+  createTrainingCourse,
+  updateTrainingCourse,
+  deleteTrainingCourse,
+  getTrainingCourseById,
+  type TrainingCourse,
+  type CreateTrainingCourseData,
+} from "../../action/TrainingCoursesPocket"
+
+interface TrainingCoursesSectionProps {
+  token: string;
+  userId: string;
+  farmId?: string;
+}
 
 // Styled components
 const StyledPaper = styled(Paper)(({ theme }) => ({
@@ -57,51 +75,181 @@ const RegisterButton = styled(Button)(() => ({
   },
 }))
 
-export default function TrainingCoursesPage() {
+export function TrainingCoursesSection({ token, userId, farmId }: TrainingCoursesSectionProps) {
   const [open, setOpen] = useState(false)
   const [formData, setFormData] = useState({
     nombreCurso: "",
     horasLectivas: "",
     descripcion: "",
   })
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [viewDialogOpen, setViewDialogOpen] = useState(false)
+  const [selectedCourse, setSelectedCourse] = useState<TrainingCourse | null>(null)
+  
+  // Estados de la API
+  const [courses, setCourses] = useState<TrainingCourse[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
-  // Convertir courses en estado
-  const [courses, setCourses] = useState([
-    {
-      name: "Recojo de residuos",
-      hours: "3 Horas",
-    },
-    {
-      name: "Limpieza de animales",
-      hours: "1.5 Horas",
-    },
-    {
-      name: "Levantamiento de cadáveres",
-      hours: "2 Horas",
-    },
-  ])
+  // Cargar cursos al montar el componente
+  useEffect(() => {
+    loadCourses()
+  }, [farmId])
+
+  const loadCourses = async () => {
+    if (!token || !userId) {
+      setError("No hay sesión activa")
+      setLoading(false)
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      const result = await listTrainingCourses(
+        token,
+        userId,
+        farmId
+      )
+
+      if (result) {
+        setCourses(result.items)
+      } else {
+        setError("Error al cargar los cursos")
+      }
+    } catch (err) {
+      setError("Error al cargar los cursos")
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleOpen = () => setOpen(true)
   const handleClose = () => {
     setOpen(false)
     setFormData({ nombreCurso: "", horasLectivas: "", descripcion: "" })
+    setEditingId(null)
+    setError(null)
   }
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  const handleSubmit = () => {
-    console.log("Datos del curso:", formData)
-    
-    // Agregar el nuevo curso al array
-    const newCourse = {
-      name: formData.nombreCurso,
-      hours: `${formData.horasLectivas} Horas`,
+  const handleSubmit = async () => {
+    if (!token || !userId) {
+      setError("No hay sesión activa")
+      return
     }
-    
-    setCourses(prev => [...prev, newCourse])
-    handleClose()
+
+    if (!formData.nombreCurso || !formData.horasLectivas) {
+      setError("Complete los campos requeridos")
+      return
+    }
+
+    if (!farmId) {
+      setError("Debe seleccionar una granja")
+      return
+    }
+
+    setSubmitting(true)
+    setError(null)
+
+    try {
+      if (editingId) {
+        // Actualizar curso existente
+        const result = await updateTrainingCourse(
+          token,
+          userId,
+          editingId,
+          {
+            nombreCurso: formData.nombreCurso,
+            horasLectivas: parseFloat(formData.horasLectivas),
+            descripcion: formData.descripcion || undefined,
+          }
+        )
+
+        if (result) {
+          await loadCourses()
+          handleClose()
+        } else {
+          setError("Error al actualizar el curso")
+        }
+      } else {
+        // Crear nuevo curso
+        const courseData: CreateTrainingCourseData = {
+          nombreCurso: formData.nombreCurso,
+          horasLectivas: parseFloat(formData.horasLectivas),
+          descripcion: formData.descripcion || undefined,
+          farm: farmId,
+          createdBy: userId,
+        }
+
+        const result = await createTrainingCourse(
+          token,
+          userId,
+          courseData,
+          farmId
+        )
+
+        if (result) {
+          await loadCourses()
+          handleClose()
+        } else {
+          setError("Error al crear el curso")
+        }
+      }
+    } catch (err) {
+      setError("Error al guardar el curso")
+      console.error(err)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleEdit = async (course: TrainingCourse) => {
+    setEditingId(course.id)
+    setFormData({
+      nombreCurso: course.nombreCurso,
+      horasLectivas: course.horasLectivas.toString(),
+      descripcion: course.descripcion || "",
+    })
+    setOpen(true)
+  }
+
+  const handleView = async (course: TrainingCourse) => {
+    if (!token || !userId) return
+
+    try {
+      const result = await getTrainingCourseById(token, userId, course.id)
+      if (result) {
+        setSelectedCourse(result)
+        setViewDialogOpen(true)
+      }
+    } catch (err) {
+      console.error("Error al obtener detalles del curso:", err)
+    }
+  }
+
+  const handleDelete = async (courseId: string) => {
+    if (!token || !userId) return
+
+    if (!confirm("¿Está seguro de eliminar este curso?")) return
+
+    try {
+      const result = await deleteTrainingCourse(token, userId, courseId)
+      if (result) {
+        await loadCourses()
+      } else {
+        setError("Error al eliminar el curso")
+      }
+    } catch (err) {
+      setError("Error al eliminar el curso")
+      console.error(err)
+    }
   }
 
   return (
@@ -129,6 +277,13 @@ export default function TrainingCoursesPage() {
           </Button>
         </Box>
 
+        {/* Error Alert */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
+
         {/* Table */}
         <TableContainer component={Paper} sx={{ boxShadow: 1 }}>
           <Table>
@@ -141,46 +296,70 @@ export default function TrainingCoursesPage() {
                   <TableSortLabel>Horas lectivas</TableSortLabel>
                 </TableCell>
                 <TableCell sx={{ fontWeight: 600, color: "text.primary" }}>
-                  <TableSortLabel>Acciones</TableSortLabel>
+                  Acciones
                 </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {courses.map((course, index) => (
-                <TableRow key={index} sx={{ "&:hover": { bgcolor: "#fafafa" } }}>
-                  <TableCell sx={{ color: "text.primary" }}>{course.name}</TableCell>
-                  <TableCell sx={{ color: "text.secondary" }}>{course.hours}</TableCell>
-                  <TableCell>
-                    <Box sx={{ display: "flex", gap: 1 }}>
-                      <Button
-                        size="small"
-                        variant="contained"
-                        sx={{
-                          bgcolor: "#fdd835",
-                          color: "text.primary",
-                          "&:hover": { bgcolor: "#fbc02d" },
-                          minWidth: "auto",
-                          px: 2,
-                        }}
-                      >
-                        Editar
-                      </Button>
-                      <Button
-                        size="small"
-                        variant="contained"
-                        sx={{
-                          bgcolor: "#42a5f5",
-                          "&:hover": { bgcolor: "#1e88e5" },
-                          minWidth: "auto",
-                          px: 2,
-                        }}
-                      >
-                        Ver más
-                      </Button>
-                    </Box>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={3} sx={{ textAlign: "center", py: 4 }}>
+                    <CircularProgress />
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : courses.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={3} sx={{ textAlign: "center", py: 4 }}>
+                    <Typography color="text.secondary">
+                      No hay cursos registrados
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                courses.map((course) => (
+                  <TableRow key={course.id} sx={{ "&:hover": { bgcolor: "#fafafa" } }}>
+                    <TableCell sx={{ color: "text.primary" }}>{course.nombreCurso}</TableCell>
+                    <TableCell sx={{ color: "text.secondary" }}>{course.horasLectivas} Horas</TableCell>
+                    <TableCell>
+                      <Box sx={{ display: "flex", gap: 1 }}>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleEdit(course)}
+                          sx={{
+                            bgcolor: "#fdd835",
+                            color: "text.primary",
+                            "&:hover": { bgcolor: "#fbc02d" },
+                          }}
+                        >
+                          <Edit fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleView(course)}
+                          sx={{
+                            bgcolor: "#42a5f5",
+                            color: "white",
+                            "&:hover": { bgcolor: "#1e88e5" },
+                          }}
+                        >
+                          <Visibility fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDelete(course.id)}
+                          sx={{
+                            bgcolor: "#f44336",
+                            color: "white",
+                            "&:hover": { bgcolor: "#d32f2f" },
+                          }}
+                        >
+                          <Delete fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </TableContainer>
@@ -201,17 +380,25 @@ export default function TrainingCoursesPage() {
                 <StyledPaper>
                   <HeaderBox>
                     <Typography variant="h6" sx={{ fontWeight: 500, color: "#1f2937" }}>
-                      Registro de cursos de formación
+                      {editingId ? "Editar curso de formación" : "Registro de cursos de formación"}
                     </Typography>
                   </HeaderBox>
+
+                  {error && (
+                    <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+                      {error}
+                    </Alert>
+                  )}
 
                   <Box component="form" sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
                     <Grid container spacing={3}>
                       <Grid item xs={12} md={6}>
                         <StyledTextField
                           fullWidth
+                          label="Nombre del curso"
                           placeholder="Nombre del curso"
                           variant="filled"
+                          required
                           value={formData.nombreCurso}
                           onChange={(e) => handleInputChange("nombreCurso", e.target.value)}
                         />
@@ -219,8 +406,12 @@ export default function TrainingCoursesPage() {
                       <Grid item xs={12} md={6}>
                         <StyledTextField
                           fullWidth
+                          label="Horas lectivas"
                           placeholder="Horas lectivas"
                           variant="filled"
+                          type="number"
+                          required
+                          inputProps={{ min: 0, step: 0.5 }}
                           value={formData.horasLectivas}
                           onChange={(e) => handleInputChange("horasLectivas", e.target.value)}
                         />
@@ -229,6 +420,7 @@ export default function TrainingCoursesPage() {
 
                     <StyledTextField
                       fullWidth
+                      label="Descripción de contenidos"
                       placeholder="Descripción de contenidos"
                       multiline
                       rows={4}
@@ -238,17 +430,91 @@ export default function TrainingCoursesPage() {
                     />
 
                     <Box sx={{ display: "flex", gap: 2, paddingTop: 2 }}>
-                      <CancelButton fullWidth variant="outlined" onClick={handleClose}>
+                      <CancelButton 
+                        fullWidth 
+                        variant="outlined" 
+                        onClick={handleClose}
+                        disabled={submitting}
+                      >
                         Cancelar
                       </CancelButton>
-                      <RegisterButton fullWidth variant="contained" onClick={handleSubmit}>
-                        Registrar
+                      <RegisterButton 
+                        fullWidth 
+                        variant="contained" 
+                        onClick={handleSubmit}
+                        disabled={submitting}
+                      >
+                        {submitting ? (
+                          <CircularProgress size={24} color="inherit" />
+                        ) : editingId ? (
+                          "Actualizar"
+                        ) : (
+                          "Registrar"
+                        )}
                       </RegisterButton>
                     </Box>
                   </Box>
                 </StyledPaper>
               </Container>
             </Box>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog Ver Más */}
+        <Dialog
+          open={viewDialogOpen}
+          onClose={() => setViewDialogOpen(false)}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: { borderRadius: 2 },
+          }}
+        >
+          <DialogContent sx={{ p: 4 }}>
+            {selectedCourse && (
+              <Box>
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                  {selectedCourse.nombreCurso}
+                </Typography>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">
+                      Horas lectivas
+                    </Typography>
+                    <Typography variant="body1">
+                      {selectedCourse.horasLectivas} horas
+                    </Typography>
+                  </Box>
+                  {selectedCourse.descripcion && (
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">
+                        Descripción
+                      </Typography>
+                      <Typography variant="body1">
+                        {selectedCourse.descripcion}
+                      </Typography>
+                    </Box>
+                  )}
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">
+                      Fecha de creación
+                    </Typography>
+                    <Typography variant="body1">
+                      {new Date(selectedCourse.created).toLocaleDateString("es-ES")}
+                    </Typography>
+                  </Box>
+                </Box>
+                <Box sx={{ mt: 3, display: "flex", justifyContent: "flex-end" }}>
+                  <Button
+                    variant="contained"
+                    onClick={() => setViewDialogOpen(false)}
+                    sx={{ bgcolor: "#4caf50", "&:hover": { bgcolor: "#45a049" } }}
+                  >
+                    Cerrar
+                  </Button>
+                </Box>
+              </Box>
+            )}
           </DialogContent>
         </Dialog>
       </Box>
