@@ -42,6 +42,7 @@ import {
   Restaurant,
   Pets,
   TrendingUp,
+  FileDownload,
 } from "@mui/icons-material"
 import theme from "../../components/theme"
 import { useRouter } from "next/router";
@@ -82,6 +83,7 @@ import { PlanFormacionSection } from "../../components/sections/PlanFormacionSec
 import { PlanBioseguridadSection } from "../../components/sections/PlanBioseguridadSection";
 import { PlanSanitarioSection } from "../../components/sections/PlanSanitarioSection";
 import { DatosGranjaSection } from "../../components/sections/DatosGranjaSection";
+import { ExportarInformacionSection } from "../../components/sections/ExportarInformacionSection";
 
 const drawerWidth = 320
 
@@ -89,6 +91,7 @@ const Home = () => {
     const router = useRouter();
     const [openPersonal, setOpenPersonal] = useState(false)
     const [openOtherSections, setOpenOtherSections] = useState<{ [key: string]: boolean }>({})
+    const [openConfig, setOpenConfig] = useState(false)
     const [mobileOpen, setMobileOpen] = useState(false);
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -131,6 +134,8 @@ const Home = () => {
     const handleToggle = (section: string) => {
       if (section === "personal") {
         setOpenPersonal(!openPersonal)
+      } else if (section === "config") {
+        setOpenConfig(!openConfig)
       } else {
         setOpenOtherSections((prev) => ({
           ...prev,
@@ -699,13 +704,27 @@ const Home = () => {
         <Box sx={{ p: 2, borderTop: "1px solid", borderColor: "grey.200" }}>
           <List disablePadding>
             <ListItem disablePadding>
-              <ListItemButton sx={{ borderRadius: 2, mb: 0.5 }}>
+              <ListItemButton onClick={() => handleToggle("config")} sx={{ borderRadius: 2, mb: 0.5 }}>
                 <ListItemIcon>
                   <Settings />
                 </ListItemIcon>
                 <ListItemText primary="Configuración" />
+                {openConfig ? <ExpandLess /> : <ExpandMore />}
               </ListItemButton>
             </ListItem>
+            <Collapse in={openConfig} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding>
+                <ListItemButton
+                  sx={{ pl: 4, borderRadius: 2, mb: 0.5 }}
+                  onClick={() => setActiveSection("exportar-informacion")}
+                >
+                  <ListItemIcon>
+                    <FileDownload />
+                  </ListItemIcon>
+                  <ListItemText primary="Exportar Información" />
+                </ListItemButton>
+              </List>
+            </Collapse>
             <ListItem disablePadding>
               <ListItemButton onClick={handleLogout} sx={{ borderRadius: 2 }}>
                 <ListItemIcon>
@@ -976,6 +995,9 @@ const Home = () => {
             {activeSection === "consumo_agua" && <ConsumoAguaSection />}
             {activeSection === "consumo_electricidad" && <ConsumoElectricidadSection />}
             {activeSection === "entradas_combustible" && <EntradasCombustibleSection />}
+
+            {/* Sección de Configuración */}
+            {activeSection === "exportar-informacion" && <ExportarInformacionSection />}
           </Box>
         </Box>
 

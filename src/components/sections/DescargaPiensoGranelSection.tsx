@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Box,
   Typography,
@@ -17,10 +17,22 @@ import {
   TextField,
   Grid,
   MenuItem,
+  CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material"
 import { Add, KeyboardArrowDown } from "@mui/icons-material"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
 import { buttonStyles, headerColors, headerAccentColors, sectionHeaderStyle, headerBarStyle } from "./buttonStyles"
+import useUserStore from "../../_store/user"
+import useFarmFormStore from "../../_store/farm"
+import {
+  listDescargaPiensoGranel,
+  createDescargaPiensoGranel,
+  updateDescargaPiensoGranel,
+  deleteDescargaPiensoGranel,
+  DescargaPiensoGranel as APIDescargaPiensoGranel,
+} from "../../action/DescargaPiensoGranelPocket"
 
 const theme = createTheme({
   palette: {
@@ -35,6 +47,7 @@ const theme = createTheme({
 })
 
 interface DescargaPiensoGranelData {
+  id?: string
   transportista: string
   matricula: string
   fechaFinalizacion: string
@@ -60,6 +73,16 @@ const TIPOS_PIENSO_GRANEL = [
 ]
 
 export function DescargaPiensoGranelSection() {
+  // Stores
+  const { token, record } = useUserStore()
+  const { currentFarm } = useFarmFormStore()
+
+  // Estados
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [currentRegistroId, setCurrentRegistroId] = useState<string | null>(null)
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" })
+
   // Estados para el popup
   const [open, setOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
@@ -76,43 +99,69 @@ export function DescargaPiensoGranelSection() {
   })
 
   // Estado para la tabla de descarga de pienso a granel
-  const [descargaPiensoGranelData, setDescargaPiensoGranelData] = useState<DescargaPiensoGranelData[]>([
-    {
-      transportista: "Transportes Graneles Ibéricos S.A.",
-      matricula: "5678-ABC",
-      fechaFinalizacion: "2024-01-20",
-      tipoPienso: "Pienso Iniciador Lechones - Granel",
-      nroSacos: "0",
-      nroLote: "240120",
-      kg: "15000",
-      fechaCreacion: "20/01/2024",
-      fechaUltimaActualizacion: "21/01/2024",
-    },
-    {
-      transportista: "Logística Agroalimentaria del Sur",
-      matricula: "9012-DEF",
-      fechaFinalizacion: "2024-02-15",
-      tipoPienso: "Pienso Crecimiento Fase II - Granel",
-      nroSacos: "0",
-      nroLote: "240215",
-      kg: "22000",
-      fechaCreacion: "15/02/2024",
-      fechaUltimaActualizacion: "16/02/2024",
-    },
-    {
-      transportista: "Distribuidora de Piensos a Granel S.L.",
-      matricula: "3456-GHI",
-      fechaFinalizacion: "2024-01-05",
-      tipoPienso: "Concentrado Proteico - Granel",
-      nroSacos: "0",
-      nroLote: "240105",
-      kg: "8500",
-      fechaCreacion: "05/01/2024",
-      fechaUltimaActualizacion: "06/01/2024",
-    },
-  ])
+  const [descargaPiensoGranelData, setDescargaPiensoGranelData] = useState<DescargaPiensoGranelData[]>([])
+
+  // Función para convertir fecha ISO a YYYY-MM-DD
+  const formatDateForInput = (isoDate: string): string => {
+    if (!isoDate) return ""
+    const dateOnly = isoDate.split("T")[0].split(" ")[0]
+    return dateOnly
+  }
+
+  // Función para convertir datos de la API a formato local
+  const convertAPItoLocal = (apiData: APIDescargaPiensoGranel): DescargaPiensoGranelData => {
+    return {
+      id: apiData.id,
+      transportista: apiData.transportista,
+      matricula: apiData.matricula,
+      fechaFinalizacion: formatDateForInput(apiData.fecha_finalizacion),
+      tipoPienso: apiData.tipo_pienso,
+      nroSacos: String(apiData.nro_sacos),
+      nroLote: apiData.nro_lote,
+      kg: String(apiData.kg),
+      fechaCreacion: formatDateToDisplay(apiData.created || ""),
+      fechaUltimaActualizacion: formatDateToDisplay(apiData.updated || ""),
+    }
+  }
+
+  // Función para convertir datos locales a formato API
+  const convertLocalToAPI = (localData: typeof formData) => {
+    return {
+      transportista: localData.transportista,
+      matricula: localData.matricula,
+      fecha_finalizacion: localData.fechaFinalizacion,
+      tipo_pienso: localData.tipoPienso,
+      nro_sacos: parseFloat(localData.nroSacos) || 0,
+      nro_lote: localData.nroLote,
+      kg: parseFloat(localData.kg) || 0,
+    }
+  }
+
+  // Cargar datos desde la API
+  useEffect(() => {
+    const loadData = async () => {
+      if (!token || !record?.id || !currentFarm?.id) return
+
+      setLoading(true)
+      try {
+        const response = await listDescargaPiensoGranel(token, record.id, currentFarm.id)
+        if (response.success && response.data) {
+          const localData = response.data.items.map(item => convertAPItoLocal(item as APIDescargaPiensoGranel))
+          setDescargaPiensoGranelData(localData)
+        }
+      } catch (error: any) {
+        console.error("Error al cargar descargas de pienso a granel:", error)
+        setSnackbar({ open: true, message: error.message || "Error al cargar datos", severity: "error" })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [token, record?.id, currentFarm?.id])
 
   const handleOpen = () => {
+    setCurrentRegistroId(null)
     setEditMode(false)
     setViewMode(false)
     setEditIndex(null)
@@ -126,13 +175,14 @@ export function DescargaPiensoGranelSection() {
     setFormData({
       transportista: item.transportista,
       matricula: item.matricula,
-      fechaFinalizacion: item.fechaFinalizacion,
+      fechaFinalizacion: formatDateForInput(item.fechaFinalizacion),
       tipoPienso: item.tipoPienso,
       nroSacos: item.nroSacos,
       nroLote: item.nroLote,
       kg: item.kg,
     })
     
+    setCurrentRegistroId(item.id || null)
     setEditMode(true)
     setViewMode(false)
     setEditIndex(index)
@@ -146,13 +196,14 @@ export function DescargaPiensoGranelSection() {
     setFormData({
       transportista: item.transportista,
       matricula: item.matricula,
-      fechaFinalizacion: item.fechaFinalizacion,
+      fechaFinalizacion: formatDateForInput(item.fechaFinalizacion),
       tipoPienso: item.tipoPienso,
       nroSacos: item.nroSacos,
       nroLote: item.nroLote,
       kg: item.kg,
     })
     
+    setCurrentRegistroId(item.id || null)
     setEditMode(false)
     setViewMode(true)
     setEditIndex(index)
@@ -172,6 +223,7 @@ export function DescargaPiensoGranelSection() {
 
   const handleClose = () => {
     setOpen(false)
+    setCurrentRegistroId(null)
     setEditMode(false)
     setViewMode(false)
     setEditIndex(null)
@@ -186,42 +238,92 @@ export function DescargaPiensoGranelSection() {
     })
   }
 
-  const handleSubmit = () => {
-    console.log("Datos de descarga de pienso a granel:", formData)
-
+  const handleSubmit = async () => {
     // Validar que los campos requeridos estén llenos
     if (!formData.transportista || !formData.matricula || !formData.fechaFinalizacion || !formData.tipoPienso) {
-      alert("Por favor, completa todos los campos requeridos")
+      setSnackbar({ open: true, message: "Por favor, completa todos los campos requeridos", severity: "error" })
       return
     }
 
-    const descargaPiensoGranelItem = {
-      transportista: formData.transportista,
-      matricula: formData.matricula,
-      fechaFinalizacion: formData.fechaFinalizacion,
-      tipoPienso: formData.tipoPienso,
-      nroSacos: formData.nroSacos || "0", // Por defecto 0 para granel
-      nroLote: formData.nroLote,
-      kg: formData.kg,
-      fechaCreacion: editMode 
-        ? descargaPiensoGranelData[editIndex!].fechaCreacion 
-        : formatDateToDisplay(formData.fechaFinalizacion),
-      fechaUltimaActualizacion: formatDateToDisplay(formData.fechaFinalizacion),
+    if (!formData.nroLote || !formData.kg) {
+      setSnackbar({ open: true, message: "Por favor, completa todos los campos numéricos", severity: "error" })
+      return
     }
 
-    if (editMode && editIndex !== null) {
-      // Actualizar elemento existente
-      setDescargaPiensoGranelData((prev) => 
-        prev.map((item, index) => 
-          index === editIndex ? descargaPiensoGranelItem : item
-        )
-      )
-    } else {
-      // Agregar nuevo elemento
-      setDescargaPiensoGranelData((prev) => [...prev, descargaPiensoGranelItem])
+    if (!token || !record?.id || !currentFarm?.id) {
+      setSnackbar({ open: true, message: "Error: No hay sesión activa", severity: "error" })
+      return
     }
-    
-    handleClose()
+
+    setSaving(true)
+    try {
+      const apiData = convertLocalToAPI(formData)
+
+      if (editMode && currentRegistroId) {
+        // Actualizar elemento existente
+        await updateDescargaPiensoGranel(
+          token,
+          currentRegistroId,
+          apiData,
+          record.id
+        )
+        setSnackbar({ open: true, message: "Descarga de pienso a granel actualizada exitosamente", severity: "success" })
+      } else {
+        // Crear nuevo elemento
+        await createDescargaPiensoGranel(
+          token,
+          {
+            ...apiData,
+            farm: currentFarm.id,
+            user: record.id,
+          }
+        )
+        setSnackbar({ open: true, message: "Descarga de pienso a granel registrada exitosamente", severity: "success" })
+      }
+
+      // Recargar datos
+      const response = await listDescargaPiensoGranel(token, record.id, currentFarm.id)
+      if (response.success && response.data) {
+        const localData = response.data.items.map(item => convertAPItoLocal(item as APIDescargaPiensoGranel))
+        setDescargaPiensoGranelData(localData)
+      }
+
+      handleClose()
+    } catch (error: any) {
+      console.error("Error al guardar:", error)
+      setSnackbar({ open: true, message: error.message || "Error al guardar", severity: "error" })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Función para eliminar un registro
+  const handleDelete = async () => {
+    if (!currentRegistroId || !token || !record?.id) return
+
+    if (!window.confirm("¿Estás seguro de que deseas eliminar este registro?")) {
+      return
+    }
+
+    setSaving(true)
+    try {
+      await deleteDescargaPiensoGranel(token, currentRegistroId, record.id)
+      setSnackbar({ open: true, message: "Descarga de pienso a granel eliminada exitosamente", severity: "success" })
+
+      // Recargar datos
+      const response = await listDescargaPiensoGranel(token, record.id, currentFarm?.id)
+      if (response.success && response.data) {
+        const localData = response.data.items.map(item => convertAPItoLocal(item as APIDescargaPiensoGranel))
+        setDescargaPiensoGranelData(localData)
+      }
+
+      handleClose()
+    } catch (error: any) {
+      console.error("Error al eliminar:", error)
+      setSnackbar({ open: true, message: error.message || "Error al eliminar", severity: "error" })
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -231,6 +333,11 @@ export function DescargaPiensoGranelSection() {
         <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
           {/* Page Content */}
           <Box sx={{ flexGrow: 1, p: 3, bgcolor: "grey.50" }}>
+            {loading ? (
+              <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "400px" }}>
+                <CircularProgress />
+              </Box>
+            ) : (
             <Paper elevation={1} sx={{ borderRadius: 2 }}>
               {/* Header */}
               <Box sx={sectionHeaderStyle}>
@@ -372,6 +479,7 @@ export function DescargaPiensoGranelSection() {
                 </Table>
               </TableContainer>
             </Paper>
+            )}
           </Box>
         </Box>
 
@@ -415,6 +523,7 @@ export function DescargaPiensoGranelSection() {
                       <Grid item xs={6}>
                         <TextField
                           fullWidth
+                          label="Transportista"
                           placeholder="Transportista"
                           variant="standard"
                           value={formData.transportista}
@@ -432,6 +541,7 @@ export function DescargaPiensoGranelSection() {
                       <Grid item xs={6}>
                         <TextField
                           fullWidth
+                          label="Matrícula"
                           placeholder="Matrícula del vehículo cisterna"
                           variant="standard"
                           value={formData.matricula}
@@ -454,9 +564,9 @@ export function DescargaPiensoGranelSection() {
                         <TextField
                           fullWidth
                           label="Fecha de finalización"
-                          type="date"
+                          type={viewMode ? "text" : "date"}
                           variant="standard"
-                          value={formData.fechaFinalizacion}
+                          value={viewMode ? formatDateToDisplay(formData.fechaFinalizacion) : formData.fechaFinalizacion}
                           onChange={(e) => setFormData((prev) => ({ ...prev, fechaFinalizacion: e.target.value }))}
                           InputLabelProps={{
                             shrink: true,
@@ -502,6 +612,7 @@ export function DescargaPiensoGranelSection() {
                       <Grid item xs={4}>
                         <TextField
                           fullWidth
+                          label="Número de sacos"
                           placeholder="Número de sacos (0 para granel)"
                           variant="standard"
                           type="number"
@@ -521,6 +632,7 @@ export function DescargaPiensoGranelSection() {
                       <Grid item xs={4}>
                         <TextField
                           fullWidth
+                          label="Número de lote"
                           placeholder="Número de lote"
                           variant="standard"
                           type="number"
@@ -539,6 +651,7 @@ export function DescargaPiensoGranelSection() {
                       <Grid item xs={4}>
                         <TextField
                           fullWidth
+                          label="Kilogramos totales"
                           placeholder="Kilogramos totales"
                           variant="standard"
                           type="number"
@@ -558,31 +671,47 @@ export function DescargaPiensoGranelSection() {
                     </Grid>
 
                     {/* Botones dinámicos según el modo */}
-                    <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-                      {viewMode ? (
-                        <Button
-                          variant="outlined"
-                          onClick={handleClose}
-                          sx={buttonStyles.close}
-                        >
-                          Cerrar
-                        </Button>
-                      ) : (
+                    <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
+                      {viewMode && currentRegistroId ? (
                         <>
                           <Button
                             variant="outlined"
-                            onClick={handleClose}
-                            sx={buttonStyles.cancel}
+                            color="error"
+                            onClick={handleDelete}
+                            disabled={saving}
                           >
-                            Cancelar
+                            {saving ? "Eliminando..." : "Eliminar"}
                           </Button>
                           <Button
-                            variant="contained"
-                            onClick={handleSubmit}
-                            sx={buttonStyles.save}
+                            variant="outlined"
+                            onClick={handleClose}
+                            disabled={saving}
+                            sx={buttonStyles.close}
                           >
-                            {editMode ? "Actualizar" : "Guardar"}
+                            Cerrar
                           </Button>
+                        </>
+                      ) : (
+                        <>
+                          <div />
+                          <Box sx={{ display: "flex", gap: 2 }}>
+                            <Button
+                              variant="outlined"
+                              onClick={handleClose}
+                              disabled={saving}
+                              sx={buttonStyles.cancel}
+                            >
+                              Cancelar
+                            </Button>
+                            <Button
+                              variant="contained"
+                              onClick={handleSubmit}
+                              disabled={saving}
+                              sx={buttonStyles.save}
+                            >
+                              {saving ? "Guardando..." : editMode ? "Actualizar" : "Guardar"}
+                            </Button>
+                          </Box>
                         </>
                       )}
                     </Box>
@@ -592,6 +721,22 @@ export function DescargaPiensoGranelSection() {
             </ThemeProvider>
           </DialogContent>
         </Dialog>
+
+        {/* Snackbar para notificaciones */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Box>
     </ThemeProvider>
   )

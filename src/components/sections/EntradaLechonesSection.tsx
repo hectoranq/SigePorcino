@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Box,
   Typography,
@@ -16,10 +16,22 @@ import {
   DialogContent,
   TextField,
   Grid,
+  CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material"
 import { Add, KeyboardArrowDown } from "@mui/icons-material"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
 import { buttonStyles, headerColors, headerAccentColors} from "./buttonStyles"
+import useUserStore from "../../_store/user"
+import useFarmFormStore from "../../_store/farm"
+import {
+  getEntradaLechonesByFarmId,
+  createEntradaLechones,
+  updateEntradaLechones,
+  deleteEntradaLechones,
+  EntradaLechones as APIEntradaLechones,
+} from "../../action/EntradaLechonesPocket"
 
 const theme = createTheme({
   palette: {
@@ -34,6 +46,7 @@ const theme = createTheme({
 })
 
 interface EntradaLechonesData {
+  id?: string
   nroAnimales: string
   pesoVivo: string
   fechaEntrada: string
@@ -45,6 +58,16 @@ interface EntradaLechonesData {
 }
 
 export function EntradaLechonesSection() {
+  // Stores
+  const { token, record } = useUserStore()
+  const { currentFarm } = useFarmFormStore()
+
+  // Estados
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [currentRegistroId, setCurrentRegistroId] = useState<string | null>(null)
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" })
+
   // Estados para el popup
   const [open, setOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
@@ -60,43 +83,93 @@ export function EntradaLechonesSection() {
   })
 
   // Estado para la tabla de entrada de lechones
-  const [entradaLechonesData, setEntradaLechonesData] = useState<EntradaLechonesData[]>([
-    {
-      nroAnimales: "25",
-      pesoVivo: "8.5",
-      fechaEntrada: "2024-01-15",
-      fechaNacimiento: "2023-11-20",
-      procedencia: "Granja San Miguel - Salamanca",
-      observaciones: "Lote en excelente estado sanitario, vacunados según protocolo",
-      fechaCreacion: "15/01/2024",
-      fechaUltimaActualizacion: "16/01/2024",
-    },
-    {
-      nroAnimales: "30",
-      pesoVivo: "9.2",
-      fechaEntrada: "2024-02-08",
-      fechaNacimiento: "2023-12-10",
-      procedencia: "Explotación La Dehesa - Cáceres",
-      observaciones: "Animales con buen desarrollo, documentación sanitaria completa",
-      fechaCreacion: "08/02/2024",
-      fechaUltimaActualizacion: "09/02/2024",
-    },
-    {
-      nroAnimales: "18",
-      pesoVivo: "7.8",
-      fechaEntrada: "2023-12-20",
-      fechaNacimiento: "2023-09-28",
-      procedencia: "Cooperativa Ganadera Los Robles - Badajoz",
-      observaciones: "Lote homogéneo, adaptación satisfactoria al nuevo ambiente",
-      fechaCreacion: "20/12/2023",
-      fechaUltimaActualizacion: "22/12/2023",
-    },
-  ])
+  const [entradaLechonesData, setEntradaLechonesData] = useState<EntradaLechonesData[]>([])
+
+  // Función para formatear fecha
+  const formatDateToDisplay = (dateString: string) => {
+    if (!dateString) return "Sin fecha"
+    const date = new Date(dateString)
+    return date.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    })
+  }
+
+  // Función para formatear fecha a YYYY-MM-DD para input type="date"
+  const formatDateForInput = (dateString: string) => {
+    if (!dateString) return ""
+    // Extraer solo la parte YYYY-MM-DD del formato ISO
+    return dateString.split('T')[0].split(' ')[0]
+  }
+
+  // Convertir de API a formato local
+  const convertAPItoLocal = (apiData: APIEntradaLechones): EntradaLechonesData => {
+    return {
+      id: apiData.id,
+      nroAnimales: String(apiData.nro_animales),
+      pesoVivo: String(apiData.peso_vivo),
+      fechaEntrada: apiData.fecha_entrada,
+      fechaNacimiento: apiData.fecha_nacimiento,
+      procedencia: apiData.procedencia,
+      observaciones: apiData.observaciones || "",
+      fechaCreacion: formatDateToDisplay(apiData.created || ""),
+      fechaUltimaActualizacion: formatDateToDisplay(apiData.updated || ""),
+    }
+  }
+
+  // Convertir de formato local a API
+  const convertLocalToAPI = (localData: any): Partial<APIEntradaLechones> => {
+    return {
+      nro_animales: parseFloat(localData.nroAnimales) || 0,
+      peso_vivo: parseFloat(localData.pesoVivo) || 0,
+      fecha_entrada: localData.fechaEntrada,
+      fecha_nacimiento: localData.fechaNacimiento,
+      procedencia: localData.procedencia,
+      observaciones: localData.observaciones,
+      farm: currentFarm!.id,
+      user: record!.id,
+    }
+  }
+
+  // useEffect para cargar registros de entrada de lechones
+  useEffect(() => {
+    const loadEntradaLechones = async () => {
+      if (!token || !record?.id || !currentFarm?.id) return
+      
+      setLoading(true)
+      try {
+        const registros = await getEntradaLechonesByFarmId(currentFarm.id, token, record.id)
+        if (registros.success && registros.data.items) {
+          const convertedData = (registros.data.items as APIEntradaLechones[]).map(convertAPItoLocal)
+          setEntradaLechonesData(convertedData)
+        }
+      } catch (error: any) {
+        console.error("Error al cargar registros:", error)
+        setSnackbar({ open: true, message: error.message || "Error al cargar los registros", severity: "error" })
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadEntradaLechones()
+  }, [token, record, currentFarm])
+
+  const loadRegistroToForm = (registro: EntradaLechonesData) => {
+    setFormData({
+      nroAnimales: registro.nroAnimales,
+      pesoVivo: registro.pesoVivo,
+      fechaEntrada: formatDateForInput(registro.fechaEntrada),
+      fechaNacimiento: formatDateForInput(registro.fechaNacimiento),
+      procedencia: registro.procedencia,
+      observaciones: registro.observaciones,
+    })
+  }
 
   const handleOpen = () => {
     setEditMode(false)
     setViewMode(false)
     setEditIndex(null)
+    setCurrentRegistroId(null)
     setOpen(true)
   }
 
@@ -107,12 +180,13 @@ export function EntradaLechonesSection() {
     setFormData({
       nroAnimales: item.nroAnimales,
       pesoVivo: item.pesoVivo,
-      fechaEntrada: item.fechaEntrada,
-      fechaNacimiento: item.fechaNacimiento,
+      fechaEntrada: formatDateForInput(item.fechaEntrada),
+      fechaNacimiento: formatDateForInput(item.fechaNacimiento),
       procedencia: item.procedencia,
       observaciones: item.observaciones,
     })
     
+    setCurrentRegistroId(item.id || null)
     setEditMode(true)
     setViewMode(false)
     setEditIndex(index)
@@ -126,8 +200,8 @@ export function EntradaLechonesSection() {
     setFormData({
       nroAnimales: item.nroAnimales,
       pesoVivo: item.pesoVivo,
-      fechaEntrada: item.fechaEntrada,
-      fechaNacimiento: item.fechaNacimiento,
+      fechaEntrada: formatDateForInput(item.fechaEntrada),
+      fechaNacimiento: formatDateForInput(item.fechaNacimiento),
       procedencia: item.procedencia,
       observaciones: item.observaciones,
     })
@@ -138,23 +212,12 @@ export function EntradaLechonesSection() {
     setOpen(true)
   }
 
-
-  // Función para convertir fecha de YYYY-MM-DD a DD/MM/YYYY
-  const formatDateToDisplay = (dateString: string) => {
-    if (!dateString) return "Sin fecha"
-    const date = new Date(dateString)
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    })
-  }
-
   const handleClose = () => {
     setOpen(false)
     setEditMode(false)
     setViewMode(false)
     setEditIndex(null)
+    setCurrentRegistroId(null)
     setFormData({
       nroAnimales: "",
       pesoVivo: "",
@@ -165,41 +228,74 @@ export function EntradaLechonesSection() {
     })
   }
 
-  const handleSubmit = () => {
-    console.log("Datos de entrada de lechones:", formData)
-
+  const handleSubmit = async () => {
     // Validar que los campos requeridos estén llenos
-    if (!formData.nroAnimales || !formData.fechaEntrada || !formData.procedencia) {
-      alert("Por favor, completa todos los campos requeridos")
+    if (!formData.nroAnimales || !formData.pesoVivo || !formData.fechaEntrada || !formData.fechaNacimiento || !formData.procedencia) {
+      setSnackbar({ open: true, message: "Por favor, completa todos los campos requeridos", severity: "error" })
       return
     }
 
-    const entradaLechonesItem = {
-      nroAnimales: formData.nroAnimales,
-      pesoVivo: formData.pesoVivo,
-      fechaEntrada: formData.fechaEntrada,
-      fechaNacimiento: formData.fechaNacimiento,
-      procedencia: formData.procedencia,
-      observaciones: formData.observaciones,
-      fechaCreacion: editMode 
-        ? entradaLechonesData[editIndex!].fechaCreacion 
-        : formatDateToDisplay(formData.fechaEntrada),
-      fechaUltimaActualizacion: formatDateToDisplay(formData.fechaEntrada),
+    if (parseFloat(formData.nroAnimales) <= 0 || parseFloat(formData.pesoVivo) <= 0) {
+      setSnackbar({ open: true, message: "Número de animales y peso deben ser mayores a 0", severity: "error" })
+      return
     }
 
-    if (editMode && editIndex !== null) {
-      // Actualizar elemento existente
-      setEntradaLechonesData((prev) => 
-        prev.map((item, index) => 
-          index === editIndex ? entradaLechonesItem : item
-        )
-      )
-    } else {
-      // Agregar nuevo elemento
-      setEntradaLechonesData((prev) => [...prev, entradaLechonesItem])
+    setSaving(true)
+    try {
+      const dataToSend = convertLocalToAPI(formData)
+
+      if (currentRegistroId) {
+        // Actualizar registro existente
+        await updateEntradaLechones(token!, currentRegistroId, dataToSend, record!.id)
+        setSnackbar({ open: true, message: "Registro actualizado exitosamente", severity: "success" })
+      } else {
+        // Crear nuevo registro
+        await createEntradaLechones(token!, dataToSend as any)
+        setSnackbar({ open: true, message: "Registro creado exitosamente", severity: "success" })
+      }
+
+      // Recargar datos
+      const registros = await getEntradaLechonesByFarmId(currentFarm!.id, token!, record!.id)
+      if (registros.success && registros.data.items) {
+        const convertedData = (registros.data.items as APIEntradaLechones[]).map(convertAPItoLocal)
+        setEntradaLechonesData(convertedData)
+      }
+
+      handleClose()
+    } catch (error: any) {
+      console.error("Error al guardar:", error)
+      setSnackbar({ open: true, message: error.message || "Error al guardar el registro", severity: "error" })
+    } finally {
+      setSaving(false)
     }
+  }
+
+  const handleDelete = async (index: number) => {
+    const item = entradaLechonesData[index]
     
-    handleClose()
+    if (!item.id) {
+      setSnackbar({ open: true, message: "No se puede eliminar: ID no encontrado", severity: "error" })
+      return
+    }
+
+    if (!window.confirm("¿Estás seguro de que deseas eliminar este registro?")) {
+      return
+    }
+
+    try {
+      await deleteEntradaLechones(token!, item.id, record!.id)
+      setSnackbar({ open: true, message: "Registro eliminado exitosamente", severity: "success" })
+      
+      // Recargar datos
+      const registros = await getEntradaLechonesByFarmId(currentFarm!.id, token!, record!.id)
+      if (registros.success && registros.data.items) {
+        const convertedData = (registros.data.items as APIEntradaLechones[]).map(convertAPItoLocal)
+        setEntradaLechonesData(convertedData)
+      }
+    } catch (error: any) {
+      console.error("Error al eliminar:", error)
+      setSnackbar({ open: true, message: error.message || "Error al eliminar el registro", severity: "error" })
+    }
   }
 
   return (
@@ -245,7 +341,12 @@ export function EntradaLechonesSection() {
                 </Button>
               </Box>
 
-              <TableContainer>
+              {loading ? (
+                <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 400 }}>
+                  <CircularProgress />
+                </Box>
+              ) : (
+                <TableContainer>
                 <Table>
                   <TableHead sx={{ bgcolor: "grey.100" }}>
                     <TableRow>
@@ -350,6 +451,14 @@ export function EntradaLechonesSection() {
                             >
                               Ver más
                             </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="error"
+                              onClick={() => handleDelete(index)}
+                            >
+                              Eliminar
+                            </Button>
                           </Box>
                         </TableCell>
                       </TableRow>
@@ -357,6 +466,7 @@ export function EntradaLechonesSection() {
                   </TableBody>
                 </Table>
               </TableContainer>
+              )}
             </Paper>
           </Box>
         </Box>
@@ -376,7 +486,7 @@ export function EntradaLechonesSection() {
               <Paper sx={{ maxWidth: 1200, mx: "auto", borderRadius: 2, overflow: "hidden" }}>
                 {/* Header dinámico según el modo */}
                 <Box sx={{ 
-                  bgcolor: viewMode ? headerColors.view : editMode ? headerColors.edit : headerColors.create, 
+                  bgcolor: viewMode ? headerColors.view : currentRegistroId ? headerColors.edit : headerColors.create, 
                   px: 3, 
                   py: 2, 
                   display: "flex", 
@@ -386,11 +496,11 @@ export function EntradaLechonesSection() {
                   <Box sx={{ 
                     width: 4, 
                     height: 24, 
-                    bgcolor: viewMode ? headerAccentColors.view : editMode ? headerAccentColors.edit : headerAccentColors.create, 
+                    bgcolor: viewMode ? headerAccentColors.view : currentRegistroId ? headerAccentColors.edit : headerAccentColors.create, 
                     borderRadius: 0.5 
                   }} />
                   <Typography variant="h6" sx={{ color: "white", fontWeight: 500 }}>
-                    {viewMode ? "Detalle de entrada de lechones" : editMode ? "Editar entrada de lechones" : "Registro de entrada de lechones"}
+                    {viewMode ? "Detalle de entrada de lechones" : currentRegistroId ? "Editar entrada de lechones" : "Registro de entrada de lechones"}
                   </Typography>
                 </Box>
 
@@ -400,8 +510,9 @@ export function EntradaLechonesSection() {
                     <Grid item xs={6}>
                       <TextField
                         fullWidth
+                        label="Nro de animales"
                         placeholder="Nro de animales"
-                        variant="standard"
+                        variant="filled"
                         type="number"
                         value={formData.nroAnimales}
                         onChange={(e) => setFormData((prev) => ({ ...prev, nroAnimales: e.target.value }))}
@@ -418,8 +529,9 @@ export function EntradaLechonesSection() {
                     <Grid item xs={6}>
                       <TextField
                         fullWidth
+                        label="Peso vivo (kg)"
                         placeholder="Peso vivo (kg)"
-                        variant="standard"
+                        variant="filled"
                         type="number"
                         value={formData.pesoVivo}
                         onChange={(e) => setFormData((prev) => ({ ...prev, pesoVivo: e.target.value }))}
@@ -442,7 +554,7 @@ export function EntradaLechonesSection() {
                         fullWidth
                         label="Fecha de entrada"
                         type="date"
-                        variant="standard"
+                        variant="filled"
                         value={formData.fechaEntrada}
                         onChange={(e) => setFormData((prev) => ({ ...prev, fechaEntrada: e.target.value }))}
                         InputLabelProps={{
@@ -463,7 +575,7 @@ export function EntradaLechonesSection() {
                         fullWidth
                         label="Fecha de nacimiento"
                         type="date"
-                        variant="standard"
+                        variant="filled"
                         value={formData.fechaNacimiento}
                         onChange={(e) => setFormData((prev) => ({ ...prev, fechaNacimiento: e.target.value }))}
                         InputLabelProps={{
@@ -484,8 +596,9 @@ export function EntradaLechonesSection() {
                   {/* Procedencia */}
                   <TextField
                     fullWidth
+                    label="Procedencia"
                     placeholder="Procedencia"
-                    variant="standard"
+                    variant="filled"
                     value={formData.procedencia}
                     onChange={(e) => setFormData((prev) => ({ ...prev, procedencia: e.target.value }))}
                     sx={{ 
@@ -502,8 +615,9 @@ export function EntradaLechonesSection() {
                   {/* Observaciones */}
                   <TextField
                     fullWidth
+                    label="Observaciones"
                     placeholder="Observaciones"
-                    variant="standard"
+                    variant="filled"
                     multiline
                     rows={3}
                     value={formData.observaciones}
@@ -534,6 +648,7 @@ export function EntradaLechonesSection() {
                         <Button
                           variant="outlined"
                           onClick={handleClose}
+                          disabled={saving}
                           sx={buttonStyles.close}
                         >
                           Cancelar
@@ -541,9 +656,11 @@ export function EntradaLechonesSection() {
                         <Button
                           variant="contained"
                           onClick={handleSubmit}
+                          disabled={saving}
+                          startIcon={saving ? <CircularProgress size={20} color="inherit" /> : undefined}
                           sx={buttonStyles.save}
                         >
-                          {editMode ? "Actualizar" : "Guardar"}
+                          {saving ? "Guardando..." : (currentRegistroId ? "Actualizar" : "Guardar")}
                         </Button>
                       </>
                     )}
@@ -554,6 +671,21 @@ export function EntradaLechonesSection() {
           </DialogContent>
         </Dialog>
       </Box>
+
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={4000} 
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </ThemeProvider>
   )
 }

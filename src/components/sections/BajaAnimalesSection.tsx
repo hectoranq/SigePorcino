@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Box,
   Typography,
@@ -17,10 +17,22 @@ import {
   TextField,
   Grid,
   Checkbox,
+  CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material"
 import { Add, KeyboardArrowDown } from "@mui/icons-material"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
 import { buttonStyles, headerColors, headerAccentColors, sectionHeaderStyle, headerBarStyle } from "./buttonStyles"
+import useUserStore from "../../_store/user"
+import useFarmFormStore from "../../_store/farm"
+import {
+  listBajaAnimales,
+  createBajaAnimales,
+  updateBajaAnimales,
+  deleteBajaAnimales,
+  BajaAnimales as APIBajaAnimales,
+} from "../../action/BajaAnimalesPocket"
 
 const theme = createTheme({
   palette: {
@@ -35,6 +47,7 @@ const theme = createTheme({
 })
 
 interface BajaAnimalesData {
+  id?: string
   nroCrotal: string
   causa: string
   fechaFallecimiento: string
@@ -47,6 +60,16 @@ interface BajaAnimalesData {
 }
 
 export function BajaAnimalesSection() {
+  // Stores
+  const { token, record } = useUserStore()
+  const { currentFarm } = useFarmFormStore()
+
+  // Estados
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [currentRegistroId, setCurrentRegistroId] = useState<string | null>(null)
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" })
+
   // Estados para el popup
   const [open, setOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
@@ -63,34 +86,69 @@ export function BajaAnimalesSection() {
   })
 
   // Estado para la tabla de baja de animales
-  const [bajaAnimalesData, setBajaAnimalesData] = useState<BajaAnimalesData[]>([
-    {
-      nroCrotal: "ES140520001234",
-      causa: "Enfermedad respiratoria crónica, sin respuesta al tratamiento veterinario",
-      fechaFallecimiento: "2024-01-15",
-      tipoFallecimiento: { muerte: true, sacrificio: false },
-      fechaCreacion: "15/01/2024",
-      fechaUltimaActualizacion: "16/01/2024",
-    },
-    {
-      nroCrotal: "ES140520005678",
-      causa: "Sacrificio de emergencia por lesión grave en extremidad posterior",
-      fechaFallecimiento: "2024-02-28",
-      tipoFallecimiento: { muerte: false, sacrificio: true },
-      fechaCreacion: "28/02/2024",
-      fechaUltimaActualizacion: "01/03/2024",
-    },
-    {
-      nroCrotal: "ES140520009876",
-      causa: "Muerte súbita, posible problema cardíaco según necropsia",
-      fechaFallecimiento: "2023-12-10",
-      tipoFallecimiento: { muerte: true, sacrificio: false },
-      fechaCreacion: "10/12/2023",
-      fechaUltimaActualizacion: "12/12/2023",
-    },
-  ])
+  const [bajaAnimalesData, setBajaAnimalesData] = useState<BajaAnimalesData[]>([])
+
+  // Función para convertir datos de la API a formato local
+  const convertAPItoLocal = (apiData: APIBajaAnimales): BajaAnimalesData => {
+    return {
+      id: apiData.id,
+      nroCrotal: apiData.nro_crotal,
+      causa: apiData.causa,
+      fechaFallecimiento: apiData.fecha_fallecimiento,
+      tipoFallecimiento: {
+        muerte: apiData.es_muerte,
+        sacrificio: apiData.es_sacrificio,
+      },
+      fechaCreacion: formatDateToDisplay(apiData.created || ""),
+      fechaUltimaActualizacion: formatDateToDisplay(apiData.updated || ""),
+    }
+  }
+
+  // Función para convertir datos locales a formato API
+  const convertLocalToAPI = (localData: typeof formData): Omit<APIBajaAnimales, "id" | "created" | "updated" | "collectionId" | "collectionName"> => {
+    return {
+      nro_crotal: localData.nroCrotal,
+      causa: localData.causa,
+      fecha_fallecimiento: localData.fechaFallecimiento,
+      es_muerte: localData.tipoFallecimiento.muerte,
+      es_sacrificio: localData.tipoFallecimiento.sacrificio,
+      farm: currentFarm?.id || "",
+      user: record?.id || "",
+    }
+  }
+
+  // Función para convertir fecha ISO a formato para input date (YYYY-MM-DD)
+  const formatDateForInput = (dateString: string) => {
+    if (!dateString) return ""
+    // Extraer solo la parte de la fecha (YYYY-MM-DD) del ISO string
+    return dateString.split('T')[0].split(' ')[0]
+  }
+
+  // Cargar datos desde la API
+  useEffect(() => {
+    const loadData = async () => {
+      if (!token || !record?.id || !currentFarm?.id) return
+
+      setLoading(true)
+      try {
+        const response = await listBajaAnimales(token, record.id, currentFarm.id)
+        if (response.success && response.data) {
+          const localData = response.data.items.map(item => convertAPItoLocal(item as APIBajaAnimales))
+          setBajaAnimalesData(localData)
+        }
+      } catch (error: any) {
+        console.error("Error al cargar bajas de animales:", error)
+        setSnackbar({ open: true, message: error.message || "Error al cargar datos", severity: "error" })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [token, record?.id, currentFarm?.id])
 
   const handleOpen = () => {
+    setCurrentRegistroId(null)
     setEditMode(false)
     setViewMode(false)
     setEditIndex(null)
@@ -104,13 +162,14 @@ export function BajaAnimalesSection() {
     setFormData({
       nroCrotal: item.nroCrotal,
       causa: item.causa,
-      fechaFallecimiento: item.fechaFallecimiento,
+      fechaFallecimiento: formatDateForInput(item.fechaFallecimiento),
       tipoFallecimiento: {
         muerte: item.tipoFallecimiento.muerte,
         sacrificio: item.tipoFallecimiento.sacrificio,
       },
     })
     
+    setCurrentRegistroId(item.id || null)
     setEditMode(true)
     setViewMode(false)
     setEditIndex(index)
@@ -124,7 +183,7 @@ export function BajaAnimalesSection() {
     setFormData({
       nroCrotal: item.nroCrotal,
       causa: item.causa,
-      fechaFallecimiento: item.fechaFallecimiento,
+      fechaFallecimiento: formatDateForInput(item.fechaFallecimiento),
       tipoFallecimiento: {
         muerte: item.tipoFallecimiento.muerte,
         sacrificio: item.tipoFallecimiento.sacrificio,
@@ -152,6 +211,7 @@ export function BajaAnimalesSection() {
 
   const handleClose = () => {
     setOpen(false)
+    setCurrentRegistroId(null)
     setEditMode(false)
     setViewMode(false)
     setEditIndex(null)
@@ -166,42 +226,75 @@ export function BajaAnimalesSection() {
     })
   }
 
-  const handleSubmit = () => {
-    console.log("Datos de baja de animales:", formData)
-
+  const handleSubmit = async () => {
     // Validar que los campos requeridos estén llenos
     if (!formData.nroCrotal || !formData.causa || !formData.fechaFallecimiento) {
-      alert("Por favor, completa todos los campos requeridos")
+      setSnackbar({ open: true, message: "Por favor, completa todos los campos requeridos", severity: "error" })
       return
     }
 
-    const bajaAnimalesItem = {
-      nroCrotal: formData.nroCrotal,
-      causa: formData.causa,
-      fechaFallecimiento: formData.fechaFallecimiento,
-      tipoFallecimiento: {
-        muerte: formData.tipoFallecimiento.muerte,
-        sacrificio: formData.tipoFallecimiento.sacrificio,
-      },
-      fechaCreacion: editMode 
-        ? bajaAnimalesData[editIndex!].fechaCreacion 
-        : formatDateToDisplay(formData.fechaFallecimiento),
-      fechaUltimaActualizacion: formatDateToDisplay(formData.fechaFallecimiento),
+    if (!token || !record?.id) {
+      setSnackbar({ open: true, message: "Error: No hay sesión activa", severity: "error" })
+      return
     }
 
-    if (editMode && editIndex !== null) {
-      // Actualizar elemento existente
-      setBajaAnimalesData((prev) => 
-        prev.map((item, index) => 
-          index === editIndex ? bajaAnimalesItem : item
-        )
-      )
-    } else {
-      // Agregar nuevo elemento
-      setBajaAnimalesData((prev) => [...prev, bajaAnimalesItem])
+    setSaving(true)
+    try {
+      const apiData = convertLocalToAPI(formData)
+
+      if (editMode && currentRegistroId) {
+        // Actualizar elemento existente
+        await updateBajaAnimales(token, currentRegistroId, apiData, record.id)
+        setSnackbar({ open: true, message: "Baja de animales actualizada exitosamente", severity: "success" })
+      } else {
+        // Crear nuevo elemento
+        await createBajaAnimales(token, apiData)
+        setSnackbar({ open: true, message: "Baja de animales registrada exitosamente", severity: "success" })
+      }
+
+      // Recargar datos
+      const response = await listBajaAnimales(token, record.id, currentFarm?.id)
+      if (response.success && response.data) {
+        const localData = response.data.items.map(item => convertAPItoLocal(item as APIBajaAnimales))
+        setBajaAnimalesData(localData)
+      }
+
+      handleClose()
+    } catch (error: any) {
+      console.error("Error al guardar:", error)
+      setSnackbar({ open: true, message: error.message || "Error al guardar", severity: "error" })
+    } finally {
+      setSaving(false)
     }
-    
-    handleClose()
+  }
+
+  // Función para eliminar un registro
+  const handleDelete = async () => {
+    if (!currentRegistroId || !token || !record?.id) return
+
+    if (!window.confirm("¿Estás seguro de que deseas eliminar este registro?")) {
+      return
+    }
+
+    setSaving(true)
+    try {
+      await deleteBajaAnimales(token, currentRegistroId, record.id)
+      setSnackbar({ open: true, message: "Baja de animales eliminada exitosamente", severity: "success" })
+
+      // Recargar datos
+      const response = await listBajaAnimales(token, record.id, currentFarm?.id)
+      if (response.success && response.data) {
+        const localData = response.data.items.map(item => convertAPItoLocal(item as APIBajaAnimales))
+        setBajaAnimalesData(localData)
+      }
+
+      handleClose()
+    } catch (error: any) {
+      console.error("Error al eliminar:", error)
+      setSnackbar({ open: true, message: error.message || "Error al eliminar", severity: "error" })
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -211,6 +304,11 @@ export function BajaAnimalesSection() {
         <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
           {/* Page Content */}
           <Box sx={{ flexGrow: 1, p: 3, bgcolor: "grey.50" }}>
+            {loading ? (
+              <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "400px" }}>
+                <CircularProgress />
+              </Box>
+            ) : (
             <Paper elevation={1} sx={{ borderRadius: 2 }}>
 {/* Header */}
               <Box sx={sectionHeaderStyle}>
@@ -308,6 +406,7 @@ export function BajaAnimalesSection() {
                 </Table>
               </TableContainer>
             </Paper>
+            )}
           </Box>
         </Box>
 
@@ -341,7 +440,7 @@ export function BajaAnimalesSection() {
                       borderRadius: 0.5 
                     }} />
                     <Typography variant="h6" sx={{ color: "white", fontWeight: 500 }}>
-                      {viewMode ? "Detalle de baja de animal" : editMode ? "Editar baja de animal" : "Registro de baja de animal"}
+                      {viewMode ? "Detalle de baja de animal" : editMode ? `Editar baja de animal${currentRegistroId ? ` (ID: ${currentRegistroId.slice(0, 8)}...)` : ""}` : "Registro de baja de animal"}
                     </Typography>
                   </Box>
 
@@ -349,6 +448,7 @@ export function BajaAnimalesSection() {
                     {/* Nro de crotal */}
                     <TextField
                       fullWidth
+                      label="Nro de crotal"
                       placeholder="Nro de crotal"
                       variant="standard"
                       value={formData.nroCrotal}
@@ -367,6 +467,7 @@ export function BajaAnimalesSection() {
                     {/* Causa */}
                     <TextField
                       fullWidth
+                      label="Causa"
                       placeholder="Causa"
                       variant="standard"
                       multiline
@@ -464,31 +565,46 @@ export function BajaAnimalesSection() {
                     </Box>
 
                     {/* Botones dinámicos según el modo */}
-                    <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
 {viewMode ? (
-                        <Button
-                          variant="outlined"
-                          onClick={handleClose}
-                          sx={buttonStyles.close}
-                        >
-                          Cerrar
-                        </Button>
-                      ) : (
                         <>
+                          <Button
+                            variant="contained"
+                            color="error"
+                            onClick={handleDelete}
+                            disabled={saving}
+                          >
+                            {saving ? "Eliminando..." : "Eliminar"}
+                          </Button>
                           <Button
                             variant="outlined"
                             onClick={handleClose}
-                            sx={buttonStyles.cancel}
+                            sx={buttonStyles.close}
                           >
-                            Cancelar
+                            Cerrar
                           </Button>
-                          <Button
-                            variant="contained"
-                            onClick={handleSubmit}
-                            sx={buttonStyles.save}
-                          >
-                            {editMode ? "Actualizar" : "Guardar"}
-                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Box />
+                          <Box sx={{ display: "flex", gap: 2 }}>
+                            <Button
+                              variant="outlined"
+                              onClick={handleClose}
+                              sx={buttonStyles.cancel}
+                              disabled={saving}
+                            >
+                              Cancelar
+                            </Button>
+                            <Button
+                              variant="contained"
+                              onClick={handleSubmit}
+                              sx={buttonStyles.save}
+                              disabled={saving}
+                            >
+                              {saving ? "Guardando..." : editMode ? "Actualizar" : "Guardar"}
+                            </Button>
+                          </Box>
                         </>
                       )}
                     </Box>
@@ -498,6 +614,22 @@ export function BajaAnimalesSection() {
             </ThemeProvider>
           </DialogContent>
         </Dialog>
+
+        {/* Snackbar para notificaciones */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Box>
     </ThemeProvider>
   )

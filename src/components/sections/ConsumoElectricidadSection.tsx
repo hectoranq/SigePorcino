@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Box,
   Typography,
@@ -16,10 +16,22 @@ import {
   DialogContent,
   TextField,
   Grid,
+  CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material"
 import { Add, KeyboardArrowDown } from "@mui/icons-material"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
 import { buttonStyles, headerColors, headerAccentColors, sectionHeaderStyle, headerBarStyle } from "./buttonStyles"
+import {
+  listConsumoElectricidad,
+  createConsumoElectricidad,
+  updateConsumoElectricidad,
+  deleteConsumoElectricidad,
+  type ConsumoElectricidad,
+} from "../../action/ConsumoElectricidadPocket"
+import  useUserStore  from "../../_store/user"
+import  useFarmFormStore  from "../../_store/farm"
 
 const theme = createTheme({
   palette: {
@@ -34,55 +46,110 @@ const theme = createTheme({
 })
 
 interface ConsumoElectricidadData {
+  id?: string
   energiaConsumida: string
   fecha: string
-  fechaCreacion: string
-  fechaUltimaActualizacion: string
 }
 
 export function ConsumoElectricidadSection() {
+  // Stores
+  const token = useUserStore((state) => state.token)
+  const userId = useUserStore((state) => state.record?.id)
+  const currentFarm = useFarmFormStore((state) => state.currentFarm)
+
   // Estados para el popup
   const [open, setOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [viewMode, setViewMode] = useState(false)
-  const [editIndex, setEditIndex] = useState<number | null>(null)
+  const [currentRegistroId, setCurrentRegistroId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     energiaConsumida: "",
     fecha: "",
   })
 
+  // Estados de carga
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
   // Estado para la tabla de consumo de electricidad
-  const [consumoElectricidadData, setConsumoElectricidadData] = useState<ConsumoElectricidadData[]>([
-    {
-      energiaConsumida: "4850.5",
-      fecha: "2024-01-31",
-      fechaCreacion: "31/01/2024",
-      fechaUltimaActualizacion: "01/02/2024",
-    },
-    {
-      energiaConsumida: "5120.8",
-      fecha: "2024-02-29",
-      fechaCreacion: "29/02/2024",
-      fechaUltimaActualizacion: "01/03/2024",
-    },
-    {
-      energiaConsumida: "4675.2",
-      fecha: "2023-12-31",
-      fechaCreacion: "31/12/2023",
-      fechaUltimaActualizacion: "02/01/2024",
-    },
-    {
-      energiaConsumida: "5340.7",
-      fecha: "2024-03-31",
-      fechaCreacion: "31/03/2024",
-      fechaUltimaActualizacion: "01/04/2024",
-    },
-  ])
+  const [consumoElectricidadData, setConsumoElectricidadData] = useState<ConsumoElectricidadData[]>([])
+
+  // Estado para Snackbar
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean
+    message: string
+    severity: "success" | "error" | "info" | "warning"
+  }>({
+    open: false,
+    message: "",
+    severity: "info",
+  })
+
+  // Función para convertir fecha ISO a YYYY-MM-DD
+  const formatDateForInput = (isoDate: string) => {
+    if (!isoDate) return ""
+    return isoDate.split("T")[0].split(" ")[0]
+  }
+
+  // Función para convertir datos de la API al formato local
+  const convertAPItoLocal = (apiData: ConsumoElectricidad): ConsumoElectricidadData => {
+    return {
+      id: apiData.id,
+      energiaConsumida: apiData.energia_consumida?.toString() || "0",
+      fecha: formatDateForInput(apiData.fecha),
+    }
+  }
+
+  // Función para convertir datos locales al formato de la API
+  const convertLocalToAPI = (localData: typeof formData) => {
+    return {
+      energia_consumida: parseFloat(localData.energiaConsumida) || 0,
+      fecha: localData.fecha,
+      farm: currentFarm?.id || "",
+      user: userId || "",
+    }
+  }
+
+  // Cargar datos desde la API
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!token || !userId || !currentFarm?.id) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        const response = await listConsumoElectricidad(token, userId, currentFarm.id)
+        if (response.success && response.data) {
+          const convertedData = response.data.items.map((item: any) =>
+            convertAPItoLocal(item as ConsumoElectricidad)
+          )
+          setConsumoElectricidadData(convertedData)
+        }
+      } catch (error) {
+        console.error("Error al cargar registros de consumo de electricidad:", error)
+        setSnackbar({
+          open: true,
+          message: "Error al cargar los registros de consumo de electricidad",
+          severity: "error",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [token, userId, currentFarm?.id])
 
   const handleOpen = () => {
     setEditMode(false)
     setViewMode(false)
-    setEditIndex(null)
+    setCurrentRegistroId(null)
+    setFormData({
+      energiaConsumida: "",
+      fecha: "",
+    })
     setOpen(true)
   }
 
@@ -92,12 +159,12 @@ export function ConsumoElectricidadSection() {
     
     setFormData({
       energiaConsumida: item.energiaConsumida,
-      fecha: item.fecha,
+      fecha: formatDateForInput(item.fecha),
     })
     
     setEditMode(true)
     setViewMode(false)
-    setEditIndex(index)
+    setCurrentRegistroId(item.id || null)
     setOpen(true)
   }
 
@@ -107,12 +174,12 @@ export function ConsumoElectricidadSection() {
     
     setFormData({
       energiaConsumida: item.energiaConsumida,
-      fecha: item.fecha,
+      fecha: formatDateForInput(item.fecha),
     })
     
     setEditMode(false)
     setViewMode(true)
-    setEditIndex(index)
+    setCurrentRegistroId(item.id || null)
     setOpen(true)
   }
 
@@ -141,44 +208,114 @@ export function ConsumoElectricidadSection() {
     setOpen(false)
     setEditMode(false)
     setViewMode(false)
-    setEditIndex(null)
+    setCurrentRegistroId(null)
     setFormData({
       energiaConsumida: "",
       fecha: "",
     })
   }
 
-  const handleSubmit = () => {
-    console.log("Datos de consumo de electricidad:", formData)
-
+  const handleSubmit = async () => {
     // Validar que los campos requeridos estén llenos
     if (!formData.energiaConsumida || !formData.fecha) {
-      alert("Por favor, completa todos los campos requeridos")
+      setSnackbar({
+        open: true,
+        message: "Por favor, completa todos los campos requeridos",
+        severity: "warning",
+      })
       return
     }
 
-    const consumoElectricidadItem = {
-      energiaConsumida: formData.energiaConsumida,
-      fecha: formData.fecha,
-      fechaCreacion: editMode 
-        ? consumoElectricidadData[editIndex!].fechaCreacion 
-        : formatDateToDisplay(formData.fecha),
-      fechaUltimaActualizacion: formatDateToDisplay(formData.fecha),
+    if (!token || !userId || !currentFarm?.id) {
+      setSnackbar({
+        open: true,
+        message: "Error: No se encontró información de autenticación",
+        severity: "error",
+      })
+      return
     }
 
-    if (editMode && editIndex !== null) {
-      // Actualizar elemento existente
-      setConsumoElectricidadData((prev) => 
-        prev.map((item, index) => 
-          index === editIndex ? consumoElectricidadItem : item
-        )
-      )
-    } else {
-      // Agregar nuevo elemento
-      setConsumoElectricidadData((prev) => [...prev, consumoElectricidadItem])
+    try {
+      setSaving(true)
+      const apiData = convertLocalToAPI(formData)
+
+      if (editMode && currentRegistroId) {
+        // Actualizar registro existente
+        const response = await updateConsumoElectricidad(token, currentRegistroId, apiData, userId)
+        if (response.success) {
+          setConsumoElectricidadData((prev) =>
+            prev.map((item) =>
+              item.id === currentRegistroId ? convertAPItoLocal(response.data as ConsumoElectricidad) : item
+            )
+          )
+          setSnackbar({
+            open: true,
+            message: "Registro de consumo de electricidad actualizado exitosamente",
+            severity: "success",
+          })
+        }
+      } else {
+        // Crear nuevo registro
+        const response = await createConsumoElectricidad(token, apiData)
+        if (response.success) {
+          setConsumoElectricidadData((prev) => [...prev, convertAPItoLocal(response.data as ConsumoElectricidad)])
+          setSnackbar({
+            open: true,
+            message: "Registro de consumo de electricidad creado exitosamente",
+            severity: "success",
+          })
+        }
+      }
+
+      handleClose()
+    } catch (error: any) {
+      console.error("Error al guardar registro de consumo de electricidad:", error)
+      setSnackbar({
+        open: true,
+        message: error?.message || "Error al guardar el registro de consumo de electricidad",
+        severity: "error",
+      })
+    } finally {
+      setSaving(false)
     }
-    
-    handleClose()
+  }
+
+  const handleDelete = async () => {
+    if (!currentRegistroId || !token || !userId) {
+      setSnackbar({
+        open: true,
+        message: "Error: No se puede eliminar el registro",
+        severity: "error",
+      })
+      return
+    }
+
+    if (!window.confirm("¿Estás seguro de que deseas eliminar este registro de consumo de electricidad?")) {
+      return
+    }
+
+    try {
+      setSaving(true)
+      const response = await deleteConsumoElectricidad(token, currentRegistroId, userId)
+      if (response.success) {
+        setConsumoElectricidadData((prev) => prev.filter((item) => item.id !== currentRegistroId))
+        setSnackbar({
+          open: true,
+          message: "Registro de consumo de electricidad eliminado exitosamente",
+          severity: "success",
+        })
+        handleClose()
+      }
+    } catch (error: any) {
+      console.error("Error al eliminar registro de consumo de electricidad:", error)
+      setSnackbar({
+        open: true,
+        message: error?.message || "Error al eliminar el registro de consumo de electricidad",
+        severity: "error",
+      })
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -188,6 +325,11 @@ export function ConsumoElectricidadSection() {
         <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
           {/* Page Content */}
           <Box sx={{ flexGrow: 1, p: 3, bgcolor: "grey.50" }}>
+            {loading ? (
+              <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "50vh" }}>
+                <CircularProgress />
+              </Box>
+            ) : (
             <Paper elevation={1} sx={{ borderRadius: 2 }}>
 {/* Header */}
               <Box sx={sectionHeaderStyle}>
@@ -296,6 +438,7 @@ export function ConsumoElectricidadSection() {
                 </Table>
               </TableContainer>
             </Paper>
+            )}
           </Box>
         </Box>
 
@@ -339,6 +482,7 @@ export function ConsumoElectricidadSection() {
                       <Grid item xs={12}>
                         <TextField
                           fullWidth
+                          label="Energía consumida"
                           placeholder="Energía consumida (kWh)"
                           variant="standard"
                           type="number"
@@ -366,9 +510,9 @@ export function ConsumoElectricidadSection() {
                         <TextField
                           fullWidth
                           label="Fecha de registro"
-                          type="date"
+                          type={viewMode ? "text" : "date"}
                           variant="standard"
-                          value={formData.fecha}
+                          value={viewMode ? formatDateToDisplay(formData.fecha) : formData.fecha}
                           onChange={(e) => setFormData((prev) => ({ ...prev, fecha: e.target.value }))}
                           InputLabelProps={{
                             shrink: true,
@@ -415,31 +559,47 @@ export function ConsumoElectricidadSection() {
                     )}
 
                     {/* Botones dinámicos según el modo */}
-                    <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-{viewMode ? (
-                        <Button
-                          variant="outlined"
-                          onClick={handleClose}
-                          sx={buttonStyles.close}
-                        >
-                          Cerrar
-                        </Button>
-                      ) : (
+                    <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
+                      {viewMode && currentRegistroId ? (
                         <>
                           <Button
                             variant="outlined"
-                            onClick={handleClose}
-                            sx={buttonStyles.cancel}
+                            color="error"
+                            onClick={handleDelete}
+                            disabled={saving}
                           >
-                            Cancelar
+                            {saving ? "Eliminando..." : "Eliminar"}
                           </Button>
                           <Button
-                            variant="contained"
-                            onClick={handleSubmit}
-                            sx={buttonStyles.save}
+                            variant="outlined"
+                            onClick={handleClose}
+                            disabled={saving}
+                            sx={buttonStyles.close}
                           >
-                            {editMode ? "Actualizar" : "Guardar"}
+                            Cerrar
                           </Button>
+                        </>
+                      ) : (
+                        <>
+                          <div />
+                          <Box sx={{ display: "flex", gap: 2 }}>
+                            <Button
+                              variant="outlined"
+                              onClick={handleClose}
+                              disabled={saving}
+                              sx={buttonStyles.cancel}
+                            >
+                              Cancelar
+                            </Button>
+                            <Button
+                              variant="contained"
+                              onClick={handleSubmit}
+                              disabled={saving}
+                              sx={buttonStyles.save}
+                            >
+                              {saving ? "Guardando..." : editMode ? "Actualizar" : "Guardar"}
+                            </Button>
+                          </Box>
                         </>
                       )}
                     </Box>
@@ -449,6 +609,22 @@ export function ConsumoElectricidadSection() {
             </ThemeProvider>
           </DialogContent>
         </Dialog>
+
+        {/* Snackbar para notificaciones */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Box>
     </ThemeProvider>
   )
