@@ -12,13 +12,14 @@ import {
 import useFarmFormStore from "../../_store/farm";
 import useUserStore from "../../_store/user";
 import { fetchParameters, parametersGroupsAndSpeciesGrouped } from "../../data/repository";
-import { registerFarm } from "../../action/registerFarm";
+import { updateFarm } from "../../action/FarmsPocket";
 
 export const DatosGranjaSection = () => {
   const currentFarm = useFarmFormStore((state) => state.currentFarm);
   const setCurrentFarm = useFarmFormStore((state) => state.setCurrentFarm);
-  const updateFarm = useFarmFormStore((state) => state.updateFarm);
+  const updateFarmInStore = useFarmFormStore((state) => state.updateFarm);
   const userId = useUserStore((state) => state.record.id);
+  const token = useUserStore((state) => state.token);
 
   const [farmFormData, setFarmFormData] = useState({
     REGA: "",
@@ -150,6 +151,14 @@ export const DatosGranjaSection = () => {
         return;
       }
 
+      if (!token) {
+        setSnackbarMessage("Error: No se encontró el token de autenticación");
+        setSnackbarSeverity("error");
+        setOpenSnackbar(true);
+        setIsLoading(false);
+        return;
+      }
+
       if (!currentFarm?.id) {
         setSnackbarMessage("Error: No hay una granja seleccionada");
         setSnackbarSeverity("error");
@@ -160,33 +169,33 @@ export const DatosGranjaSection = () => {
 
       console.log("💾 Guardando cambios de granja...", farmFormData);
 
-      // Convertir a FormData
-      const formData = new FormData();
-      Object.entries(farmFormData).forEach(([key, value]) => {
-        if (value !== null && value !== undefined) {
-          formData.append(key, value as string);
-        }
-      });
+      // Llamar al método updateFarm de FarmsPocket
+      const response = await updateFarm(
+        token,
+        currentFarm.id,
+        farmFormData,
+        userId
+      );
 
-      // Actualizar granja
-      const updatedFarm = await registerFarm(formData, userId);
-
-      if (updatedFarm) {
-        console.log("✅ Granja actualizada:", updatedFarm);
+      if (response.success) {
+        console.log("✅ Granja actualizada:", response.data);
         
-        // Actualizar en el store usando updateFarm
-        updateFarm(currentFarm.id, updatedFarm as any);
+        // Actualizar en el store usando updateFarmInStore
+        updateFarmInStore(currentFarm.id, response.data as any);
         
         // También actualizar currentFarm
-        setCurrentFarm({ ...currentFarm, ...updatedFarm } as any);
+        setCurrentFarm({ ...currentFarm, ...response.data } as any);
         
         setSnackbarMessage("✅ Datos de la granja actualizados exitosamente");
         setSnackbarSeverity("success");
         setOpenSnackbar(true);
+      } else {
+        throw new Error(response.message || "Error al actualizar granja");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ Error al actualizar granja:", error);
-      setSnackbarMessage("Error al actualizar los datos. Por favor, intenta de nuevo.");
+      const errorMessage = error?.message || "Error al actualizar los datos. Por favor, intenta de nuevo.";
+      setSnackbarMessage(errorMessage);
       setSnackbarSeverity("error");
       setOpenSnackbar(true);
     } finally {
