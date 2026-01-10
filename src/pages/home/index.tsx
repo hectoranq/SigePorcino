@@ -42,14 +42,15 @@ import {
   Restaurant,
   Pets,
   TrendingUp,
+  FileDownload,
 } from "@mui/icons-material"
 import theme from "../../components/theme"
 import { useRouter } from "next/router";
 
 import MainSection from "../../components/sections/MainSection";
 import useUserStore from "../../_store/user";
-import { fetchFarmsByUserId, parametersGroupsAndSpeciesGrouped, fetchParameters } from "../../data/repository";
-import MainDescriptionFarm from "../../components/sections/MainDescriptionFarm";
+import { parametersGroupsAndSpeciesGrouped, fetchParameters } from "../../data/repository";
+import { listFarms } from "../../action/FarmsPocket";
 import { TrainingCoursesSection } from "../../components/sections/TrainingCoursesSection";
 import { PersonalRegisterSection } from "../../components/sections/PersonalRegisterSection";
 import LinkedCompaniesManagersPage from "../../components/sections/LinkedCompaniesManagersSection";
@@ -71,6 +72,7 @@ import { ConsumoAguaSection } from "../../components/sections/ConsumoAguaSection
 import { ConsumoElectricidadSection } from "../../components/sections/ConsumoElectricidadSection";
 import { EntradasCombustibleSection } from "../../components/sections/EntradasCombustibleSection";
 import useFarmFormStore from "../../_store/farm"
+import type { FarmFormData } from "../../_store/farm"
 import { registerFarm } from "../../action/registerFarm";
 import { RegistroVeterinarioSection } from "../../components/sections/RegistroVeterinarioSection";
 import { PlanLLDSection } from "../../components/sections/PlanLLDSection ";
@@ -82,6 +84,8 @@ import { PlanFormacionSection } from "../../components/sections/PlanFormacionSec
 import { PlanBioseguridadSection } from "../../components/sections/PlanBioseguridadSection";
 import { PlanSanitarioSection } from "../../components/sections/PlanSanitarioSection";
 import { DatosGranjaSection } from "../../components/sections/DatosGranjaSection";
+import { ExportarInformacionSection } from "../../components/sections/ExportarInformacionSection";
+import MainDescriptionFarm from "../../components/sections/MainDescriptionFarm";
 
 const drawerWidth = 320
 
@@ -89,6 +93,7 @@ const Home = () => {
     const router = useRouter();
     const [openPersonal, setOpenPersonal] = useState(false)
     const [openOtherSections, setOpenOtherSections] = useState<{ [key: string]: boolean }>({})
+    const [openConfig, setOpenConfig] = useState(false)
     const [mobileOpen, setMobileOpen] = useState(false);
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -96,6 +101,7 @@ const Home = () => {
     const farms = useFarmFormStore(state => state.farms);
     const currentFarm = useFarmFormStore(state => state.currentFarm);
     const setCurrentFarm = useFarmFormStore(state => state.setCurrentFarm);
+    const setFarms = useFarmFormStore(state => state.setFarms);
     
     
     const [activeSection, setActiveSection] = useState<string>("main");
@@ -131,6 +137,8 @@ const Home = () => {
     const handleToggle = (section: string) => {
       if (section === "personal") {
         setOpenPersonal(!openPersonal)
+      } else if (section === "config") {
+        setOpenConfig(!openConfig)
       } else {
         setOpenOtherSections((prev) => ({
           ...prev,
@@ -144,6 +152,7 @@ const Home = () => {
     };
 
     const handleLogout = () => {
+      resetUser();
       localStorage.clear();
       router.push('/');
     };
@@ -384,18 +393,18 @@ const Home = () => {
                       sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
                     />
                   </ListItemButton>
-                  <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("gestores_autorizados")}>
+                  {/* <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("gestores_autorizados")}>
                     <ListItemText
                       primary="Gestores autorizados"
                       sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
                     />
-                  </ListItemButton>
-                  <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("gestion_rega")}>
+                  </ListItemButton> */}
+                  {/* <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("gestion_rega")}>
                     <ListItemText
                       primary="Gestión de REGA"
                       sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
                     />
-                  </ListItemButton>
+                  </ListItemButton> */}
                 </List>
               </Collapse>
               </Paper>
@@ -699,13 +708,27 @@ const Home = () => {
         <Box sx={{ p: 2, borderTop: "1px solid", borderColor: "grey.200" }}>
           <List disablePadding>
             <ListItem disablePadding>
-              <ListItemButton sx={{ borderRadius: 2, mb: 0.5 }}>
+              <ListItemButton onClick={() => handleToggle("config")} sx={{ borderRadius: 2, mb: 0.5 }}>
                 <ListItemIcon>
                   <Settings />
                 </ListItemIcon>
                 <ListItemText primary="Configuración" />
+                {openConfig ? <ExpandLess /> : <ExpandMore />}
               </ListItemButton>
             </ListItem>
+            <Collapse in={openConfig} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding>
+                <ListItemButton
+                  sx={{ pl: 4, borderRadius: 2, mb: 0.5 }}
+                  onClick={() => setActiveSection("exportar-informacion")}
+                >
+                  <ListItemIcon>
+                    <FileDownload />
+                  </ListItemIcon>
+                  <ListItemText primary="Exportar Información" />
+                </ListItemButton>
+              </List>
+            </Collapse>
             <ListItem disablePadding>
               <ListItemButton onClick={handleLogout} sx={{ borderRadius: 2 }}>
                 <ListItemIcon>
@@ -721,31 +744,62 @@ const Home = () => {
 
     const token = useUserStore(state => state.token);
     const userId = useUserStore(state => state.record.id);
+    const isTokenValid = useUserStore(state => state.isTokenValid);
+    const resetUser = useUserStore(state => state.resetUser);
+
+    // Validar expiración del token periódicamente
+    useEffect(() => {
+      // Verificar inmediatamente al cargar el componente
+      if (!isTokenValid()) {
+        console.log("⚠️ Token expirado, cerrando sesión...");
+        resetUser();
+        localStorage.clear();
+        router.push('/');
+        return;
+      }
+
+      // Verificar cada 5 minutos
+      const intervalId = setInterval(() => {
+        if (!isTokenValid()) {
+          console.log("⚠️ Token expirado, cerrando sesión...");
+          resetUser();
+          localStorage.clear();
+          router.push('/');
+        }
+      }, 5 * 60 * 1000); // 5 minutos
+
+      return () => clearInterval(intervalId);
+    }, [isTokenValid, resetUser, router]);
 
     useEffect(() => {
       if (token && userId) {
         console.log("🔄 Cargando granjas para usuario:", userId);
-        fetchFarmsByUserId(userId, token)
-          .then(() => {
-            // Las granjas se guardan automáticamente en el store
-            // Si hay granjas y no hay una seleccionada, seleccionar la primera
-            const farms = useFarmFormStore.getState().farms;
-            const currentFarm = useFarmFormStore.getState().currentFarm;
-            
-            console.log("✅ Granjas cargadas:", farms.length);
-            
-            if (farms.length > 0 && !currentFarm) {
-              console.log("📍 Estableciendo granja actual:", farms[0].farm_name);
-              useFarmFormStore.getState().setCurrentFarm(farms[0]);
-            } else if (currentFarm) {
-              console.log("📍 Granja actual ya establecida:", currentFarm.farm_name);
+        listFarms(token, userId)
+          .then((response) => {
+            if (response.success && response.data.items) {
+              // Guardar las granjas en el store usando setFarms
+              setFarms(response.data.items as FarmFormData[]);
+              
+              console.log("✅ Granjas cargadas:", response.data.items.length);
+              
+              // Si hay granjas y no hay una seleccionada, seleccionar la primera
+              const currentFarm = useFarmFormStore.getState().currentFarm;
+              
+              if (response.data.items.length > 0 && !currentFarm) {
+                console.log("📍 Estableciendo granja actual:", response.data.items[0].farm_name);
+                setCurrentFarm(response.data.items[0] as FarmFormData);
+              } else if (currentFarm) {
+                console.log("📍 Granja actual ya establecida:", currentFarm.farm_name);
+              }
+            } else {
+              console.warn("⚠️ No se pudieron cargar las granjas");
             }
           })
           .catch((err) => {
             console.error("❌ Error al cargar granjas:", err);
           });
       }
-    }, [userId, token]);
+    }, [userId, token, setFarms, setCurrentFarm]);
 
     return (
       <ThemeProvider theme={theme}>
@@ -793,8 +847,8 @@ const Home = () => {
                 {activeSection === "cursos_formacion" && "Información del personal"}
                 {activeSection === "descripcion_granja" && "Información de la granja"}
                 {activeSection === "datos_granja" && "Información de la granja"}
-                {activeSection === "gestores_autorizados" && "Información de la granja"}
-                {activeSection === "gestion_rega" && "Información de la granja"}
+                {/* {activeSection === "gestores_autorizados" && "Información de la granja"} */}
+                {/* {activeSection === "gestion_rega" && "Información de la granja"} */}
                 {activeSection === "empresas_vinculadas" && "Información del personal"}
                 {activeSection === "registro_personal" && "Información del personal"}
                 {activeSection === "registro_veterinario" && "Información del personal"}
@@ -838,10 +892,10 @@ const Home = () => {
                       return "Descripción de granja";
                     case "datos_granja":
                       return "Datos de la granja";
-                    case "gestores_autorizados":
-                      return "Gestores autorizados";
-                    case "gestion_rega":
-                      return "Gestión de REGA";
+                    // case "gestores_autorizados":
+                    //   return "Gestores autorizados";
+                    // case "gestion_rega":
+                    //   return "Gestión de REGA";
                     case "empresas_vinculadas":
                       return "Empresas vinculadas y gestores autorizados";
                     case "registro_personal":
@@ -923,12 +977,12 @@ const Home = () => {
 
             {activeSection === "descripcion_granja" && <MainDescriptionFarm />}
             {activeSection === "datos_granja" && <DatosGranjaSection />}
-            {activeSection === "gestores_autorizados" && (
+            {/* {activeSection === "gestores_autorizados" && (
               <Typography variant="h5">Aquí van los gestores autorizados</Typography>
-            )}
-            {activeSection === "gestion_rega" && (
+            )} */}
+            {/* {activeSection === "gestion_rega" && (
               <Typography variant="h5">Aquí va la gestión de REGA</Typography>
-            )}
+            )} */}
             {activeSection === "empresas_vinculadas" && (
               <LinkedCompaniesManagersPage 
                 token={token}
@@ -976,6 +1030,9 @@ const Home = () => {
             {activeSection === "consumo_agua" && <ConsumoAguaSection />}
             {activeSection === "consumo_electricidad" && <ConsumoElectricidadSection />}
             {activeSection === "entradas_combustible" && <EntradasCombustibleSection />}
+
+            {/* Sección de Configuración */}
+            {activeSection === "exportar-informacion" && <ExportarInformacionSection />}
           </Box>
         </Box>
 

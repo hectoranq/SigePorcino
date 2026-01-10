@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Box,
   Typography,
@@ -16,10 +16,22 @@ import {
   DialogContent,
   TextField,
   Grid,
+  CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material"
 import { Add, KeyboardArrowDown } from "@mui/icons-material"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
 import { buttonStyles, headerColors, headerAccentColors } from "./buttonStyles"
+import useUserStore from "../../_store/user"
+import useFarmFormStore from "../../_store/farm"
+import {
+  getMantenimientoEquiposByFarmId,
+  createMantenimientoEquipos,
+  updateMantenimientoEquipos,
+  deleteMantenimientoEquipos,
+  MantenimientoEquipos as APIMantenimientoEquipos,
+} from "../../action/MantenimientoEquiposPocket"
 
 const theme = createTheme({
   palette: {
@@ -34,6 +46,7 @@ const theme = createTheme({
 })
 
 interface MantenimientoEquiposData {
+  id?: string
   nombreEquipo: string
   fecha: string
   revision: string
@@ -44,7 +57,15 @@ interface MantenimientoEquiposData {
 }
 
 export function MantenimientoEquiposSection() {
-  // Estados para el popup
+  // Stores
+  const { token, record } = useUserStore()
+  const { currentFarm } = useFarmFormStore()
+
+  // Estados
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [currentRegistroId, setCurrentRegistroId] = useState<string | null>(null)
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" })
   const [open, setOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [viewMode, setViewMode] = useState(false)
@@ -57,56 +78,93 @@ export function MantenimientoEquiposSection() {
     observaciones: "",
   })
 
+  // Función para formatear fecha
+  const formatDateToDisplay = (dateString: string) => {
+    if (!dateString) return "Sin fecha"
+    const date = new Date(dateString)
+    return date.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    })
+  }
+
+  // Convertir de API a formato local
+  const convertAPItoLocal = (apiData: APIMantenimientoEquipos): MantenimientoEquiposData => {
+    return {
+      id: apiData.id,
+      nombreEquipo: apiData.nombre_equipo,
+      fecha: apiData.fecha,
+      revision: apiData.revision,
+      proximaRevision: apiData.proxima_revision,
+      observaciones: apiData.observaciones || "",
+      fechaCreacion: formatDateToDisplay(apiData.created || ""),
+      fechaUltimaActualizacion: formatDateToDisplay(apiData.updated || ""),
+    }
+  }
+
+  // Convertir de formato local a API
+  const convertLocalToAPI = (localData: any): Partial<APIMantenimientoEquipos> => {
+    return {
+      nombre_equipo: localData.nombreEquipo,
+      fecha: localData.fecha,
+      revision: localData.revision,
+      proxima_revision: localData.proximaRevision,
+      observaciones: localData.observaciones,
+      farm: currentFarm!.id,
+      user: record!.id,
+    }
+  }
+
+  // useEffect para cargar datos de la API
+  useEffect(() => {
+    const loadMantenimientoEquipos = async () => {
+      if (!token || !record?.id || !currentFarm?.id) return
+      
+      setLoading(true)
+      try {
+        const registros = await getMantenimientoEquiposByFarmId(currentFarm.id, token, record.id)
+        if (registros.success && registros.data.items) {
+          const convertedData = (registros.data.items as APIMantenimientoEquipos[]).map(convertAPItoLocal)
+          setMantenimientoEquiposData(convertedData)
+        }
+      } catch (error) {
+        console.error("Error al cargar mantenimiento de equipos:", error)
+        setSnackbar({ open: true, message: "Error al cargar los datos", severity: "error" })
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadMantenimientoEquipos()
+  }, [token, record, currentFarm])
+
+  // Función para cargar registro en el formulario
+  const loadRegistroToForm = (registro: MantenimientoEquiposData) => {
+    setFormData({
+      nombreEquipo: registro.nombreEquipo,
+      fecha: registro.fecha,
+      revision: registro.revision,
+      proximaRevision: registro.proximaRevision,
+      observaciones: registro.observaciones,
+    })
+  }
+
   // Estado para la tabla de mantenimiento de equipos
-  const [mantenimientoEquiposData, setMantenimientoEquiposData] = useState<MantenimientoEquiposData[]>([
-    {
-      nombreEquipo: "Sistema de alimentación automática - Línea A",
-      fecha: "2023-11-20",
-      revision: "Mantenimiento preventivo completo, limpieza de tolvas y calibración",
-      proximaRevision: "2024-05-20",
-      observaciones: "Funcionamiento óptimo, se reemplazaron dos sensores de nivel",
-      fechaCreacion: "20/11/2023",
-      fechaUltimaActualizacion: "21/11/2023",
-    },
-    {
-      nombreEquipo: "Bomba de agua principal - Sector Norte",
-      fecha: "2024-01-15",
-      revision: "Inspección de sellos, cambio de filtros y verificación de presión",
-      proximaRevision: "2024-07-15",
-      observaciones: "Se detectó ligera vibración, programar revisión de rodamientos",
-      fechaCreacion: "15/01/2024",
-      fechaUltimaActualizacion: "16/01/2024",
-    },
-    {
-      nombreEquipo: "Ventiladores nave 3 - Sistema de climatización",
-      fecha: "2023-09-10",
-      revision: "Limpieza de aspas, engrase de motores y verificación eléctrica",
-      proximaRevision: "2024-03-10",
-      observaciones: "Rendimiento adecuado, se ajustó la velocidad de dos unidades",
-      fechaCreacion: "10/09/2023",
-      fechaUltimaActualizacion: "12/09/2023",
-    },
-  ])
+  const [mantenimientoEquiposData, setMantenimientoEquiposData] = useState<MantenimientoEquiposData[]>([])
 
   const handleOpen = () => {
     setEditMode(false)
     setViewMode(false)
     setEditIndex(null)
+    setCurrentRegistroId(null)
     setOpen(true)
   }
 
   // Función para abrir en modo edición
   const handleEdit = (index: number) => {
     const item = mantenimientoEquiposData[index]
-    
-    setFormData({
-      nombreEquipo: item.nombreEquipo,
-      fecha: item.fecha,
-      revision: item.revision,
-      proximaRevision: item.proximaRevision,
-      observaciones: item.observaciones,
-    })
-    
+    loadRegistroToForm(item)
+    setCurrentRegistroId(item.id || null)
     setEditMode(true)
     setViewMode(false)
     setEditIndex(index)
@@ -131,24 +189,12 @@ export function MantenimientoEquiposSection() {
     setOpen(true)
   }
 
-
-
-  // Función para convertir fecha de YYYY-MM-DD a DD/MM/YYYY
-  const formatDateToDisplay = (dateString: string) => {
-    if (!dateString) return "Sin fecha"
-    const date = new Date(dateString)
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    })
-  }
-
   const handleClose = () => {
     setOpen(false)
     setEditMode(false)
     setViewMode(false)
     setEditIndex(null)
+    setCurrentRegistroId(null)
     setFormData({
       nombreEquipo: "",
       fecha: "",
@@ -158,40 +204,74 @@ export function MantenimientoEquiposSection() {
     })
   }
 
-  const handleSubmit = () => {
-    console.log("Datos de mantenimiento de equipos:", formData)
-
+  const handleSubmit = async () => {
     // Validar que los campos requeridos estén llenos
     if (!formData.nombreEquipo || !formData.fecha || !formData.revision) {
-      alert("Por favor, completa todos los campos requeridos")
+      setSnackbar({ open: true, message: "Por favor, completa todos los campos requeridos", severity: "error" })
       return
     }
 
-    const mantenimientoEquiposItem = {
-      nombreEquipo: formData.nombreEquipo,
-      fecha: formData.fecha,
-      revision: formData.revision,
-      proximaRevision: formData.proximaRevision,
-      observaciones: formData.observaciones,
-      fechaCreacion: editMode 
-        ? mantenimientoEquiposData[editIndex!].fechaCreacion 
-        : formatDateToDisplay(formData.fecha),
-      fechaUltimaActualizacion: formatDateToDisplay(formData.fecha),
+    if (!formData.proximaRevision) {
+      setSnackbar({ open: true, message: "Por favor, completa la fecha de próxima revisión", severity: "error" })
+      return
     }
 
-    if (editMode && editIndex !== null) {
-      // Actualizar elemento existente
-      setMantenimientoEquiposData((prev) => 
-        prev.map((item, index) => 
-          index === editIndex ? mantenimientoEquiposItem : item
-        )
-      )
-    } else {
-      // Agregar nuevo elemento
-      setMantenimientoEquiposData((prev) => [...prev, mantenimientoEquiposItem])
+    setSaving(true)
+    try {
+      const dataToSend = convertLocalToAPI(formData)
+
+      if (currentRegistroId) {
+        // Actualizar registro existente
+        await updateMantenimientoEquipos(token!, currentRegistroId, dataToSend, record!.id)
+        setSnackbar({ open: true, message: "Registro actualizado exitosamente", severity: "success" })
+      } else {
+        // Crear nuevo registro
+        await createMantenimientoEquipos(token!, dataToSend as any)
+        setSnackbar({ open: true, message: "Registro creado exitosamente", severity: "success" })
+      }
+
+      // Recargar datos
+      const registros = await getMantenimientoEquiposByFarmId(currentFarm!.id, token!, record!.id)
+      if (registros.success && registros.data.items) {
+        const convertedData = (registros.data.items as APIMantenimientoEquipos[]).map(convertAPItoLocal)
+        setMantenimientoEquiposData(convertedData)
+      }
+
+      handleClose()
+    } catch (error: any) {
+      console.error("Error al guardar:", error)
+      setSnackbar({ open: true, message: error.message || "Error al guardar el registro", severity: "error" })
+    } finally {
+      setSaving(false)
     }
+  }
+
+  const handleDelete = async (index: number) => {
+    const item = mantenimientoEquiposData[index]
     
-    handleClose()
+    if (!item.id) {
+      setSnackbar({ open: true, message: "No se puede eliminar: ID no encontrado", severity: "error" })
+      return
+    }
+
+    if (!window.confirm("¿Estás seguro de que deseas eliminar este registro?")) {
+      return
+    }
+
+    try {
+      await deleteMantenimientoEquipos(token!, item.id, record!.id)
+      setSnackbar({ open: true, message: "Registro eliminado exitosamente", severity: "success" })
+      
+      // Recargar datos
+      const registros = await getMantenimientoEquiposByFarmId(currentFarm!.id, token!, record!.id)
+      if (registros.success && registros.data.items) {
+        const convertedData = (registros.data.items as APIMantenimientoEquipos[]).map(convertAPItoLocal)
+        setMantenimientoEquiposData(convertedData)
+      }
+    } catch (error: any) {
+      console.error("Error al eliminar:", error)
+      setSnackbar({ open: true, message: error.message || "Error al eliminar el registro", severity: "error" })
+    }
   }
 
   return (
@@ -237,7 +317,12 @@ export function MantenimientoEquiposSection() {
                 </Button>
               </Box>
 
-              <TableContainer>
+              {loading ? (
+                <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", py: 8 }}>
+                  <CircularProgress />
+                </Box>
+              ) : (
+                <TableContainer>
                 <Table>
                   <TableHead sx={{ bgcolor: "grey.100" }}>
                     <TableRow>
@@ -349,6 +434,14 @@ export function MantenimientoEquiposSection() {
                             >
                               Ver más
                             </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="error"
+                              onClick={() => handleDelete(index)}
+                            >
+                              Eliminar
+                            </Button>
                           </Box>
                         </TableCell>
                       </TableRow>
@@ -356,6 +449,7 @@ export function MantenimientoEquiposSection() {
                   </TableBody>
                 </Table>
               </TableContainer>
+              )}
             </Paper>
           </Box>
         </Box>
@@ -375,7 +469,7 @@ export function MantenimientoEquiposSection() {
               <Paper sx={{ maxWidth: 1200, mx: "auto", borderRadius: 2, overflow: "hidden" }}>
                 {/* Header dinámico según el modo */}
                 <Box sx={{ 
-                  bgcolor: viewMode ? headerColors.view : editMode ? headerColors.edit : headerColors.create, 
+                  bgcolor: viewMode ? headerColors.view : currentRegistroId ? headerColors.edit : headerColors.create, 
                   px: 3, 
                   py: 2, 
                   display: "flex", 
@@ -385,11 +479,11 @@ export function MantenimientoEquiposSection() {
                   <Box sx={{ 
                     width: 4, 
                     height: 24, 
-                    bgcolor: viewMode ? headerAccentColors.view : editMode ? headerAccentColors.edit : headerAccentColors.create, 
+                    bgcolor: viewMode ? headerAccentColors.view : currentRegistroId ? headerAccentColors.edit : headerAccentColors.create, 
                     borderRadius: 0.5 
                   }} />
                   <Typography variant="h6" sx={{ color: "white", fontWeight: 500 }}>
-                    {viewMode ? "Detalle de mantenimiento de equipo" : editMode ? "Editar mantenimiento de equipo" : "Registro de mantenimiento de equipo"}
+                    {viewMode ? "Detalle de mantenimiento de equipo" : currentRegistroId ? "Editar mantenimiento de equipo" : "Registro de mantenimiento de equipo"}
                   </Typography>
                 </Box>
 
@@ -399,8 +493,9 @@ export function MantenimientoEquiposSection() {
                     <Grid item xs={8}>
                       <TextField
                         fullWidth
+                        label="Nombre del equipo"
                         placeholder="Nombre del equipo"
-                        variant="standard"
+                        variant="filled"
                         value={formData.nombreEquipo}
                         onChange={(e) => setFormData((prev) => ({ ...prev, nombreEquipo: e.target.value }))}
                         InputProps={{
@@ -418,7 +513,7 @@ export function MantenimientoEquiposSection() {
                         fullWidth
                         label="Fecha"
                         type="date"
-                        variant="standard"
+                        variant="filled"
                         value={formData.fecha}
                         onChange={(e) => setFormData((prev) => ({ ...prev, fecha: e.target.value }))}
                         InputLabelProps={{
@@ -439,8 +534,9 @@ export function MantenimientoEquiposSection() {
                   {/* Revisión */}
                   <TextField
                     fullWidth
+                    label="Revisión"
                     placeholder="Revisión realizada"
-                    variant="standard"
+                    variant="filled"
                     multiline
                     rows={3}
                     value={formData.revision}
@@ -461,7 +557,7 @@ export function MantenimientoEquiposSection() {
                     fullWidth
                     label="Próxima revisión"
                     type="date"
-                    variant="standard"
+                    variant="filled"
                     value={formData.proximaRevision}
                     onChange={(e) => setFormData((prev) => ({ ...prev, proximaRevision: e.target.value }))}
                     InputLabelProps={{
@@ -481,8 +577,9 @@ export function MantenimientoEquiposSection() {
                   {/* Observaciones */}
                   <TextField
                     fullWidth
+                    label="Observaciones"
                     placeholder="Observaciones"
-                    variant="standard"
+                    variant="filled"
                     multiline
                     rows={3}
                     value={formData.observaciones}
@@ -514,6 +611,7 @@ export function MantenimientoEquiposSection() {
                           variant="outlined"
                           onClick={handleClose}
                           sx={buttonStyles.close}
+                          disabled={saving}
                         >
                           Cancelar
                         </Button>
@@ -521,8 +619,10 @@ export function MantenimientoEquiposSection() {
                           variant="contained"
                           onClick={handleSubmit}
                           sx={buttonStyles.save}
+                          disabled={saving}
+                          startIcon={saving ? <CircularProgress size={20} /> : undefined}
                         >
-                          {editMode ? "Actualizar" : "Guardar"}
+                          {saving ? "Guardando..." : currentRegistroId ? "Actualizar" : "Guardar"}
                         </Button>
                       </>
                     )}
@@ -532,6 +632,22 @@ export function MantenimientoEquiposSection() {
             </Box>
           </DialogContent>
         </Dialog>
+        
+        {/* Snackbar para notificaciones */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Box>
     </ThemeProvider>
   )

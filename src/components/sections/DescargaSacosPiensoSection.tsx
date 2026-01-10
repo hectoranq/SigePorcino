@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Box,
   Typography,
@@ -17,10 +17,22 @@ import {
   TextField,
   Grid,
   MenuItem,
+  CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material"
 import { Add, KeyboardArrowDown } from "@mui/icons-material"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
 import { buttonStyles, headerColors, headerAccentColors, sectionHeaderStyle, headerBarStyle } from "./buttonStyles"
+import useUserStore from "../../_store/user"
+import useFarmFormStore from "../../_store/farm"
+import {
+  listDescargaSacosPienso,
+  createDescargaSacosPienso,
+  updateDescargaSacosPienso,
+  deleteDescargaSacosPienso,
+  DescargaSacosPienso as APIDescargaSacosPienso,
+} from "../../action/DescargaSacosPiensoPocket"
 
 const theme = createTheme({
   palette: {
@@ -35,6 +47,7 @@ const theme = createTheme({
 })
 
 interface DescargaSacosPiensoData {
+  id?: string
   transportista: string
   matricula: string
   fechaFinalizacion: string
@@ -58,6 +71,16 @@ const TIPOS_PIENSO = [
 ]
 
 export function DescargaSacosPiensoSection() {
+  // Stores
+  const { token, record } = useUserStore()
+  const { currentFarm } = useFarmFormStore()
+
+  // Estados
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [currentRegistroId, setCurrentRegistroId] = useState<string | null>(null)
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" })
+
   // Estados para el popup
   const [open, setOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
@@ -74,43 +97,70 @@ export function DescargaSacosPiensoSection() {
   })
 
   // Estado para la tabla de descarga de sacos de pienso
-  const [descargaSacosPiensoData, setDescargaSacosPiensoData] = useState<DescargaSacosPiensoData[]>([
-    {
-      transportista: "Transportes Ganaderos del Norte S.L.",
-      matricula: "3456-JKL",
-      fechaFinalizacion: "2024-01-15",
-      tipoPienso: "Pienso Iniciador Lechones",
-      nroSacos: "120",
-      nroLote: "240115",
-      kg: "3000",
-      fechaCreacion: "15/01/2024",
-      fechaUltimaActualizacion: "16/01/2024",
-    },
-    {
-      transportista: "Logística Piensos Ibérica S.A.",
-      matricula: "7890-MNO",
-      fechaFinalizacion: "2024-02-08",
-      tipoPienso: "Pienso Crecimiento Fase II",
-      nroSacos: "200",
-      nroLote: "240208",
-      kg: "5000",
-      fechaCreacion: "08/02/2024",
-      fechaUltimaActualizacion: "09/02/2024",
-    },
-    {
-      transportista: "Distribuciones Agropecuarias del Centro",
-      matricula: "2468-PQR",
-      fechaFinalizacion: "2023-12-20",
-      tipoPienso: "Pienso Acabado Premium",
-      nroSacos: "150",
-      nroLote: "231220",
-      kg: "3750",
-      fechaCreacion: "20/12/2023",
-      fechaUltimaActualizacion: "22/12/2023",
-    },
-  ])
+  const [descargaSacosPiensoData, setDescargaSacosPiensoData] = useState<DescargaSacosPiensoData[]>([])
+
+  // Función para convertir fecha ISO a YYYY-MM-DD
+  const formatDateForInput = (isoDate: string): string => {
+    if (!isoDate) return ""
+    // Extraer solo la parte de fecha (YYYY-MM-DD) sin importar el formato
+    const dateOnly = isoDate.split("T")[0].split(" ")[0]
+    return dateOnly
+  }
+
+  // Función para convertir datos de la API a formato local
+  const convertAPItoLocal = (apiData: APIDescargaSacosPienso): DescargaSacosPiensoData => {
+    return {
+      id: apiData.id,
+      transportista: apiData.transportista,
+      matricula: apiData.matricula,
+      fechaFinalizacion: formatDateForInput(apiData.fecha_finalizacion),
+      tipoPienso: apiData.tipo_pienso,
+      nroSacos: String(apiData.nro_sacos),
+      nroLote: apiData.nro_lote,
+      kg: String(apiData.kg),
+      fechaCreacion: formatDateToDisplay(apiData.created || ""),
+      fechaUltimaActualizacion: formatDateToDisplay(apiData.updated || ""),
+    }
+  }
+
+  // Función para convertir datos locales a formato API
+  const convertLocalToAPI = (localData: typeof formData) => {
+    return {
+      transportista: localData.transportista,
+      matricula: localData.matricula,
+      fecha_finalizacion: localData.fechaFinalizacion,
+      tipo_pienso: localData.tipoPienso,
+      nro_sacos: parseFloat(localData.nroSacos) || 0,
+      nro_lote: localData.nroLote,
+      kg: parseFloat(localData.kg) || 0,
+    }
+  }
+
+  // Cargar datos desde la API
+  useEffect(() => {
+    const loadData = async () => {
+      if (!token || !record?.id || !currentFarm?.id) return
+
+      setLoading(true)
+      try {
+        const response = await listDescargaSacosPienso(token, record.id, currentFarm.id)
+        if (response.success && response.data) {
+          const localData = response.data.items.map(item => convertAPItoLocal(item as APIDescargaSacosPienso))
+          setDescargaSacosPiensoData(localData)
+        }
+      } catch (error: any) {
+        console.error("Error al cargar descargas de sacos de pienso:", error)
+        setSnackbar({ open: true, message: error.message || "Error al cargar datos", severity: "error" })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [token, record?.id, currentFarm?.id])
 
   const handleOpen = () => {
+    setCurrentRegistroId(null)
     setEditMode(false)
     setViewMode(false)
     setEditIndex(null)
@@ -124,13 +174,14 @@ export function DescargaSacosPiensoSection() {
     setFormData({
       transportista: item.transportista,
       matricula: item.matricula,
-      fechaFinalizacion: item.fechaFinalizacion,
+      fechaFinalizacion: formatDateForInput(item.fechaFinalizacion),
       tipoPienso: item.tipoPienso,
       nroSacos: item.nroSacos,
       nroLote: item.nroLote,
       kg: item.kg,
     })
     
+    setCurrentRegistroId(item.id || null)
     setEditMode(true)
     setViewMode(false)
     setEditIndex(index)
@@ -144,13 +195,14 @@ export function DescargaSacosPiensoSection() {
     setFormData({
       transportista: item.transportista,
       matricula: item.matricula,
-      fechaFinalizacion: item.fechaFinalizacion,
+      fechaFinalizacion: formatDateForInput(item.fechaFinalizacion),
       tipoPienso: item.tipoPienso,
       nroSacos: item.nroSacos,
       nroLote: item.nroLote,
       kg: item.kg,
     })
     
+    setCurrentRegistroId(item.id || null)
     setEditMode(false)
     setViewMode(true)
     setEditIndex(index)
@@ -170,6 +222,7 @@ export function DescargaSacosPiensoSection() {
 
   const handleClose = () => {
     setOpen(false)
+    setCurrentRegistroId(null)
     setEditMode(false)
     setViewMode(false)
     setEditIndex(null)
@@ -184,42 +237,92 @@ export function DescargaSacosPiensoSection() {
     })
   }
 
-  const handleSubmit = () => {
-    console.log("Datos de descarga de sacos de pienso:", formData)
-
+  const handleSubmit = async () => {
     // Validar que los campos requeridos estén llenos
     if (!formData.transportista || !formData.matricula || !formData.fechaFinalizacion || !formData.tipoPienso) {
-      alert("Por favor, completa todos los campos requeridos")
+      setSnackbar({ open: true, message: "Por favor, completa todos los campos requeridos", severity: "error" })
       return
     }
 
-    const descargaSacosPiensoItem = {
-      transportista: formData.transportista,
-      matricula: formData.matricula,
-      fechaFinalizacion: formData.fechaFinalizacion,
-      tipoPienso: formData.tipoPienso,
-      nroSacos: formData.nroSacos,
-      nroLote: formData.nroLote,
-      kg: formData.kg,
-      fechaCreacion: editMode 
-        ? descargaSacosPiensoData[editIndex!].fechaCreacion 
-        : formatDateToDisplay(formData.fechaFinalizacion),
-      fechaUltimaActualizacion: formatDateToDisplay(formData.fechaFinalizacion),
+    if (!formData.nroSacos || !formData.nroLote || !formData.kg) {
+      setSnackbar({ open: true, message: "Por favor, completa todos los campos numéricos", severity: "error" })
+      return
     }
 
-    if (editMode && editIndex !== null) {
-      // Actualizar elemento existente
-      setDescargaSacosPiensoData((prev) => 
-        prev.map((item, index) => 
-          index === editIndex ? descargaSacosPiensoItem : item
-        )
-      )
-    } else {
-      // Agregar nuevo elemento
-      setDescargaSacosPiensoData((prev) => [...prev, descargaSacosPiensoItem])
+    if (!token || !record?.id || !currentFarm?.id) {
+      setSnackbar({ open: true, message: "Error: No hay sesión activa", severity: "error" })
+      return
     }
-    
-    handleClose()
+
+    setSaving(true)
+    try {
+      const apiData = convertLocalToAPI(formData)
+
+      if (editMode && currentRegistroId) {
+        // Actualizar elemento existente
+        await updateDescargaSacosPienso(
+          token,
+          currentRegistroId,
+          apiData,
+          record.id
+        )
+        setSnackbar({ open: true, message: "Descarga de sacos de pienso actualizada exitosamente", severity: "success" })
+      } else {
+        // Crear nuevo elemento
+        await createDescargaSacosPienso(
+          token,
+          {
+            ...apiData,
+            farm: currentFarm.id,
+            user: record.id,
+          }
+        )
+        setSnackbar({ open: true, message: "Descarga de sacos de pienso registrada exitosamente", severity: "success" })
+      }
+
+      // Recargar datos
+      const response = await listDescargaSacosPienso(token, record.id, currentFarm.id)
+      if (response.success && response.data) {
+        const localData = response.data.items.map(item => convertAPItoLocal(item as APIDescargaSacosPienso))
+        setDescargaSacosPiensoData(localData)
+      }
+
+      handleClose()
+    } catch (error: any) {
+      console.error("Error al guardar:", error)
+      setSnackbar({ open: true, message: error.message || "Error al guardar", severity: "error" })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Función para eliminar un registro
+  const handleDelete = async () => {
+    if (!currentRegistroId || !token || !record?.id) return
+
+    if (!window.confirm("¿Estás seguro de que deseas eliminar este registro?")) {
+      return
+    }
+
+    setSaving(true)
+    try {
+      await deleteDescargaSacosPienso(token, currentRegistroId, record.id)
+      setSnackbar({ open: true, message: "Descarga de sacos de pienso eliminada exitosamente", severity: "success" })
+
+      // Recargar datos
+      const response = await listDescargaSacosPienso(token, record.id, currentFarm?.id)
+      if (response.success && response.data) {
+        const localData = response.data.items.map(item => convertAPItoLocal(item as APIDescargaSacosPienso))
+        setDescargaSacosPiensoData(localData)
+      }
+
+      handleClose()
+    } catch (error: any) {
+      console.error("Error al eliminar:", error)
+      setSnackbar({ open: true, message: error.message || "Error al eliminar", severity: "error" })
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -229,6 +332,11 @@ export function DescargaSacosPiensoSection() {
         <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
           {/* Page Content */}
           <Box sx={{ flexGrow: 1, p: 3, bgcolor: "grey.50" }}>
+            {loading ? (
+              <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "400px" }}>
+                <CircularProgress />
+              </Box>
+            ) : (
             <Paper elevation={1} sx={{ borderRadius: 2 }}>
               {/* Header */}
               <Box sx={sectionHeaderStyle}>
@@ -354,6 +462,7 @@ export function DescargaSacosPiensoSection() {
                 </Table>
               </TableContainer>
             </Paper>
+            )}
           </Box>
         </Box>
 
@@ -397,6 +506,7 @@ export function DescargaSacosPiensoSection() {
                       <Grid item xs={6}>
                         <TextField
                           fullWidth
+                          label="Transportista"
                           placeholder="Transportista"
                           variant="standard"
                           value={formData.transportista}
@@ -414,6 +524,7 @@ export function DescargaSacosPiensoSection() {
                       <Grid item xs={6}>
                         <TextField
                           fullWidth
+                          label="Matrícula del vehículo"
                           placeholder="Matrícula del vehículo"
                           variant="standard"
                           value={formData.matricula}
@@ -436,9 +547,9 @@ export function DescargaSacosPiensoSection() {
                         <TextField
                           fullWidth
                           label="Fecha de finalización"
-                          type="date"
+                          type={viewMode ? "text" : "date"}
                           variant="standard"
-                          value={formData.fechaFinalizacion}
+                          value={viewMode ? formatDateToDisplay(formData.fechaFinalizacion) : formData.fechaFinalizacion}
                           onChange={(e) => setFormData((prev) => ({ ...prev, fechaFinalizacion: e.target.value }))}
                           InputLabelProps={{
                             shrink: true,
@@ -484,6 +595,7 @@ export function DescargaSacosPiensoSection() {
                       <Grid item xs={4}>
                         <TextField
                           fullWidth
+                          label="Número de sacos"
                           placeholder="Número de sacos"
                           variant="standard"
                           type="number"
@@ -502,9 +614,9 @@ export function DescargaSacosPiensoSection() {
                       <Grid item xs={4}>
                         <TextField
                           fullWidth
+                          label="Número de lote"
                           placeholder="Número de lote"
                           variant="standard"
-                          type="number"
                           value={formData.nroLote}
                           onChange={(e) => setFormData((prev) => ({ ...prev, nroLote: e.target.value }))}
                           InputProps={{
@@ -520,6 +632,7 @@ export function DescargaSacosPiensoSection() {
                       <Grid item xs={4}>
                         <TextField
                           fullWidth
+                          label="Kilogramos"
                           placeholder="Kilogramos"
                           variant="standard"
                           type="number"
@@ -538,31 +651,47 @@ export function DescargaSacosPiensoSection() {
                     </Grid>
 
                     {/* Botones dinámicos según el modo */}
-                    <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-                      {viewMode ? (
-                        <Button
-                          variant="outlined"
-                          onClick={handleClose}
-                          sx={buttonStyles.close}
-                        >
-                          Cerrar
-                        </Button>
-                      ) : (
+                    <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
+                      {viewMode && currentRegistroId ? (
                         <>
                           <Button
                             variant="outlined"
-                            onClick={handleClose}
-                            sx={buttonStyles.cancel}
+                            color="error"
+                            onClick={handleDelete}
+                            disabled={saving}
                           >
-                            Cancelar
+                            {saving ? "Eliminando..." : "Eliminar"}
                           </Button>
                           <Button
-                            variant="contained"
-                            onClick={handleSubmit}
-                            sx={buttonStyles.save}
+                            variant="outlined"
+                            onClick={handleClose}
+                            disabled={saving}
+                            sx={buttonStyles.close}
                           >
-                            {editMode ? "Actualizar" : "Guardar"}
+                            Cerrar
                           </Button>
+                        </>
+                      ) : (
+                        <>
+                          <div />
+                          <Box sx={{ display: "flex", gap: 2 }}>
+                            <Button
+                              variant="outlined"
+                              onClick={handleClose}
+                              disabled={saving}
+                              sx={buttonStyles.cancel}
+                            >
+                              Cancelar
+                            </Button>
+                            <Button
+                              variant="contained"
+                              onClick={handleSubmit}
+                              disabled={saving}
+                              sx={buttonStyles.save}
+                            >
+                              {saving ? "Guardando..." : editMode ? "Actualizar" : "Guardar"}
+                            </Button>
+                          </Box>
                         </>
                       )}
                     </Box>
@@ -572,6 +701,22 @@ export function DescargaSacosPiensoSection() {
             </ThemeProvider>
           </DialogContent>
         </Dialog>
+
+        {/* Snackbar para notificaciones */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Box>
     </ThemeProvider>
   )

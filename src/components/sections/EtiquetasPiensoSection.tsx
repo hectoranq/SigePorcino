@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Box,
   Typography,
@@ -17,10 +17,23 @@ import {
   TextField,
   IconButton,
   Chip,
+  CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material"
 import { Add, KeyboardArrowDown, CloudUpload, Download } from "@mui/icons-material"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
 import { buttonStyles, headerColors, headerAccentColors } from "./buttonStyles"
+import useUserStore from "../../_store/user"
+import useFarmFormStore from "../../_store/farm"
+import {
+  listEtiquetasPienso,
+  createEtiquetasPienso,
+  updateEtiquetasPienso,
+  deleteEtiquetasPienso,
+  getFileUrl,
+  EtiquetasPienso as APIEtiquetasPienso,
+} from "../../action/EtiquetasPiensoPocket"
 
 const theme = createTheme({
   palette: {
@@ -42,6 +55,7 @@ interface ArchivoData {
 }
 
 interface EtiquetasPiensoData {
+  id?: string
   nombre: string
   archivo: ArchivoData | null
   fechaCreacion: string
@@ -49,6 +63,16 @@ interface EtiquetasPiensoData {
 }
 
 export function EtiquetasPiensoSection() {
+  // Stores
+  const { token, record } = useUserStore()
+  const { currentFarm } = useFarmFormStore()
+
+  // Estados
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [currentRegistroId, setCurrentRegistroId] = useState<string | null>(null)
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" })
+
   // Estados para el popup
   const [open, setOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
@@ -60,43 +84,53 @@ export function EtiquetasPiensoSection() {
   })
 
   // Estado para la tabla de etiquetas de pienso
-  const [etiquetasPiensoData, setEtiquetasPiensoData] = useState<EtiquetasPiensoData[]>([
-    {
-      nombre: "Pienso Iniciador Lechones - Premium Plus",
-      archivo: {
-        nombre: "etiqueta_iniciador_lechones.pdf",
-        url: "/uploads/etiqueta_iniciador_lechones.pdf",
-        tamaño: 245760,
-        fecha: "2024-01-15"
-      },
-      fechaCreacion: "15/01/2024",
-      fechaUltimaActualizacion: "16/01/2024",
-    },
-    {
-      nombre: "Pienso Crecimiento - Fase II Engorde",
-      archivo: {
-        nombre: "etiqueta_crecimiento_fase2.pdf",
-        url: "/uploads/etiqueta_crecimiento_fase2.pdf",
-        tamaño: 187520,
-        fecha: "2024-02-08"
-      },
-      fechaCreacion: "08/02/2024",
-      fechaUltimaActualizacion: "09/02/2024",
-    },
-    {
-      nombre: "Pienso Acabado - Terminación Premium",
-      archivo: {
-        nombre: "etiqueta_acabado_terminacion.pdf",
-        url: "/uploads/etiqueta_acabado_terminacion.pdf",
-        tamaño: 312480,
-        fecha: "2023-12-20"
-      },
-      fechaCreacion: "20/12/2023",
-      fechaUltimaActualizacion: "22/12/2023",
-    },
-  ])
+  const [etiquetasPiensoData, setEtiquetasPiensoData] = useState<EtiquetasPiensoData[]>([])
+  
+  // Estado para almacenar el archivo actual en modo ver/editar
+  const [currentArchivoData, setCurrentArchivoData] = useState<ArchivoData | null>(null)
+
+  // Función para convertir datos de la API a formato local
+  const convertAPItoLocal = (apiData: APIEtiquetasPienso): EtiquetasPiensoData => {
+    return {
+      id: apiData.id,
+      nombre: apiData.nombre,
+      archivo: apiData.archivo ? {
+        nombre: apiData.archivo,
+        url: getFileUrl(apiData, apiData.archivo),
+        tamaño: 0, // PocketBase no devuelve el tamaño en la respuesta
+        fecha: apiData.created || ""
+      } : null,
+      fechaCreacion: formatDateToDisplay(apiData.created || ""),
+      fechaUltimaActualizacion: formatDateToDisplay(apiData.updated || ""),
+    }
+  }
+
+  // Cargar datos desde la API
+  useEffect(() => {
+    const loadData = async () => {
+      if (!token || !record?.id || !currentFarm?.id) return
+
+      setLoading(true)
+      try {
+        const response = await listEtiquetasPienso(token, record.id, currentFarm.id)
+        if (response.success && response.data) {
+          const localData = response.data.items.map(item => convertAPItoLocal(item as APIEtiquetasPienso))
+          setEtiquetasPiensoData(localData)
+        }
+      } catch (error: any) {
+        console.error("Error al cargar etiquetas de pienso:", error)
+        setSnackbar({ open: true, message: error.message || "Error al cargar datos", severity: "error" })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [token, record?.id, currentFarm?.id])
 
   const handleOpen = () => {
+    setCurrentRegistroId(null)
+    setCurrentArchivoData(null)
     setEditMode(false)
     setViewMode(false)
     setEditIndex(null)
@@ -112,6 +146,8 @@ export function EtiquetasPiensoSection() {
       archivo: null, // No se puede pre-cargar un archivo existente en input file
     })
     
+    setCurrentRegistroId(item.id || null)
+    setCurrentArchivoData(item.archivo)
     setEditMode(true)
     setViewMode(false)
     setEditIndex(index)
@@ -127,6 +163,8 @@ export function EtiquetasPiensoSection() {
       archivo: null,
     })
     
+    setCurrentRegistroId(item.id || null)
+    setCurrentArchivoData(item.archivo)
     setEditMode(false)
     setViewMode(true)
     setEditIndex(index)
@@ -155,6 +193,8 @@ export function EtiquetasPiensoSection() {
 
   const handleClose = () => {
     setOpen(false)
+    setCurrentRegistroId(null)
+    setCurrentArchivoData(null)
     setEditMode(false)
     setViewMode(false)
     setEditIndex(null)
@@ -171,56 +211,102 @@ export function EtiquetasPiensoSection() {
     }
   }
 
-  const handleSubmit = () => {
-    console.log("Datos de etiquetas de pienso:", formData)
-
+  const handleSubmit = async () => {
     // Validar que los campos requeridos estén llenos
     if (!formData.nombre) {
-      alert("Por favor, completa el nombre")
+      setSnackbar({ open: true, message: "Por favor, completa el nombre", severity: "error" })
       return
     }
 
-    // En modo edición, el archivo es opcional
+    // En modo creación, el archivo es obligatorio
     if (!editMode && !formData.archivo) {
-      alert("Por favor, selecciona un archivo")
+      setSnackbar({ open: true, message: "Por favor, selecciona un archivo", severity: "error" })
       return
     }
 
-    const currentDate = new Date().toISOString().split('T')[0]
-    
-    const etiquetasPiensoItem = {
-      nombre: formData.nombre,
-      archivo: formData.archivo ? {
-        nombre: formData.archivo.name,
-        url: `/uploads/${formData.archivo.name}`, // URL simulada
-        tamaño: formData.archivo.size,
-        fecha: currentDate
-      } : (editMode && editIndex !== null ? etiquetasPiensoData[editIndex].archivo : null),
-      fechaCreacion: editMode 
-        ? etiquetasPiensoData[editIndex!].fechaCreacion 
-        : formatDateToDisplay(currentDate),
-      fechaUltimaActualizacion: formatDateToDisplay(currentDate),
+    if (!token || !record?.id || !currentFarm?.id) {
+      setSnackbar({ open: true, message: "Error: No hay sesión activa", severity: "error" })
+      return
     }
 
-    if (editMode && editIndex !== null) {
-      // Actualizar elemento existente
-      setEtiquetasPiensoData((prev) => 
-        prev.map((item, index) => 
-          index === editIndex ? etiquetasPiensoItem : item
+    setSaving(true)
+    try {
+      if (editMode && currentRegistroId) {
+        // Actualizar elemento existente
+        await updateEtiquetasPienso(
+          token,
+          currentRegistroId,
+          { nombre: formData.nombre },
+          record.id,
+          formData.archivo || undefined
         )
-      )
-    } else {
-      // Agregar nuevo elemento
-      setEtiquetasPiensoData((prev) => [...prev, etiquetasPiensoItem])
+        setSnackbar({ open: true, message: "Etiqueta de pienso actualizada exitosamente", severity: "success" })
+      } else {
+        // Crear nuevo elemento
+        if (!formData.archivo) {
+          setSnackbar({ open: true, message: "El archivo es requerido", severity: "error" })
+          return
+        }
+        await createEtiquetasPienso(
+          token,
+          {
+            nombre: formData.nombre,
+            farm: currentFarm.id,
+            user: record.id,
+          },
+          formData.archivo
+        )
+        setSnackbar({ open: true, message: "Etiqueta de pienso registrada exitosamente", severity: "success" })
+      }
+
+      // Recargar datos
+      const response = await listEtiquetasPienso(token, record.id, currentFarm.id)
+      if (response.success && response.data) {
+        const localData = response.data.items.map(item => convertAPItoLocal(item as APIEtiquetasPienso))
+        setEtiquetasPiensoData(localData)
+      }
+
+      handleClose()
+    } catch (error: any) {
+      console.error("Error al guardar:", error)
+      setSnackbar({ open: true, message: error.message || "Error al guardar", severity: "error" })
+    } finally {
+      setSaving(false)
     }
-    
-    handleClose()
+  }
+
+  // Función para eliminar un registro
+  const handleDelete = async () => {
+    if (!currentRegistroId || !token || !record?.id) return
+
+    if (!window.confirm("¿Estás seguro de que deseas eliminar este registro?")) {
+      return
+    }
+
+    setSaving(true)
+    try {
+      await deleteEtiquetasPienso(token, currentRegistroId, record.id)
+      setSnackbar({ open: true, message: "Etiqueta de pienso eliminada exitosamente", severity: "success" })
+
+      // Recargar datos
+      const response = await listEtiquetasPienso(token, record.id, currentFarm?.id)
+      if (response.success && response.data) {
+        const localData = response.data.items.map(item => convertAPItoLocal(item as APIEtiquetasPienso))
+        setEtiquetasPiensoData(localData)
+      }
+
+      handleClose()
+    } catch (error: any) {
+      console.error("Error al eliminar:", error)
+      setSnackbar({ open: true, message: error.message || "Error al eliminar", severity: "error" })
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleDownload = (archivo: ArchivoData) => {
-    // Simulación de descarga - en producción sería una llamada real al servidor
-    console.log("Descargando archivo:", archivo.nombre)
-    // window.open(archivo.url, '_blank')
+    // Abrir el archivo en una nueva pestaña
+    window.open(archivo.url, '_blank')
   }
 
   return (
@@ -230,6 +316,11 @@ export function EtiquetasPiensoSection() {
         <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
           {/* Page Content */}
           <Box sx={{ flexGrow: 1, p: 3, bgcolor: "grey.50" }}>
+            {loading ? (
+              <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "400px" }}>
+                <CircularProgress />
+              </Box>
+            ) : (
             <Paper elevation={1} sx={{ borderRadius: 2 }}>
               {/* Header */}
               <Box
@@ -371,6 +462,7 @@ export function EtiquetasPiensoSection() {
                 </Table>
               </TableContainer>
             </Paper>
+            )}
           </Box>
         </Box>
 
@@ -411,6 +503,7 @@ export function EtiquetasPiensoSection() {
                   {/* Nombre */}
                   <TextField
                     fullWidth
+                    label="Nombre de la etiqueta"
                     placeholder="Nombre de la etiqueta"
                     variant="standard"
                     value={formData.nombre}
@@ -458,7 +551,7 @@ export function EtiquetasPiensoSection() {
                       </Button>
                     )}
 
-                    {viewMode && editIndex !== null && etiquetasPiensoData[editIndex].archivo && (
+                    {viewMode && currentArchivoData && (
                       <Box sx={{ 
                         border: 1, 
                         borderColor: "grey.300", 
@@ -470,15 +563,15 @@ export function EtiquetasPiensoSection() {
                       }}>
                         <Box>
                           <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            {etiquetasPiensoData[editIndex].archivo!.nombre}
+                            {currentArchivoData.nombre}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {formatFileSize(etiquetasPiensoData[editIndex].archivo!.tamaño)} • 
-                            Subido el {formatDateToDisplay(etiquetasPiensoData[editIndex].archivo!.fecha)}
+                            {formatFileSize(currentArchivoData.tamaño)} • 
+                            Subido el {formatDateToDisplay(currentArchivoData.fecha)}
                           </Typography>
                         </Box>
                         <IconButton 
-                          onClick={() => handleDownload(etiquetasPiensoData[editIndex].archivo!)}
+                          onClick={() => handleDownload(currentArchivoData)}
                           sx={{ color: "primary.main" }}
                         >
                           <Download />
@@ -494,31 +587,47 @@ export function EtiquetasPiensoSection() {
                   </Box>
 
                   {/* Botones dinámicos según el modo */}
-                  <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-                    {viewMode ? (
-                      <Button
-                        variant="outlined"
-                        onClick={handleClose}
-                        sx={buttonStyles.close}
-                      >
-                        Cerrar
-                      </Button>
-                    ) : (
+                  <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
+                    {viewMode && currentRegistroId ? (
                       <>
                         <Button
                           variant="outlined"
-                          onClick={handleClose}
-                          sx={buttonStyles.close}
+                          color="error"
+                          onClick={handleDelete}
+                          disabled={saving}
                         >
-                          Cancelar
+                          {saving ? "Eliminando..." : "Eliminar"}
                         </Button>
                         <Button
-                          variant="contained"
-                          onClick={handleSubmit}
-                          sx={buttonStyles.save}
+                          variant="outlined"
+                          onClick={handleClose}
+                          disabled={saving}
+                          sx={buttonStyles.close}
                         >
-                          {editMode ? "Actualizar" : "Guardar"}
+                          Cerrar
                         </Button>
+                      </>
+                    ) : (
+                      <>
+                        <div />
+                        <Box sx={{ display: "flex", gap: 2 }}>
+                          <Button
+                            variant="outlined"
+                            onClick={handleClose}
+                            disabled={saving}
+                            sx={buttonStyles.close}
+                          >
+                            Cancelar
+                          </Button>
+                          <Button
+                            variant="contained"
+                            onClick={handleSubmit}
+                            disabled={saving}
+                            sx={buttonStyles.save}
+                          >
+                            {saving ? "Guardando..." : editMode ? "Actualizar" : "Guardar"}
+                          </Button>
+                        </Box>
                       </>
                     )}
                   </Box>
@@ -527,6 +636,22 @@ export function EtiquetasPiensoSection() {
             </Box>
           </DialogContent>
         </Dialog>
+
+        {/* Snackbar para notificaciones */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Box>
     </ThemeProvider>
   )

@@ -89,6 +89,21 @@ export const buttonStyles = {
     },
   },
 
+  // Botón de eliminar (rojo outline)
+  delete: {
+    textTransform: "none" as const,
+    borderColor: "#fca5a5", // red-300
+    color: "#dc2626", // red-600
+    fontWeight: 500,
+    px: 2,
+    py: 0.75,
+    borderRadius: 1,
+    "&:hover": {
+      bgcolor: "#fef2f2", // red-50
+      borderColor: "#f87171", // red-400
+    },
+  },
+
   // Botón de siguiente (verde)
   next: {
     textTransform: "none" as const,

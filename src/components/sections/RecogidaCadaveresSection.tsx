@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Box,
   Typography,
@@ -16,10 +16,22 @@ import {
   DialogContent,
   TextField,
   Grid,
+  CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material"
 import { Add, KeyboardArrowDown } from "@mui/icons-material"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
 import { buttonStyles, headerColors, headerAccentColors } from "./buttonStyles"
+import useUserStore from "../../_store/user"
+import useFarmFormStore from "../../_store/farm"
+import {
+  getRecogidaCadaveresByFarmId,
+  createRecogidaCadaveres,
+  updateRecogidaCadaveres,
+  deleteRecogidaCadaveres,
+  RecogidaCadaveres as APIRecogidaCadaveres,
+} from "../../action/RecogidaCadaveresPocket"
 
 const theme = createTheme({
   palette: {
@@ -34,6 +46,7 @@ const theme = createTheme({
 })
 
 interface RecogidaCadaveresData {
+  id?: string
   conductor: string
   empresaResponsable: string
   kg: string
@@ -43,7 +56,15 @@ interface RecogidaCadaveresData {
 }
 
 export function RecogidaCadaveresSection() {
-  // Estados para el popup
+  // Stores
+  const { token, record } = useUserStore()
+  const { currentFarm } = useFarmFormStore()
+
+  // Estados
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [currentRegistroId, setCurrentRegistroId] = useState<string | null>(null)
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" })
   const [open, setOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [viewMode, setViewMode] = useState(false)
@@ -55,52 +76,90 @@ export function RecogidaCadaveresSection() {
     fecha: "",
   })
 
+  // Función para formatear fecha
+  const formatDateToDisplay = (dateString: string) => {
+    if (!dateString) return "Sin fecha"
+    const date = new Date(dateString)
+    return date.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    })
+  }
+
+  // Convertir de API a formato local
+  const convertAPItoLocal = (apiData: APIRecogidaCadaveres): RecogidaCadaveresData => {
+    return {
+      id: apiData.id,
+      conductor: apiData.conductor,
+      empresaResponsable: apiData.empresa_responsable,
+      kg: String(apiData.kg),
+      fecha: apiData.fecha,
+      fechaCreacion: formatDateToDisplay(apiData.created || ""),
+      fechaUltimaActualizacion: formatDateToDisplay(apiData.updated || ""),
+    }
+  }
+
+  // Convertir de formato local a API
+  const convertLocalToAPI = (localData: any): Partial<APIRecogidaCadaveres> => {
+    return {
+      conductor: localData.conductor,
+      empresa_responsable: localData.empresaResponsable,
+      kg: parseFloat(localData.kg) || 0,
+      fecha: localData.fecha,
+      farm: currentFarm!.id,
+      user: record!.id,
+    }
+  }
+
+  // useEffect para cargar datos de la API
+  useEffect(() => {
+    const loadRecogidaCadaveres = async () => {
+      if (!token || !record?.id || !currentFarm?.id) return
+      
+      setLoading(true)
+      try {
+        const registros = await getRecogidaCadaveresByFarmId(currentFarm.id, token, record.id)
+        if (registros.success && registros.data.items) {
+          const convertedData = (registros.data.items as APIRecogidaCadaveres[]).map(convertAPItoLocal)
+          setRecogidaCadaveresData(convertedData)
+        }
+      } catch (error) {
+        console.error("Error al cargar recogida de cadáveres:", error)
+        setSnackbar({ open: true, message: "Error al cargar los datos", severity: "error" })
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadRecogidaCadaveres()
+  }, [token, record, currentFarm])
+
+  // Función para cargar registro en el formulario
+  const loadRegistroToForm = (registro: RecogidaCadaveresData) => {
+    setFormData({
+      conductor: registro.conductor,
+      empresaResponsable: registro.empresaResponsable,
+      kg: registro.kg,
+      fecha: registro.fecha,
+    })
+  }
+
   // Estado para la tabla de recogida de cadáveres
-  const [recogidaCadaveresData, setRecogidaCadaveresData] = useState<RecogidaCadaveresData[]>([
-    {
-      conductor: "Manuel Antonio García López",
-      empresaResponsable: "Servicios Medioambientales del Norte S.L.",
-      kg: "450",
-      fecha: "2023-12-08",
-      fechaCreacion: "08/12/2023",
-      fechaUltimaActualizacion: "09/12/2023",
-    },
-    {
-      conductor: "Carmen Rosa Fernández Silva",
-      empresaResponsable: "Gestión Integral de Residuos Ganaderos S.A.",
-      kg: "320",
-      fecha: "2024-01-15",
-      fechaCreacion: "15/01/2024",
-      fechaUltimaActualizacion: "16/01/2024",
-    },
-    {
-      conductor: "José Luis Martínez Rodríguez",
-      empresaResponsable: "EcoSANDACH Península Ibérica S.L.",
-      kg: "680",
-      fecha: "2023-11-22",
-      fechaCreacion: "22/11/2023",
-      fechaUltimaActualizacion: "24/11/2023",
-    },
-  ])
+  const [recogidaCadaveresData, setRecogidaCadaveresData] = useState<RecogidaCadaveresData[]>([])
 
   const handleOpen = () => {
     setEditMode(false)
     setViewMode(false)
     setEditIndex(null)
+    setCurrentRegistroId(null)
     setOpen(true)
   }
 
   // Función para abrir en modo edición
   const handleEdit = (index: number) => {
     const item = recogidaCadaveresData[index]
-    
-    setFormData({
-      conductor: item.conductor,
-      empresaResponsable: item.empresaResponsable,
-      kg: item.kg,
-      fecha: item.fecha,
-    })
-    
+    loadRegistroToForm(item)
+    setCurrentRegistroId(item.id || null)
     setEditMode(true)
     setViewMode(false)
     setEditIndex(index)
@@ -124,24 +183,12 @@ export function RecogidaCadaveresSection() {
     setOpen(true)
   }
 
-
-
-  // Función para convertir fecha de YYYY-MM-DD a DD/MM/YYYY
-  const formatDateToDisplay = (dateString: string) => {
-    if (!dateString) return "Sin fecha"
-    const date = new Date(dateString)
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    })
-  }
-
   const handleClose = () => {
     setOpen(false)
     setEditMode(false)
     setViewMode(false)
     setEditIndex(null)
+    setCurrentRegistroId(null)
     setFormData({
       conductor: "",
       empresaResponsable: "",
@@ -150,39 +197,74 @@ export function RecogidaCadaveresSection() {
     })
   }
 
-  const handleSubmit = () => {
-    console.log("Datos de recogida de cadáveres:", formData)
-
+  const handleSubmit = async () => {
     // Validar que los campos requeridos estén llenos
     if (!formData.conductor || !formData.empresaResponsable || !formData.fecha) {
-      alert("Por favor, completa todos los campos requeridos")
+      setSnackbar({ open: true, message: "Por favor, completa todos los campos requeridos", severity: "error" })
       return
     }
 
-    const recogidaCadaveresItem = {
-      conductor: formData.conductor,
-      empresaResponsable: formData.empresaResponsable,
-      kg: formData.kg,
-      fecha: formData.fecha,
-      fechaCreacion: editMode 
-        ? recogidaCadaveresData[editIndex!].fechaCreacion 
-        : formatDateToDisplay(formData.fecha),
-      fechaUltimaActualizacion: formatDateToDisplay(formData.fecha),
+    if (!formData.kg || parseFloat(formData.kg) <= 0) {
+      setSnackbar({ open: true, message: "Por favor, ingresa un peso válido", severity: "error" })
+      return
     }
 
-    if (editMode && editIndex !== null) {
-      // Actualizar elemento existente
-      setRecogidaCadaveresData((prev) => 
-        prev.map((item, index) => 
-          index === editIndex ? recogidaCadaveresItem : item
-        )
-      )
-    } else {
-      // Agregar nuevo elemento
-      setRecogidaCadaveresData((prev) => [...prev, recogidaCadaveresItem])
+    setSaving(true)
+    try {
+      const dataToSend = convertLocalToAPI(formData)
+
+      if (currentRegistroId) {
+        // Actualizar registro existente
+        await updateRecogidaCadaveres(token!, currentRegistroId, dataToSend, record!.id)
+        setSnackbar({ open: true, message: "Registro actualizado exitosamente", severity: "success" })
+      } else {
+        // Crear nuevo registro
+        await createRecogidaCadaveres(token!, dataToSend as any)
+        setSnackbar({ open: true, message: "Registro creado exitosamente", severity: "success" })
+      }
+
+      // Recargar datos
+      const registros = await getRecogidaCadaveresByFarmId(currentFarm!.id, token!, record!.id)
+      if (registros.success && registros.data.items) {
+        const convertedData = (registros.data.items as APIRecogidaCadaveres[]).map(convertAPItoLocal)
+        setRecogidaCadaveresData(convertedData)
+      }
+
+      handleClose()
+    } catch (error: any) {
+      console.error("Error al guardar:", error)
+      setSnackbar({ open: true, message: error.message || "Error al guardar el registro", severity: "error" })
+    } finally {
+      setSaving(false)
     }
+  }
+
+  const handleDelete = async (index: number) => {
+    const item = recogidaCadaveresData[index]
     
-    handleClose()
+    if (!item.id) {
+      setSnackbar({ open: true, message: "No se puede eliminar: ID no encontrado", severity: "error" })
+      return
+    }
+
+    if (!window.confirm("¿Estás seguro de que deseas eliminar este registro?")) {
+      return
+    }
+
+    try {
+      await deleteRecogidaCadaveres(token!, item.id, record!.id)
+      setSnackbar({ open: true, message: "Registro eliminado exitosamente", severity: "success" })
+      
+      // Recargar datos
+      const registros = await getRecogidaCadaveresByFarmId(currentFarm!.id, token!, record!.id)
+      if (registros.success && registros.data.items) {
+        const convertedData = (registros.data.items as APIRecogidaCadaveres[]).map(convertAPItoLocal)
+        setRecogidaCadaveresData(convertedData)
+      }
+    } catch (error: any) {
+      console.error("Error al eliminar:", error)
+      setSnackbar({ open: true, message: error.message || "Error al eliminar el registro", severity: "error" })
+    }
   }
 
   return (
@@ -228,7 +310,12 @@ export function RecogidaCadaveresSection() {
                 </Button>
               </Box>
 
-              <TableContainer>
+              {loading ? (
+                <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 400 }}>
+                  <CircularProgress />
+                </Box>
+              ) : (
+                <TableContainer>
                 <Table>
                   <TableHead sx={{ bgcolor: "grey.100" }}>
                     <TableRow>
@@ -309,6 +396,14 @@ export function RecogidaCadaveresSection() {
                             >
                               Ver más
                             </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="error"
+                              onClick={() => handleDelete(index)}
+                            >
+                              Eliminar
+                            </Button>
                           </Box>
                         </TableCell>
                       </TableRow>
@@ -316,6 +411,7 @@ export function RecogidaCadaveresSection() {
                   </TableBody>
                 </Table>
               </TableContainer>
+              )}
             </Paper>
           </Box>
         </Box>
@@ -335,7 +431,7 @@ export function RecogidaCadaveresSection() {
               <Paper sx={{ maxWidth: 1024, mx: "auto", borderRadius: 2, overflow: "hidden" }}>
                 {/* Header dinámico según el modo */}
                 <Box sx={{ 
-                  bgcolor: viewMode ? headerColors.view : editMode ? headerColors.edit : headerColors.create, 
+                  bgcolor: viewMode ? headerColors.view : currentRegistroId ? headerColors.edit : headerColors.create, 
                   px: 3, 
                   py: 2, 
                   display: "flex", 
@@ -345,11 +441,11 @@ export function RecogidaCadaveresSection() {
                   <Box sx={{ 
                     width: 4, 
                     height: 24, 
-                    bgcolor: viewMode ? headerAccentColors.view : editMode ? headerAccentColors.edit : headerAccentColors.create, 
+                    bgcolor: viewMode ? headerAccentColors.view : currentRegistroId ? headerAccentColors.edit : headerAccentColors.create, 
                     borderRadius: 0.5 
                   }} />
                   <Typography variant="h6" sx={{ color: "white", fontWeight: 500 }}>
-                    {viewMode ? "Detalle de recogida de cadáveres" : editMode ? "Editar recogida de cadáveres" : "Registro de recogida de cadáveres"}
+                    {viewMode ? "Detalle de recogida de cadáveres" : currentRegistroId ? "Editar recogida de cadáveres" : "Registro de recogida de cadáveres"}
                   </Typography>
                 </Box>
 
@@ -359,8 +455,9 @@ export function RecogidaCadaveresSection() {
                     <Grid item xs={6}>
                       <TextField
                         fullWidth
+                        label = "Conductor"
                         placeholder="Conductor"
-                        variant="standard"
+                        variant="filled"
                         value={formData.conductor}
                         onChange={(e) => setFormData((prev) => ({ ...prev, conductor: e.target.value }))}
                         InputProps={{
@@ -376,8 +473,9 @@ export function RecogidaCadaveresSection() {
                     <Grid item xs={6}>
                       <TextField
                         fullWidth
+                        label = "Empresa responsable"
                         placeholder="Empresa responsable"
-                        variant="standard"
+                        variant="filled"
                         value={formData.empresaResponsable}
                         onChange={(e) => setFormData((prev) => ({ ...prev, empresaResponsable: e.target.value }))}
                         InputProps={{
@@ -397,8 +495,9 @@ export function RecogidaCadaveresSection() {
                     <Grid item xs={6}>
                       <TextField
                         fullWidth
+                        label = "Kg"
                         placeholder="Kg (kilogramos)"
-                        variant="standard"
+                        variant="filled"
                         type="number"
                         value={formData.kg}
                         onChange={(e) => setFormData((prev) => ({ ...prev, kg: e.target.value }))}
@@ -417,7 +516,7 @@ export function RecogidaCadaveresSection() {
                         fullWidth
                         label="Fecha"
                         type="date"
-                        variant="standard"
+                        variant="filled"
                         value={formData.fecha}
                         onChange={(e) => setFormData((prev) => ({ ...prev, fecha: e.target.value }))}
                         InputLabelProps={{
@@ -450,6 +549,7 @@ export function RecogidaCadaveresSection() {
                         <Button
                           variant="outlined"
                           onClick={handleClose}
+                          disabled={saving}
                           sx={buttonStyles.close}
                         >
                           Cancelar
@@ -457,9 +557,11 @@ export function RecogidaCadaveresSection() {
                         <Button
                           variant="contained"
                           onClick={handleSubmit}
+                          disabled={saving}
+                          startIcon={saving ? <CircularProgress size={20} color="inherit" /> : undefined}
                           sx={buttonStyles.save}
                         >
-                          {editMode ? "Actualizar" : "Guardar"}
+                          {saving ? "Guardando..." : (currentRegistroId ? "Actualizar" : "Guardar")}
                         </Button>
                       </>
                     )}
@@ -470,6 +572,21 @@ export function RecogidaCadaveresSection() {
           </DialogContent>
         </Dialog>
       </Box>
+
+      <Snackbar 
+        open={snackbar.open} 
+        autoHideDuration={4000} 
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </ThemeProvider>
   )
 }

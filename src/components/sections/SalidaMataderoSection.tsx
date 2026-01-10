@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Box,
   Typography,
@@ -16,10 +16,22 @@ import {
   DialogContent,
   TextField,
   Grid,
+  CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material"
 import { Add, KeyboardArrowDown } from "@mui/icons-material"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
 import { buttonStyles, headerColors, headerAccentColors } from "./buttonStyles"
+import useUserStore from "../../_store/user"
+import useFarmFormStore from "../../_store/farm"
+import {
+  listSalidaMatadero,
+  createSalidaMatadero,
+  updateSalidaMatadero,
+  deleteSalidaMatadero,
+  SalidaMatadero as APISalidaMatadero,
+} from "../../action/SalidaMataderoPocket"
 
 const theme = createTheme({
   palette: {
@@ -34,6 +46,7 @@ const theme = createTheme({
 })
 
 interface SalidaMataderoData {
+  id?: string
   nroAnimales: string
   pesoVivo: string
   fechaSalida: string
@@ -43,6 +56,16 @@ interface SalidaMataderoData {
 }
 
 export function SalidaMataderoSection() {
+  // Stores
+  const { token, record } = useUserStore()
+  const { currentFarm } = useFarmFormStore()
+
+  // Estados
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [currentRegistroId, setCurrentRegistroId] = useState<string | null>(null)
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" })
+
   // Estados para el popup
   const [open, setOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
@@ -56,34 +79,75 @@ export function SalidaMataderoSection() {
   })
 
   // Estado para la tabla de salida a matadero
-  const [salidaMataderoData, setSalidaMataderoData] = useState<SalidaMataderoData[]>([
-    {
-      nroAnimales: "45",
-      pesoVivo: "110.5",
-      fechaSalida: "2024-03-15",
-      destino: "Matadero Industrial Guijuelo S.A. - Salamanca",
-      fechaCreacion: "15/03/2024",
-      fechaUltimaActualizacion: "16/03/2024",
-    },
-    {
-      nroAnimales: "38",
-      pesoVivo: "105.2",
-      fechaSalida: "2024-02-28",
-      destino: "Frigorífico Los Pedroches - Córdoba",
-      fechaCreacion: "28/02/2024",
-      fechaUltimaActualizacion: "01/03/2024",
-    },
-    {
-      nroAnimales: "52",
-      pesoVivo: "115.8",
-      fechaSalida: "2024-01-20",
-      destino: "Matadero Central de Extremadura - Mérida",
-      fechaCreacion: "20/01/2024",
-      fechaUltimaActualizacion: "22/01/2024",
-    },
-  ])
+  const [salidaMataderoData, setSalidaMataderoData] = useState<SalidaMataderoData[]>([])
+
+  // Función para convertir datos de la API a formato local
+  const convertAPItoLocal = (apiData: APISalidaMatadero): SalidaMataderoData => {
+    return {
+      id: apiData.id,
+      nroAnimales: String(apiData.nro_animales),
+      pesoVivo: String(apiData.peso_vivo),
+      fechaSalida: apiData.fecha_salida,
+      destino: apiData.destino,
+      fechaCreacion: formatDateToDisplay(apiData.created || ""),
+      fechaUltimaActualizacion: formatDateToDisplay(apiData.updated || ""),
+    }
+  }
+
+  // Función para convertir datos locales a formato API
+  const convertLocalToAPI = (localData: typeof formData): Omit<APISalidaMatadero, "id" | "created" | "updated" | "collectionId" | "collectionName"> => {
+    return {
+      nro_animales: parseFloat(localData.nroAnimales),
+      peso_vivo: parseFloat(localData.pesoVivo),
+      fecha_salida: localData.fechaSalida,
+      destino: localData.destino,
+      farm: currentFarm?.id || "",
+      user: record?.id || "",
+    }
+  }
+
+  // Función para convertir fecha ISO a formato para input date (YYYY-MM-DD)
+  const formatDateForInput = (dateString: string) => {
+    if (!dateString) return ""
+    // Extraer solo la parte de la fecha (YYYY-MM-DD) del ISO string
+    return dateString.split('T')[0].split(' ')[0]
+  }
+
+  // Cargar datos desde la API
+  useEffect(() => {
+    const loadData = async () => {
+      if (!token || !record?.id || !currentFarm?.id) return
+
+      setLoading(true)
+      try {
+        const response = await listSalidaMatadero(token, record.id, currentFarm.id)
+        if (response.success && response.data) {
+          const localData = response.data.items.map(item => convertAPItoLocal(item as APISalidaMatadero))
+          setSalidaMataderoData(localData)
+        }
+      } catch (error: any) {
+        console.error("Error al cargar salidas a matadero:", error)
+        setSnackbar({ open: true, message: error.message || "Error al cargar datos", severity: "error" })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [token, record?.id, currentFarm?.id])
+
+  // Función para cargar un registro al formulario
+  const loadRegistroToForm = (item: SalidaMataderoData) => {
+    setFormData({
+      nroAnimales: item.nroAnimales,
+      pesoVivo: item.pesoVivo,
+      fechaSalida: formatDateForInput(item.fechaSalida),
+      destino: item.destino,
+    })
+  }
 
   const handleOpen = () => {
+    setCurrentRegistroId(null)
     setEditMode(false)
     setViewMode(false)
     setEditIndex(null)
@@ -97,10 +161,11 @@ export function SalidaMataderoSection() {
     setFormData({
       nroAnimales: item.nroAnimales,
       pesoVivo: item.pesoVivo,
-      fechaSalida: item.fechaSalida,
+      fechaSalida: formatDateForInput(item.fechaSalida),
       destino: item.destino,
     })
     
+    setCurrentRegistroId(item.id || null)
     setEditMode(true)
     setViewMode(false)
     setEditIndex(index)
@@ -114,7 +179,7 @@ export function SalidaMataderoSection() {
     setFormData({
       nroAnimales: item.nroAnimales,
       pesoVivo: item.pesoVivo,
-      fechaSalida: item.fechaSalida,
+      fechaSalida: formatDateForInput(item.fechaSalida),
       destino: item.destino,
     })
     
@@ -139,6 +204,7 @@ export function SalidaMataderoSection() {
 
   const handleClose = () => {
     setOpen(false)
+    setCurrentRegistroId(null)
     setEditMode(false)
     setViewMode(false)
     setEditIndex(null)
@@ -150,39 +216,89 @@ export function SalidaMataderoSection() {
     })
   }
 
-  const handleSubmit = () => {
-    console.log("Datos de salida a matadero:", formData)
-
+  const handleSubmit = async () => {
     // Validar que los campos requeridos estén llenos
     if (!formData.nroAnimales || !formData.fechaSalida || !formData.destino) {
-      alert("Por favor, completa todos los campos requeridos")
+      setSnackbar({ open: true, message: "Por favor, completa todos los campos requeridos", severity: "error" })
       return
     }
 
-    const salidaMataderoItem = {
-      nroAnimales: formData.nroAnimales,
-      pesoVivo: formData.pesoVivo,
-      fechaSalida: formData.fechaSalida,
-      destino: formData.destino,
-      fechaCreacion: editMode 
-        ? salidaMataderoData[editIndex!].fechaCreacion 
-        : formatDateToDisplay(formData.fechaSalida),
-      fechaUltimaActualizacion: formatDateToDisplay(formData.fechaSalida),
+    // Validar que sean números válidos
+    const nroAnimales = parseFloat(formData.nroAnimales)
+    const pesoVivo = parseFloat(formData.pesoVivo)
+
+    if (isNaN(nroAnimales) || nroAnimales <= 0) {
+      setSnackbar({ open: true, message: "El número de animales debe ser mayor a 0", severity: "error" })
+      return
     }
 
-    if (editMode && editIndex !== null) {
-      // Actualizar elemento existente
-      setSalidaMataderoData((prev) => 
-        prev.map((item, index) => 
-          index === editIndex ? salidaMataderoItem : item
-        )
-      )
-    } else {
-      // Agregar nuevo elemento
-      setSalidaMataderoData((prev) => [...prev, salidaMataderoItem])
+    if (formData.pesoVivo && (isNaN(pesoVivo) || pesoVivo <= 0)) {
+      setSnackbar({ open: true, message: "El peso vivo debe ser mayor a 0", severity: "error" })
+      return
     }
-    
-    handleClose()
+
+    if (!token || !record?.id) {
+      setSnackbar({ open: true, message: "Error: No hay sesión activa", severity: "error" })
+      return
+    }
+
+    setSaving(true)
+    try {
+      const apiData = convertLocalToAPI(formData)
+
+      if (editMode && currentRegistroId) {
+        // Actualizar elemento existente
+        await updateSalidaMatadero(token, currentRegistroId, apiData, record.id)
+        setSnackbar({ open: true, message: "Salida a matadero actualizada exitosamente", severity: "success" })
+      } else {
+        // Crear nuevo elemento
+        await createSalidaMatadero(token, apiData)
+        setSnackbar({ open: true, message: "Salida a matadero registrada exitosamente", severity: "success" })
+      }
+
+      // Recargar datos
+      const response = await listSalidaMatadero(token, record.id, currentFarm?.id)
+      if (response.success && response.data) {
+        const localData = response.data.items.map(item => convertAPItoLocal(item as APISalidaMatadero))
+        setSalidaMataderoData(localData)
+      }
+
+      handleClose()
+    } catch (error: any) {
+      console.error("Error al guardar:", error)
+      setSnackbar({ open: true, message: error.message || "Error al guardar", severity: "error" })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Función para eliminar un registro
+  const handleDelete = async () => {
+    if (!currentRegistroId || !token || !record?.id) return
+
+    if (!window.confirm("¿Estás seguro de que deseas eliminar este registro?")) {
+      return
+    }
+
+    setSaving(true)
+    try {
+      await deleteSalidaMatadero(token, currentRegistroId, record.id)
+      setSnackbar({ open: true, message: "Salida a matadero eliminada exitosamente", severity: "success" })
+
+      // Recargar datos
+      const response = await listSalidaMatadero(token, record.id, currentFarm?.id)
+      if (response.success && response.data) {
+        const localData = response.data.items.map(item => convertAPItoLocal(item as APISalidaMatadero))
+        setSalidaMataderoData(localData)
+      }
+
+      handleClose()
+    } catch (error: any) {
+      console.error("Error al eliminar:", error)
+      setSnackbar({ open: true, message: error.message || "Error al eliminar", severity: "error" })
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -192,6 +308,11 @@ export function SalidaMataderoSection() {
         <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
           {/* Page Content */}
           <Box sx={{ flexGrow: 1, p: 3, bgcolor: "grey.50" }}>
+            {loading ? (
+              <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "400px" }}>
+                <CircularProgress />
+              </Box>
+            ) : (
             <Paper elevation={1} sx={{ borderRadius: 2 }}>
               {/* Header */}
               <Box
@@ -325,6 +446,7 @@ export function SalidaMataderoSection() {
                 </Table>
               </TableContainer>
             </Paper>
+            )}
           </Box>
         </Box>
 
@@ -357,7 +479,7 @@ export function SalidaMataderoSection() {
                     borderRadius: 0.5 
                   }} />
                   <Typography variant="h6" sx={{ color: "white", fontWeight: 500 }}>
-                    {viewMode ? "Detalle de salida a matadero" : editMode ? "Editar salida a matadero" : "Registro de salida a matadero"}
+                    {viewMode ? "Detalle de salida a matadero" : editMode ? `Editar salida a matadero${currentRegistroId ? ` (ID: ${currentRegistroId.slice(0, 8)}...)` : ""}` : "Registro de salida a matadero"}
                   </Typography>
                 </Box>
 
@@ -367,6 +489,7 @@ export function SalidaMataderoSection() {
                     <Grid item xs={6}>
                       <TextField
                         fullWidth
+                        label="Nro de animales"
                         placeholder="Nro de animales"
                         variant="standard"
                         type="number"
@@ -385,6 +508,7 @@ export function SalidaMataderoSection() {
                     <Grid item xs={6}>
                       <TextField
                         fullWidth
+                        label="Peso vivo (kg)"
                         placeholder="Peso vivo (kg)"
                         variant="standard"
                         type="number"
@@ -427,6 +551,7 @@ export function SalidaMataderoSection() {
                   {/* Destino */}
                   <TextField
                     fullWidth
+                    label="Destino (matadero)"
                     placeholder="Destino (matadero)"
                     variant="standard"
                     value={formData.destino}
@@ -443,31 +568,46 @@ export function SalidaMataderoSection() {
                   />
 
                   {/* Botones dinámicos según el modo */}
-                  <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
                     {viewMode ? (
-                      <Button
-                        variant="outlined"
-                        onClick={handleClose}
-                        sx={buttonStyles.close}
-                      >
-                        Cerrar
-                      </Button>
-                    ) : (
                       <>
+                        <Button
+                          variant="contained"
+                          color="error"
+                          onClick={handleDelete}
+                          disabled={saving}
+                        >
+                          {saving ? "Eliminando..." : "Eliminar"}
+                        </Button>
                         <Button
                           variant="outlined"
                           onClick={handleClose}
                           sx={buttonStyles.close}
                         >
-                          Cancelar
+                          Cerrar
                         </Button>
-                        <Button
-                          variant="contained"
-                          onClick={handleSubmit}
-                          sx={buttonStyles.save}
-                        >
-                          {editMode ? "Actualizar" : "Guardar"}
-                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Box />
+                        <Box sx={{ display: "flex", gap: 2 }}>
+                          <Button
+                            variant="outlined"
+                            onClick={handleClose}
+                            sx={buttonStyles.close}
+                            disabled={saving}
+                          >
+                            Cancelar
+                          </Button>
+                          <Button
+                            variant="contained"
+                            onClick={handleSubmit}
+                            sx={buttonStyles.save}
+                            disabled={saving}
+                          >
+                            {saving ? "Guardando..." : editMode ? "Actualizar" : "Guardar"}
+                          </Button>
+                        </Box>
                       </>
                     )}
                   </Box>
@@ -476,6 +616,22 @@ export function SalidaMataderoSection() {
             </Box>
           </DialogContent>
         </Dialog>
+
+        {/* Snackbar para notificaciones */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Box>
     </ThemeProvider>
   )

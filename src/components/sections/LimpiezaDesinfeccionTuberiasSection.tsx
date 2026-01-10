@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Box,
   Typography,
@@ -17,10 +17,23 @@ import {
   TextField,
   Grid,
   MenuItem,
+  CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material"
 import { Add, KeyboardArrowDown } from "@mui/icons-material"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
 import { buttonStyles, headerColors, headerAccentColors } from "./buttonStyles"
+import useUserStore from "../../_store/user"
+import useFarmFormStore from "../../_store/farm"
+import { listStaff, Staff } from "../../action/PersonalRegisterPocket"
+import {
+  getLimpiezaDesinfeccionTuberiasByFarmId,
+  createLimpiezaDesinfeccionTuberias,
+  updateLimpiezaDesinfeccionTuberias,
+  deleteLimpiezaDesinfeccionTuberias,
+  LimpiezaDesinfeccionTuberias as APILimpiezaDesinfeccionTuberias,
+} from "../../action/LimpiezaDesinfeccionTuberiasPocket"
 
 const theme = createTheme({
   palette: {
@@ -35,28 +48,29 @@ const theme = createTheme({
 })
 
 interface LimpiezaDesinfeccionTuberiasData {
+  id?: string
   productoEmpleado: string
   fecha: string
   operario: string
   supervisadoPor: string
+  supervisadoPorId?: string
   nroSilo: string
   observaciones: string
   fechaCreacion: string
   fechaUltimaActualizacion: string
 }
 
-const SUPERVISORES = [
-  "Juan Carlos Martínez",
-  "María Elena González",
-  "Pedro Antonio López",
-  "Ana Isabel Rodríguez",
-  "José Manuel Fernández",
-  "Carmen Rosa Torres",
-  "Francisco Javier Silva"
-]
-
 export function LimpiezaDesinfeccionTuberiasSection() {
-  // Estados para el popup
+  // Stores
+  const { token, record } = useUserStore()
+  const { currentFarm } = useFarmFormStore()
+
+  // Estados
+  const [staff, setStaff] = useState<Staff[]>([])
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [currentRegistroId, setCurrentRegistroId] = useState<string | null>(null)
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" })
   const [open, setOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [viewMode, setViewMode] = useState(false)
@@ -70,60 +84,116 @@ export function LimpiezaDesinfeccionTuberiasSection() {
     observaciones: "",
   })
 
+  // useEffect para cargar staff
+  useEffect(() => {
+    const loadStaff = async () => {
+      if (!token || !record?.id) return
+      try {
+        const staffData = await listStaff(token, record.id)
+        if (staffData.success && staffData.data.items) {
+          setStaff(staffData.data.items as Staff[])
+        }
+      } catch (error) {
+        console.error("Error al cargar staff:", error)
+      }
+    }
+    loadStaff()
+  }, [token, record])
+
+  // Función para formatear fecha
+  const formatDateToDisplay = (dateString: string) => {
+    if (!dateString) return "Sin fecha"
+    const date = new Date(dateString)
+    return date.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    })
+  }
+
+  // Convertir de API a formato local
+  const convertAPItoLocal = (apiData: APILimpiezaDesinfeccionTuberias): LimpiezaDesinfeccionTuberiasData => {
+    const supervisor = staff.find(s => s.id === apiData.supervisado_por)
+    const supervisorName = supervisor ? `${supervisor.nombre} ${supervisor.apellidos}` : "Sin supervisor"
+    
+    return {
+      id: apiData.id,
+      productoEmpleado: apiData.producto_empleado,
+      fecha: apiData.fecha,
+      operario: apiData.operario,
+      supervisadoPor: supervisorName,
+      supervisadoPorId: apiData.supervisado_por,
+      nroSilo: apiData.nro_tuberia,
+      observaciones: apiData.observaciones || "",
+      fechaCreacion: formatDateToDisplay(apiData.created || ""),
+      fechaUltimaActualizacion: formatDateToDisplay(apiData.updated || ""),
+    }
+  }
+
+  // Convertir de formato local a API
+  const convertLocalToAPI = (localData: any): Partial<APILimpiezaDesinfeccionTuberias> => {
+    return {
+      producto_empleado: localData.productoEmpleado,
+      fecha: localData.fecha,
+      operario: localData.operario,
+      supervisado_por: localData.supervisadoPor,
+      nro_tuberia: localData.nroSilo,
+      observaciones: localData.observaciones,
+      farm: currentFarm!.id,
+      user: record!.id,
+    }
+  }
+
+  // useEffect para cargar datos de la API
+  useEffect(() => {
+    const loadLimpiezaDesinfeccionTuberias = async () => {
+      if (!token || !record?.id || !currentFarm?.id || staff.length === 0) return
+      
+      setLoading(true)
+      try {
+        const registros = await getLimpiezaDesinfeccionTuberiasByFarmId(currentFarm.id, token, record.id)
+        if (registros.success && registros.data.items) {
+          const convertedData = (registros.data.items as APILimpiezaDesinfeccionTuberias[]).map(convertAPItoLocal)
+          setLimpiezaDesinfeccionTuberiasData(convertedData)
+        }
+      } catch (error) {
+        console.error("Error al cargar limpieza de tuberías:", error)
+        setSnackbar({ open: true, message: "Error al cargar los datos", severity: "error" })
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadLimpiezaDesinfeccionTuberias()
+  }, [token, record, currentFarm, staff])
+
+  // Función para cargar registro en el formulario
+  const loadRegistroToForm = (registro: LimpiezaDesinfeccionTuberiasData) => {
+    setFormData({
+      productoEmpleado: registro.productoEmpleado,
+      fecha: registro.fecha,
+      operario: registro.operario,
+      supervisadoPor: registro.supervisadoPorId || "",
+      nroSilo: registro.nroSilo,
+      observaciones: registro.observaciones,
+    })
+  }
+
   // Estado para la tabla de limpieza y desinfección de tuberías
-  const [limpiezaDesinfeccionTuberiasData, setLimpiezaDesinfeccionTuberiasData] = useState<LimpiezaDesinfeccionTuberiasData[]>([
-    {
-      productoEmpleado: "Desinfectante alcalino espumante",
-      fecha: "2023-10-05",
-      operario: "Ricardo Andrés Fernández Ruiz",
-      supervisadoPor: "Juan Carlos Martínez",
-      nroSilo: "TUBERIA-A1",
-      observaciones: "Limpieza completa del sistema de tuberías principales",
-      fechaCreacion: "05/10/2023",
-      fechaUltimaActualizacion: "07/10/2023",
-    },
-    {
-      productoEmpleado: "Solución clorada concentrada",
-      fecha: "2024-08-12",
-      operario: "Sandra Patricia Morales Castro",
-      supervisadoPor: "María Elena González",
-      nroSilo: "TUBERIA-B2",
-      observaciones: "Desinfección de circuito secundario, tiempo de contacto 30 min",
-      fechaCreacion: "12/08/2024",
-      fechaUltimaActualizacion: "13/08/2024",
-    },
-    {
-      productoEmpleado: "Detergente ácido para tuberías",
-      fecha: "2023-05-18",
-      operario: "Miguel Antonio Vargas Jiménez",
-      supervisadoPor: "Pedro Antonio López",
-      nroSilo: "TUBERIA-C3",
-      observaciones: "Eliminación de incrustaciones calcáreas, enjuague prolongado",
-      fechaCreacion: "18/05/2023",
-      fechaUltimaActualizacion: "20/05/2023",
-    },
-  ])
+  const [limpiezaDesinfeccionTuberiasData, setLimpiezaDesinfeccionTuberiasData] = useState<LimpiezaDesinfeccionTuberiasData[]>([])
 
   const handleOpen = () => {
     setEditMode(false)
     setViewMode(false)
     setEditIndex(null)
+    setCurrentRegistroId(null)
     setOpen(true)
   }
 
   // Función para abrir en modo edición
   const handleEdit = (index: number) => {
     const item = limpiezaDesinfeccionTuberiasData[index]
-    
-    setFormData({
-      productoEmpleado: item.productoEmpleado,
-      fecha: item.fecha,
-      operario: item.operario,
-      supervisadoPor: item.supervisadoPor,
-      nroSilo: item.nroSilo,
-      observaciones: item.observaciones,
-    })
-    
+    loadRegistroToForm(item)
+    setCurrentRegistroId(item.id || null)
     setEditMode(true)
     setViewMode(false)
     setEditIndex(index)
@@ -138,7 +208,7 @@ export function LimpiezaDesinfeccionTuberiasSection() {
       productoEmpleado: item.productoEmpleado,
       fecha: item.fecha,
       operario: item.operario,
-      supervisadoPor: item.supervisadoPor,
+      supervisadoPor: item.supervisadoPorId || "",
       nroSilo: item.nroSilo,
       observaciones: item.observaciones,
     })
@@ -147,19 +217,11 @@ export function LimpiezaDesinfeccionTuberiasSection() {
     setViewMode(true)
     setEditIndex(index)
     setOpen(true)
-  }
-
-
-
-  // Función para convertir fecha de YYYY-MM-DD a DD/MM/YYYY
-  const formatDateToDisplay = (dateString: string) => {
-    if (!dateString) return "Sin fecha"
-    const date = new Date(dateString)
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    })
+  
+    setEditMode(false)
+    setViewMode(true)
+    setEditIndex(index)
+    setOpen(true)
   }
 
   const handleClose = () => {
@@ -167,6 +229,7 @@ export function LimpiezaDesinfeccionTuberiasSection() {
     setEditMode(false)
     setViewMode(false)
     setEditIndex(null)
+    setCurrentRegistroId(null)
     setFormData({
       productoEmpleado: "",
       fecha: "",
@@ -177,41 +240,74 @@ export function LimpiezaDesinfeccionTuberiasSection() {
     })
   }
 
-  const handleSubmit = () => {
-    console.log("Datos de limpieza y desinfección de tuberías:", formData)
-
+  const handleSubmit = async () => {
     // Validar que los campos requeridos estén llenos
     if (!formData.productoEmpleado || !formData.operario || !formData.fecha) {
-      alert("Por favor, completa todos los campos requeridos")
+      setSnackbar({ open: true, message: "Por favor, completa todos los campos requeridos", severity: "error" })
       return
     }
 
-    const limpiezaDesinfeccionTuberiasItem = {
-      productoEmpleado: formData.productoEmpleado,
-      fecha: formData.fecha,
-      operario: formData.operario,
-      supervisadoPor: formData.supervisadoPor,
-      nroSilo: formData.nroSilo,
-      observaciones: formData.observaciones,
-      fechaCreacion: editMode 
-        ? limpiezaDesinfeccionTuberiasData[editIndex!].fechaCreacion 
-        : formatDateToDisplay(formData.fecha),
-      fechaUltimaActualizacion: formatDateToDisplay(formData.fecha),
+    if (!formData.nroSilo || !formData.supervisadoPor) {
+      setSnackbar({ open: true, message: "Por favor, completa el número de tubería y el supervisor", severity: "error" })
+      return
     }
 
-    if (editMode && editIndex !== null) {
-      // Actualizar elemento existente
-      setLimpiezaDesinfeccionTuberiasData((prev) => 
-        prev.map((item, index) => 
-          index === editIndex ? limpiezaDesinfeccionTuberiasItem : item
-        )
-      )
-    } else {
-      // Agregar nuevo elemento
-      setLimpiezaDesinfeccionTuberiasData((prev) => [...prev, limpiezaDesinfeccionTuberiasItem])
+    setSaving(true)
+    try {
+      const dataToSend = convertLocalToAPI(formData)
+
+      if (currentRegistroId) {
+        // Actualizar registro existente
+        await updateLimpiezaDesinfeccionTuberias(token!, currentRegistroId, dataToSend, record!.id)
+        setSnackbar({ open: true, message: "Registro actualizado exitosamente", severity: "success" })
+      } else {
+        // Crear nuevo registro
+        await createLimpiezaDesinfeccionTuberias(token!, dataToSend as any)
+        setSnackbar({ open: true, message: "Registro creado exitosamente", severity: "success" })
+      }
+
+      // Recargar datos
+      const registros = await getLimpiezaDesinfeccionTuberiasByFarmId(currentFarm!.id, token!, record!.id)
+      if (registros.success && registros.data.items) {
+        const convertedData = (registros.data.items as APILimpiezaDesinfeccionTuberias[]).map(convertAPItoLocal)
+        setLimpiezaDesinfeccionTuberiasData(convertedData)
+      }
+
+      handleClose()
+    } catch (error: any) {
+      console.error("Error al guardar:", error)
+      setSnackbar({ open: true, message: error.message || "Error al guardar el registro", severity: "error" })
+    } finally {
+      setSaving(false)
     }
+  }
+
+  const handleDelete = async (index: number) => {
+    const item = limpiezaDesinfeccionTuberiasData[index]
     
-    handleClose()
+    if (!item.id) {
+      setSnackbar({ open: true, message: "No se puede eliminar: ID no encontrado", severity: "error" })
+      return
+    }
+
+    if (!window.confirm("¿Estás seguro de que deseas eliminar este registro?")) {
+      return
+    }
+
+    try {
+      await deleteLimpiezaDesinfeccionTuberias(token!, item.id, record!.id)
+      setSnackbar({ open: true, message: "Registro eliminado exitosamente", severity: "success" })
+      
+      // Recargar datos
+      const registros = await getLimpiezaDesinfeccionTuberiasByFarmId(currentFarm!.id, token!, record!.id)
+      if (registros.success && registros.data.items) {
+        const convertedData = (registros.data.items as APILimpiezaDesinfeccionTuberias[]).map(convertAPItoLocal)
+        setLimpiezaDesinfeccionTuberiasData(convertedData)
+      }
+    } catch (error: any) {
+      console.error("Error al eliminar:", error)
+      setSnackbar({ open: true, message: error.message || "Error al eliminar el registro", severity: "error" })
+    }
   }
 
   return (
@@ -257,8 +353,13 @@ export function LimpiezaDesinfeccionTuberiasSection() {
                 </Button>
               </Box>
 
-              <TableContainer>
-                <Table>
+              {loading ? (
+                <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", py: 8 }}>
+                  <CircularProgress />
+                </Box>
+              ) : (
+                <TableContainer>
+                  <Table>
                   <TableHead sx={{ bgcolor: "grey.100" }}>
                     <TableRow>
                       <TableCell>
@@ -345,6 +446,14 @@ export function LimpiezaDesinfeccionTuberiasSection() {
                             >
                               Ver más
                             </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="error"
+                              onClick={() => handleDelete(index)}
+                            >
+                              Eliminar
+                            </Button>
                           </Box>
                         </TableCell>
                       </TableRow>
@@ -352,6 +461,7 @@ export function LimpiezaDesinfeccionTuberiasSection() {
                   </TableBody>
                 </Table>
               </TableContainer>
+              )}
             </Paper>
           </Box>
         </Box>
@@ -371,7 +481,7 @@ export function LimpiezaDesinfeccionTuberiasSection() {
               <Paper sx={{ maxWidth: 1024, mx: "auto", borderRadius: 2, overflow: "hidden" }}>
                 {/* Header dinámico según el modo */}
                 <Box sx={{ 
-                  bgcolor: viewMode ? headerColors.view : editMode ? headerColors.edit : headerColors.create, 
+                  bgcolor: viewMode ? headerColors.view : currentRegistroId ? headerColors.edit : headerColors.create, 
                   px: 3, 
                   py: 2, 
                   display: "flex", 
@@ -381,11 +491,11 @@ export function LimpiezaDesinfeccionTuberiasSection() {
                   <Box sx={{ 
                     width: 4, 
                     height: 24, 
-                    bgcolor: viewMode ? headerAccentColors.view : editMode ? headerAccentColors.edit : headerAccentColors.create, 
+                    bgcolor: viewMode ? headerAccentColors.view : currentRegistroId ? headerAccentColors.edit : headerAccentColors.create, 
                     borderRadius: 0.5 
                   }} />
                   <Typography variant="h6" sx={{ color: "white", fontWeight: 500 }}>
-                    {viewMode ? "Detalle de limpieza y desinfección de tuberías" : editMode ? "Editar limpieza y desinfección de tuberías" : "Registro de limpieza y desinfección de tuberías"}
+                    {viewMode ? "Detalle de limpieza y desinfección de tuberías" : currentRegistroId ? "Editar limpieza y desinfección de tuberías" : "Registro de limpieza y desinfección de tuberías"}
                   </Typography>
                 </Box>
 
@@ -395,8 +505,9 @@ export function LimpiezaDesinfeccionTuberiasSection() {
                     <Grid item xs={6}>
                       <TextField
                         fullWidth
+                        label="Producto empleado"
                         placeholder="Producto empleado"
-                        variant="standard"
+                        variant="filled"
                         value={formData.productoEmpleado}
                         onChange={(e) => setFormData((prev) => ({ ...prev, productoEmpleado: e.target.value }))}
                         InputProps={{
@@ -414,7 +525,7 @@ export function LimpiezaDesinfeccionTuberiasSection() {
                         fullWidth
                         label="Fecha"
                         type="date"
-                        variant="standard"
+                        variant="filled"
                         value={formData.fecha}
                         onChange={(e) => setFormData((prev) => ({ ...prev, fecha: e.target.value }))}
                         InputLabelProps={{
@@ -437,8 +548,9 @@ export function LimpiezaDesinfeccionTuberiasSection() {
                     <Grid item xs={6}>
                       <TextField
                         fullWidth
+                        label="Operario"
                         placeholder="Operario"
-                        variant="standard"
+                        variant="filled"
                         value={formData.operario}
                         onChange={(e) => setFormData((prev) => ({ ...prev, operario: e.target.value }))}
                         InputProps={{
@@ -452,36 +564,51 @@ export function LimpiezaDesinfeccionTuberiasSection() {
                       />
                     </Grid>
                     <Grid item xs={6}>
-                      <TextField
-                        fullWidth
-                        select={!viewMode}
-                        label="Supervisado por"
-                        variant="standard"
-                        value={formData.supervisadoPor}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, supervisadoPor: e.target.value }))}
-                        InputProps={{
-                          readOnly: viewMode,
-                        }}
-                        sx={{
-                          "& .MuiInputBase-input": {
-                            color: viewMode ? "text.secondary" : "text.primary",
-                          },
-                        }}
-                      >
-                        {!viewMode && SUPERVISORES.map((supervisor) => (
-                          <MenuItem key={supervisor} value={supervisor}>
-                            {supervisor}
-                          </MenuItem>
-                        ))}
-                      </TextField>
+                      {viewMode ? (
+                        <TextField
+                          fullWidth
+                          label="Supervisado por"
+                          variant="filled"
+                          value={formData.supervisadoPor}
+                          InputProps={{
+                            readOnly: true,
+                          }}
+                          sx={{
+                            "& .MuiInputBase-input": {
+                              color: "text.secondary",
+                            },
+                          }}
+                        />
+                      ) : (
+                        <TextField
+                          fullWidth
+                          select
+                          label="Supervisado por"
+                          variant="filled"
+                          value={formData.supervisadoPor}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, supervisadoPor: e.target.value }))}
+                          sx={{
+                            "& .MuiInputBase-input": {
+                              color: "text.primary",
+                            },
+                          }}
+                        >
+                          {staff.map((person) => (
+                            <MenuItem key={person.id} value={person.id}>
+                              {person.nombre} {person.apellidos}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      )}
                     </Grid>
                   </Grid>
 
                   {/* Nro de Tubería */}
                   <TextField
                     fullWidth
+                    label="Nro de Tubería"  
                     placeholder="Nro de Tubería"
-                    variant="standard"
+                    variant="filled"
                     value={formData.nroSilo}
                     onChange={(e) => setFormData((prev) => ({ ...prev, nroSilo: e.target.value }))}
                     sx={{ 
@@ -498,8 +625,9 @@ export function LimpiezaDesinfeccionTuberiasSection() {
                   {/* Observaciones */}
                   <TextField
                     fullWidth
+                    label="Observaciones"
                     placeholder="Observaciones"
-                    variant="standard"
+                    variant="filled"
                     multiline
                     rows={3}
                     value={formData.observaciones}
@@ -531,6 +659,7 @@ export function LimpiezaDesinfeccionTuberiasSection() {
                           variant="outlined"
                           onClick={handleClose}
                           sx={buttonStyles.close}
+                          disabled={saving}
                         >
                           Cancelar
                         </Button>
@@ -538,8 +667,10 @@ export function LimpiezaDesinfeccionTuberiasSection() {
                           variant="contained"
                           onClick={handleSubmit}
                           sx={buttonStyles.save}
+                          disabled={saving}
+                          startIcon={saving ? <CircularProgress size={20} /> : undefined}
                         >
-                          {editMode ? "Actualizar" : "Guardar"}
+                          {saving ? "Guardando..." : currentRegistroId ? "Actualizar" : "Guardar"}
                         </Button>
                       </>
                     )}
@@ -549,6 +680,22 @@ export function LimpiezaDesinfeccionTuberiasSection() {
             </Box>
           </DialogContent>
         </Dialog>
+        
+        {/* Snackbar para notificaciones */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Box>
     </ThemeProvider>
   )

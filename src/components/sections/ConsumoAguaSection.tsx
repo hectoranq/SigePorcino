@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Box,
   Typography,
@@ -16,10 +16,22 @@ import {
   DialogContent,
   TextField,
   Grid,
+  CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material"
 import { Add, KeyboardArrowDown } from "@mui/icons-material"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
 import { buttonStyles, headerColors, headerAccentColors, sectionHeaderStyle, headerBarStyle } from "./buttonStyles"
+import {
+  listConsumoAgua,
+  createConsumoAgua,
+  updateConsumoAgua,
+  deleteConsumoAgua,
+  type ConsumoAgua,
+} from "../../action/ConsumoAguaPocket"
+import  useUserStore  from "../../_store/user"
+import  useFarmFormStore  from "../../_store/farm"
 
 const theme = createTheme({
   palette: {
@@ -34,21 +46,25 @@ const theme = createTheme({
 })
 
 interface ConsumoAguaData {
+  id?: string
   cantidadAguaBebida: string
   cantidadAguaLimpieza: string
   cantidadAguaTraida: string
   consumoTotalAgua: string
   fecha: string
-  fechaCreacion: string
-  fechaUltimaActualizacion: string
 }
 
 export function ConsumoAguaSection() {
+  // Stores
+  const token = useUserStore((state) => state.token)
+  const userId = useUserStore((state) => state.record?.id)
+  const currentFarm = useFarmFormStore((state) => state.currentFarm)
+
   // Estados para el popup
   const [open, setOpen] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [viewMode, setViewMode] = useState(false)
-  const [editIndex, setEditIndex] = useState<number | null>(null)
+  const [currentRegistroId, setCurrentRegistroId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     cantidadAguaBebida: "",
     cantidadAguaLimpieza: "",
@@ -57,41 +73,98 @@ export function ConsumoAguaSection() {
     fecha: "",
   })
 
+  // Estados de carga
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
   // Estado para la tabla de consumo de agua
-  const [consumoAguaData, setConsumoAguaData] = useState<ConsumoAguaData[]>([
-    {
-      cantidadAguaBebida: "1250.5",
-      cantidadAguaLimpieza: "875.2",
-      cantidadAguaTraida: "0",
-      consumoTotalAgua: "2125.7",
-      fecha: "2024-01-15",
-      fechaCreacion: "15/01/2024",
-      fechaUltimaActualizacion: "16/01/2024",
-    },
-    {
-      cantidadAguaBebida: "1380.8",
-      cantidadAguaLimpieza: "920.3",
-      cantidadAguaTraida: "500.0",
-      consumoTotalAgua: "2801.1",
-      fecha: "2024-02-08",
-      fechaCreacion: "08/02/2024",
-      fechaUltimaActualizacion: "09/02/2024",
-    },
-    {
-      cantidadAguaBebida: "1195.6",
-      cantidadAguaLimpieza: "750.8",
-      cantidadAguaTraida: "250.0",
-      consumoTotalAgua: "2196.4",
-      fecha: "2023-12-20",
-      fechaCreacion: "20/12/2023",
-      fechaUltimaActualizacion: "22/12/2023",
-    },
-  ])
+  const [consumoAguaData, setConsumoAguaData] = useState<ConsumoAguaData[]>([])
+
+  // Estado para Snackbar
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean
+    message: string
+    severity: "success" | "error" | "info" | "warning"
+  }>({
+    open: false,
+    message: "",
+    severity: "info",
+  })
+
+  // Función para convertir fecha ISO a YYYY-MM-DD
+  const formatDateForInput = (isoDate: string) => {
+    if (!isoDate) return ""
+    return isoDate.split("T")[0].split(" ")[0]
+  }
+
+  // Función para convertir datos de la API al formato local
+  const convertAPItoLocal = (apiData: ConsumoAgua): ConsumoAguaData => {
+    return {
+      id: apiData.id,
+      cantidadAguaBebida: apiData.cantidad_agua_bebida?.toString() || "0",
+      cantidadAguaLimpieza: apiData.cantidad_agua_limpieza?.toString() || "0",
+      cantidadAguaTraida: apiData.cantidad_agua_traida?.toString() || "0",
+      consumoTotalAgua: apiData.consumo_total_agua?.toString() || "0",
+      fecha: formatDateForInput(apiData.fecha),
+    }
+  }
+
+  // Función para convertir datos locales al formato de la API
+  const convertLocalToAPI = (localData: typeof formData) => {
+    return {
+      cantidad_agua_bebida: parseFloat(localData.cantidadAguaBebida) || 0,
+      cantidad_agua_limpieza: parseFloat(localData.cantidadAguaLimpieza) || 0,
+      cantidad_agua_traida: parseFloat(localData.cantidadAguaTraida) || 0,
+      consumo_total_agua: parseFloat(localData.consumoTotalAgua) || 0,
+      fecha: localData.fecha,
+      farm: currentFarm?.id || "",
+      user: userId || "",
+    }
+  }
+
+  // Cargar datos desde la API
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!token || !userId || !currentFarm?.id) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        const response = await listConsumoAgua(token, userId, currentFarm.id)
+        if (response.success && response.data) {
+          const convertedData = response.data.items.map((item: any) =>
+            convertAPItoLocal(item as ConsumoAgua)
+          )
+          setConsumoAguaData(convertedData)
+        }
+      } catch (error) {
+        console.error("Error al cargar registros de consumo de agua:", error)
+        setSnackbar({
+          open: true,
+          message: "Error al cargar los registros de consumo de agua",
+          severity: "error",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [token, userId, currentFarm?.id])
 
   const handleOpen = () => {
     setEditMode(false)
     setViewMode(false)
-    setEditIndex(null)
+    setCurrentRegistroId(null)
+    setFormData({
+      cantidadAguaBebida: "",
+      cantidadAguaLimpieza: "",
+      cantidadAguaTraida: "",
+      consumoTotalAgua: "",
+      fecha: "",
+    })
     setOpen(true)
   }
 
@@ -104,12 +177,12 @@ export function ConsumoAguaSection() {
       cantidadAguaLimpieza: item.cantidadAguaLimpieza,
       cantidadAguaTraida: item.cantidadAguaTraida,
       consumoTotalAgua: item.consumoTotalAgua,
-      fecha: item.fecha,
+      fecha: formatDateForInput(item.fecha),
     })
     
     setEditMode(true)
     setViewMode(false)
-    setEditIndex(index)
+    setCurrentRegistroId(item.id || null)
     setOpen(true)
   }
 
@@ -122,12 +195,12 @@ export function ConsumoAguaSection() {
       cantidadAguaLimpieza: item.cantidadAguaLimpieza,
       cantidadAguaTraida: item.cantidadAguaTraida,
       consumoTotalAgua: item.consumoTotalAgua,
-      fecha: item.fecha,
+      fecha: formatDateForInput(item.fecha),
     })
     
     setEditMode(false)
     setViewMode(true)
-    setEditIndex(index)
+    setCurrentRegistroId(item.id || null)
     setOpen(true)
   }
 
@@ -155,7 +228,7 @@ export function ConsumoAguaSection() {
     setOpen(false)
     setEditMode(false)
     setViewMode(false)
-    setEditIndex(null)
+    setCurrentRegistroId(null)
     setFormData({
       cantidadAguaBebida: "",
       cantidadAguaLimpieza: "",
@@ -165,44 +238,107 @@ export function ConsumoAguaSection() {
     })
   }
 
-  const handleSubmit = () => {
-    console.log("Datos de consumo de agua:", formData)
-
+  const handleSubmit = async () => {
     // Validar que los campos requeridos estén llenos
     if (!formData.cantidadAguaBebida || !formData.cantidadAguaLimpieza || !formData.fecha) {
-      alert("Por favor, completa todos los campos requeridos")
+      setSnackbar({
+        open: true,
+        message: "Por favor, completa todos los campos requeridos",
+        severity: "warning",
+      })
       return
     }
 
-    const consumoAguaItem = {
-      cantidadAguaBebida: formData.cantidadAguaBebida,
-      cantidadAguaLimpieza: formData.cantidadAguaLimpieza,
-      cantidadAguaTraida: formData.cantidadAguaTraida || "0",
-      consumoTotalAgua: formData.consumoTotalAgua || calculateConsumoTotal(
-        formData.cantidadAguaBebida,
-        formData.cantidadAguaLimpieza,
-        formData.cantidadAguaTraida
-      ),
-      fecha: formData.fecha,
-      fechaCreacion: editMode 
-        ? consumoAguaData[editIndex!].fechaCreacion 
-        : formatDateToDisplay(formData.fecha),
-      fechaUltimaActualizacion: formatDateToDisplay(formData.fecha),
+    if (!token || !userId || !currentFarm?.id) {
+      setSnackbar({
+        open: true,
+        message: "Error: No se encontró información de autenticación",
+        severity: "error",
+      })
+      return
     }
 
-    if (editMode && editIndex !== null) {
-      // Actualizar elemento existente
-      setConsumoAguaData((prev) => 
-        prev.map((item, index) => 
-          index === editIndex ? consumoAguaItem : item
-        )
-      )
-    } else {
-      // Agregar nuevo elemento
-      setConsumoAguaData((prev) => [...prev, consumoAguaItem])
+    try {
+      setSaving(true)
+      const apiData = convertLocalToAPI(formData)
+
+      if (editMode && currentRegistroId) {
+        // Actualizar registro existente
+        const response = await updateConsumoAgua(token, currentRegistroId, apiData, userId)
+        if (response.success) {
+          setConsumoAguaData((prev) =>
+            prev.map((item) =>
+              item.id === currentRegistroId ? convertAPItoLocal(response.data as ConsumoAgua) : item
+            )
+          )
+          setSnackbar({
+            open: true,
+            message: "Registro de consumo de agua actualizado exitosamente",
+            severity: "success",
+          })
+        }
+      } else {
+        // Crear nuevo registro
+        const response = await createConsumoAgua(token, apiData)
+        if (response.success) {
+          setConsumoAguaData((prev) => [...prev, convertAPItoLocal(response.data as ConsumoAgua)])
+          setSnackbar({
+            open: true,
+            message: "Registro de consumo de agua creado exitosamente",
+            severity: "success",
+          })
+        }
+      }
+
+      handleClose()
+    } catch (error: any) {
+      console.error("Error al guardar registro de consumo de agua:", error)
+      setSnackbar({
+        open: true,
+        message: error?.message || "Error al guardar el registro de consumo de agua",
+        severity: "error",
+      })
+    } finally {
+      setSaving(false)
     }
-    
-    handleClose()
+  }
+
+  const handleDelete = async () => {
+    if (!currentRegistroId || !token || !userId) {
+      setSnackbar({
+        open: true,
+        message: "Error: No se puede eliminar el registro",
+        severity: "error",
+      })
+      return
+    }
+
+    if (!window.confirm("¿Estás seguro de que deseas eliminar este registro de consumo de agua?")) {
+      return
+    }
+
+    try {
+      setSaving(true)
+      const response = await deleteConsumoAgua(token, currentRegistroId, userId)
+      if (response.success) {
+        setConsumoAguaData((prev) => prev.filter((item) => item.id !== currentRegistroId))
+        setSnackbar({
+          open: true,
+          message: "Registro de consumo de agua eliminado exitosamente",
+          severity: "success",
+        })
+        handleClose()
+      }
+    } catch (error: any) {
+      console.error("Error al eliminar registro de consumo de agua:", error)
+      setSnackbar({
+        open: true,
+        message: error?.message || "Error al eliminar el registro de consumo de agua",
+        severity: "error",
+      })
+    } finally {
+      setSaving(false)
+    }
   }
 
   // Manejar cambios en los campos numéricos y calcular total automáticamente
@@ -228,6 +364,11 @@ export function ConsumoAguaSection() {
         <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
           {/* Page Content */}
           <Box sx={{ flexGrow: 1, p: 3, bgcolor: "grey.50" }}>
+            {loading ? (
+              <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "50vh" }}>
+                <CircularProgress />
+              </Box>
+            ) : (
             <Paper elevation={1} sx={{ borderRadius: 2 }}>
 {/* Header */}
               <Box sx={sectionHeaderStyle}>
@@ -361,6 +502,7 @@ export function ConsumoAguaSection() {
                 </Table>
               </TableContainer>
             </Paper>
+            )}
           </Box>
         </Box>
 
@@ -404,6 +546,7 @@ export function ConsumoAguaSection() {
                       <Grid item xs={6}>
                         <TextField
                           fullWidth
+                          label="Cantidad de agua bebida (m³)"
                           placeholder="Cantidad de agua bebida (m³)"
                           variant="standard"
                           type="number"
@@ -424,6 +567,7 @@ export function ConsumoAguaSection() {
                       <Grid item xs={6}>
                         <TextField
                           fullWidth
+                          label="Cantidad de agua limpieza (m³)"
                           placeholder="Cantidad de agua limpieza (m³)"
                           variant="standard"
                           type="number"
@@ -448,6 +592,7 @@ export function ConsumoAguaSection() {
                       <Grid item xs={6}>
                         <TextField
                           fullWidth
+                          label="Cantidad de agua traída (m³)"
                           placeholder="Cantidad de agua traída (m³)"
                           variant="standard"
                           type="number"
@@ -469,9 +614,9 @@ export function ConsumoAguaSection() {
                         <TextField
                           fullWidth
                           label="Fecha de registro"
-                          type="date"
+                          type={viewMode ? "text" : "date"}
                           variant="standard"
-                          value={formData.fecha}
+                          value={viewMode ? formatDateToDisplay(formData.fecha) : formData.fecha}
                           onChange={(e) => setFormData((prev) => ({ ...prev, fecha: e.target.value }))}
                           InputLabelProps={{
                             shrink: true,
@@ -516,31 +661,47 @@ export function ConsumoAguaSection() {
                     </Grid>
 
                     {/* Botones dinámicos según el modo */}
-                    <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-{viewMode ? (
-                        <Button
-                          variant="outlined"
-                          onClick={handleClose}
-                          sx={buttonStyles.close}
-                        >
-                          Cerrar
-                        </Button>
-                      ) : (
+                    <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
+                      {viewMode && currentRegistroId ? (
                         <>
                           <Button
                             variant="outlined"
-                            onClick={handleClose}
-                            sx={buttonStyles.cancel}
+                            color="error"
+                            onClick={handleDelete}
+                            disabled={saving}
                           >
-                            Cancelar
+                            {saving ? "Eliminando..." : "Eliminar"}
                           </Button>
                           <Button
-                            variant="contained"
-                            onClick={handleSubmit}
-                            sx={buttonStyles.save}
+                            variant="outlined"
+                            onClick={handleClose}
+                            disabled={saving}
+                            sx={buttonStyles.close}
                           >
-                            {editMode ? "Actualizar" : "Guardar"}
+                            Cerrar
                           </Button>
+                        </>
+                      ) : (
+                        <>
+                          <div />
+                          <Box sx={{ display: "flex", gap: 2 }}>
+                            <Button
+                              variant="outlined"
+                              onClick={handleClose}
+                              disabled={saving}
+                              sx={buttonStyles.cancel}
+                            >
+                              Cancelar
+                            </Button>
+                            <Button
+                              variant="contained"
+                              onClick={handleSubmit}
+                              disabled={saving}
+                              sx={buttonStyles.save}
+                            >
+                              {saving ? "Guardando..." : editMode ? "Actualizar" : "Guardar"}
+                            </Button>
+                          </Box>
                         </>
                       )}
                     </Box>
@@ -550,6 +711,22 @@ export function ConsumoAguaSection() {
             </ThemeProvider>
           </DialogContent>
         </Dialog>
+
+        {/* Snackbar para notificaciones */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Box>
     </ThemeProvider>
   )
