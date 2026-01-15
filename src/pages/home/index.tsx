@@ -102,6 +102,7 @@ const Home = () => {
     const currentFarm = useFarmFormStore(state => state.currentFarm);
     const setCurrentFarm = useFarmFormStore(state => state.setCurrentFarm);
     const setFarms = useFarmFormStore(state => state.setFarms);
+    const addFarm = useFarmFormStore(state => state.addFarm);
     
     
     const [activeSection, setActiveSection] = useState<string>("main");
@@ -221,9 +222,15 @@ const Home = () => {
     const handleSaveNewFarm = async () => {
       try {
         const userId = useUserStore.getState().record.id;
+        const token = useUserStore.getState().token;
 
         if (!userId) {
           alert("Error: No se encontró el ID de usuario");
+          return;
+        }
+
+        if (!token) {
+          alert("Error: No se encontró el token de autenticación");
           return;
         }
 
@@ -235,24 +242,27 @@ const Home = () => {
           }
         });
 
-        // Registrar granja
-        const newFarm = await registerFarm(formData, userId);
+        // Registrar granja con token de autenticación
+        const response = await registerFarm(formData, userId, token);
         
-        if (newFarm) {
-          // Agregar al store
-         // addFarm(newFarm);
+        if (response.success && response.data) {
+          // Agregar al store (convertir RecordModel a FarmFormData)
+          addFarm(response.data as FarmFormData);
           
           // Establecer como granja actual
-        //  setCurrentFarm(newFarm);
+          setCurrentFarm(response.data as FarmFormData);
           
           // Cerrar modal
           handleCloseCreateFarmModal();
           
           alert("✅ Granja creada exitosamente");
+        } else {
+          throw new Error(response.message || "Error al crear la granja");
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error al crear granja:", error);
-        alert("Error al crear la granja. Por favor, intenta de nuevo.");
+        const errorMessage = error?.message || "Error al crear la granja. Por favor, intenta de nuevo.";
+        alert(errorMessage);
       }
     };
 
