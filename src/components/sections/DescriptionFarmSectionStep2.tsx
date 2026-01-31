@@ -47,6 +47,36 @@ const DescriptionFarmSectionStep2: React.FC<Props> = ({ onNext, onBack }) => {
     geneticMaterial: "", // si/no
   })
 
+  // Estados para opciones personalizadas de tipo de alimentación
+  const [customFeedingOptions, setCustomFeedingOptions] = useState<string[]>([])
+  const [showFeedingInput, setShowFeedingInput] = useState(false)
+  const [newFeedingOption, setNewFeedingOption] = useState("")
+
+  // Estados para opciones personalizadas de tipo de piensos
+  const [customFeedTypeOptions, setCustomFeedTypeOptions] = useState<string[]>([])
+  const [showFeedTypeInput, setShowFeedTypeInput] = useState(false)
+  const [newFeedTypeOption, setNewFeedTypeOption] = useState("")
+
+  // Estados para opciones personalizadas de comidas al día
+  const [customMealsOptions, setCustomMealsOptions] = useState<string[]>([])
+  const [showMealsInput, setShowMealsInput] = useState(false)
+  const [newMealsOption, setNewMealsOption] = useState("")
+
+  // Estados para opciones personalizadas de inspecciones
+  const [customInspectionsOptions, setCustomInspectionsOptions] = useState<string[]>([])
+  const [showInspectionsInput, setShowInspectionsInput] = useState(false)
+  const [newInspectionsOption, setNewInspectionsOption] = useState("")
+
+  // Estados para opciones personalizadas de equipamiento automático
+  const [customEquipmentOptions, setCustomEquipmentOptions] = useState<string[]>([])
+  const [showEquipmentInput, setShowEquipmentInput] = useState(false)
+  const [newEquipmentOption, setNewEquipmentOption] = useState("")
+
+  // Estados para opciones personalizadas de agrupamiento de animales
+  const [customGroupingOptions, setCustomGroupingOptions] = useState<string[]>([])
+  const [showGroupingInput, setShowGroupingInput] = useState(false)
+  const [newGroupingOption, setNewGroupingOption] = useState("")
+
   const handleCheckboxChange = (category: string, value: string, checked: boolean) => {
     setFormData((prev) => ({
       ...prev,
@@ -63,6 +93,114 @@ const DescriptionFarmSectionStep2: React.FC<Props> = ({ onNext, onBack }) => {
       [field]: value,
     }));
   };
+
+  // Función para agregar nueva opción de alimentación
+  const handleAddFeedingOption = () => {
+    if (newFeedingOption.trim() && !customFeedingOptions.includes(newFeedingOption.trim())) {
+      setCustomFeedingOptions([...customFeedingOptions, newFeedingOption.trim()])
+      setNewFeedingOption("")
+      setShowFeedingInput(false)
+    }
+  }
+
+  // Función para eliminar opción personalizada
+  const handleRemoveFeedingOption = (option: string) => {
+    setCustomFeedingOptions(customFeedingOptions.filter(opt => opt !== option))
+    setFormData((prev) => ({
+      ...prev,
+      feedingType: prev.feedingType.filter(item => item !== option)
+    }))
+  }
+
+  // Función para agregar nueva opción de tipo de piensos
+  const handleAddFeedTypeOption = () => {
+    if (newFeedTypeOption.trim() && !customFeedTypeOptions.includes(newFeedTypeOption.trim())) {
+      setCustomFeedTypeOptions([...customFeedTypeOptions, newFeedTypeOption.trim()])
+      setNewFeedTypeOption("")
+      setShowFeedTypeInput(false)
+    }
+  }
+
+  // Función para eliminar opción personalizada de tipo de piensos
+  const handleRemoveFeedTypeOption = (option: string) => {
+    setCustomFeedTypeOptions(customFeedTypeOptions.filter(opt => opt !== option))
+    setFormData((prev) => ({
+      ...prev,
+      feedType: prev.feedType.filter(item => item !== option)
+    }))
+  }
+
+  // Función para agregar nueva opción de comidas al día
+  const handleAddMealsOption = () => {
+    if (newMealsOption.trim() && !customMealsOptions.includes(newMealsOption.trim())) {
+      setCustomMealsOptions([...customMealsOptions, newMealsOption.trim()])
+      setNewMealsOption("")
+      setShowMealsInput(false)
+    }
+  }
+
+  // Función para eliminar opción personalizada de comidas al día
+  const handleRemoveMealsOption = (option: string) => {
+    setCustomMealsOptions(customMealsOptions.filter(opt => opt !== option))
+    setFormData((prev) => ({
+      ...prev,
+      mealsPerDay: prev.mealsPerDay.filter(item => item !== option)
+    }))
+  }
+
+  // Función para agregar nueva opción de inspecciones
+  const handleAddInspectionsOption = () => {
+    if (newInspectionsOption.trim() && !customInspectionsOptions.includes(newInspectionsOption.trim())) {
+      setCustomInspectionsOptions([...customInspectionsOptions, newInspectionsOption.trim()])
+      setNewInspectionsOption("")
+      setShowInspectionsInput(false)
+    }
+  }
+
+  // Función para eliminar opción personalizada de inspecciones
+  const handleRemoveInspectionsOption = (option: string) => {
+    setCustomInspectionsOptions(customInspectionsOptions.filter(opt => opt !== option))
+    setFormData((prev) => ({
+      ...prev,
+      inspectionsPerDay: prev.inspectionsPerDay.filter(item => item !== option)
+    }))
+  }
+
+  // Función para agregar nueva opción de equipamiento automático
+  const handleAddEquipmentOption = () => {
+    if (newEquipmentOption.trim() && !customEquipmentOptions.includes(newEquipmentOption.trim())) {
+      setCustomEquipmentOptions([...customEquipmentOptions, newEquipmentOption.trim()])
+      setNewEquipmentOption("")
+      setShowEquipmentInput(false)
+    }
+  }
+
+  // Función para eliminar opción personalizada de equipamiento automático
+  const handleRemoveEquipmentOption = (option: string) => {
+    setCustomEquipmentOptions(customEquipmentOptions.filter(opt => opt !== option))
+    setFormData((prev) => ({
+      ...prev,
+      automaticEquipment: prev.automaticEquipment.filter(item => item !== option)
+    }))
+  }
+
+  // Función para agregar nueva opción de agrupamiento de animales
+  const handleAddGroupingOption = () => {
+    if (newGroupingOption.trim() && !customGroupingOptions.includes(newGroupingOption.trim())) {
+      setCustomGroupingOptions([...customGroupingOptions, newGroupingOption.trim()])
+      setNewGroupingOption("")
+      setShowGroupingInput(false)
+    }
+  }
+
+  // Función para eliminar opción personalizada de agrupamiento de animales
+  const handleRemoveGroupingOption = (option: string) => {
+    setCustomGroupingOptions(customGroupingOptions.filter(opt => opt !== option))
+    setFormData((prev) => ({
+      ...prev,
+      animalGrouping: prev.animalGrouping.filter(item => item !== option)
+    }))
+  }
 
   return (
     <Box sx={{ maxWidth: 1200, mx: "auto", p: 3, bgcolor: "background.default" }}>
@@ -156,8 +294,85 @@ const DescriptionFarmSectionStep2: React.FC<Props> = ({ onNext, onBack }) => {
                           }
                           label="Multifase"
                         />
-                       
                       </Grid>
+
+                      {/* Opciones personalizadas */}
+                      {customFeedingOptions.map((option, index) => (
+                        <Grid item xs={12} sm={6} key={`custom-feeding-${index}`}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  checked={formData.feedingType.includes(option)}
+                                  onChange={(e) =>
+                                    handleCheckboxChange("feedingType", option, e.target.checked)
+                                  }
+                                />
+                              }
+                              label={option}
+                            />
+                            <Button
+                              size="small"
+                              color="error"
+                              onClick={() => handleRemoveFeedingOption(option)}
+                              sx={{ minWidth: 'auto', p: 0.5 }}
+                            >
+                              ✕
+                            </Button>
+                          </Box>
+                        </Grid>
+                      ))}
+
+                      {/* Input para agregar nueva opción */}
+                      {showFeedingInput && (
+                        <Grid item xs={12}>
+                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                            <TextField
+                              size="small"
+                              placeholder="Nueva opción"
+                              value={newFeedingOption}
+                              onChange={(e) => setNewFeedingOption(e.target.value)}
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleAddFeedingOption()
+                                }
+                              }}
+                              sx={{ flex: 1 }}
+                            />
+                            <Button
+                              variant="contained"
+                              size="small"
+                              onClick={handleAddFeedingOption}
+                            >
+                              Agregar
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => {
+                                setShowFeedingInput(false)
+                                setNewFeedingOption("")
+                              }}
+                            >
+                              Cancelar
+                            </Button>
+                          </Box>
+                        </Grid>
+                      )}
+
+                      {/* Botón para mostrar input */}
+                      {!showFeedingInput && (
+                        <Grid item xs={12}>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => setShowFeedingInput(true)}
+                            sx={{ mt: 1 }}
+                          >
+                            + Añadir otra opción
+                          </Button>
+                        </Grid>
+                      )}
                     </Grid>
                   </FormGroup>
 
@@ -178,9 +393,9 @@ const DescriptionFarmSectionStep2: React.FC<Props> = ({ onNext, onBack }) => {
                         <FormControlLabel
                           control={
                             <Checkbox
-                              checked={formData.feedingType.includes("NC-1")}
+                              checked={formData.feedType.includes("NC-1")}
                               onChange={(e) =>
-                                handleCheckboxChange("feedingType", "NC-1", e.target.checked)
+                                handleCheckboxChange("feedType", "NC-1", e.target.checked)
                               }
                             />
                           }
@@ -188,22 +403,97 @@ const DescriptionFarmSectionStep2: React.FC<Props> = ({ onNext, onBack }) => {
                         />
                       </Grid>
 
-                      
-
                       <Grid item xs={12} sm={6}>
                         <FormControlLabel
                           control={
                             <Checkbox
-                              checked={formData.feedingType.includes("NC-2")}
+                              checked={formData.feedType.includes("NC-2")}
                               onChange={(e) =>
-                                handleCheckboxChange("feedingType", "NC-2", e.target.checked)
+                                handleCheckboxChange("feedType", "NC-2", e.target.checked)
                               }
                             />
                           }
                           label="NC-2"
                         />
-                       
                       </Grid>
+
+                      {/* Opciones personalizadas */}
+                      {customFeedTypeOptions.map((option, index) => (
+                        <Grid item xs={12} sm={6} key={`custom-feedtype-${index}`}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  checked={formData.feedType.includes(option)}
+                                  onChange={(e) =>
+                                    handleCheckboxChange("feedType", option, e.target.checked)
+                                  }
+                                />
+                              }
+                              label={option}
+                            />
+                            <Button
+                              size="small"
+                              color="error"
+                              onClick={() => handleRemoveFeedTypeOption(option)}
+                              sx={{ minWidth: 'auto', p: 0.5 }}
+                            >
+                              ✕
+                            </Button>
+                          </Box>
+                        </Grid>
+                      ))}
+
+                      {/* Input para agregar nueva opción */}
+                      {showFeedTypeInput && (
+                        <Grid item xs={12}>
+                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                            <TextField
+                              size="small"
+                              placeholder="Nueva opción"
+                              value={newFeedTypeOption}
+                              onChange={(e) => setNewFeedTypeOption(e.target.value)}
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleAddFeedTypeOption()
+                                }
+                              }}
+                              sx={{ flex: 1 }}
+                            />
+                            <Button
+                              variant="contained"
+                              size="small"
+                              onClick={handleAddFeedTypeOption}
+                            >
+                              Agregar
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => {
+                                setShowFeedTypeInput(false)
+                                setNewFeedTypeOption("")
+                              }}
+                            >
+                              Cancelar
+                            </Button>
+                          </Box>
+                        </Grid>
+                      )}
+
+                      {/* Botón para mostrar input */}
+                      {!showFeedTypeInput && (
+                        <Grid item xs={12}>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => setShowFeedTypeInput(true)}
+                            sx={{ mt: 1 }}
+                          >
+                            + Añadir otra opción
+                          </Button>
+                        </Grid>
+                      )}
                     </Grid>
                   </FormGroup>
 
@@ -224,9 +514,9 @@ const DescriptionFarmSectionStep2: React.FC<Props> = ({ onNext, onBack }) => {
                         <FormControlLabel
                           control={
                             <Checkbox
-                              checked={formData.feedingType.includes("ad-libitum")}
+                              checked={formData.mealsPerDay.includes("ad-libitum")}
                               onChange={(e) =>
-                                handleCheckboxChange("feedingType", "ad-libitum", e.target.checked)
+                                handleCheckboxChange("mealsPerDay", "ad-libitum", e.target.checked)
                               }
                             />
                           }
@@ -238,23 +528,23 @@ const DescriptionFarmSectionStep2: React.FC<Props> = ({ onNext, onBack }) => {
                         <FormControlLabel
                           control={
                             <Checkbox
-                              checked={formData.feedingType.includes("1-comida / dia")}
+                              checked={formData.mealsPerDay.includes("1-comida / dia")}
                               onChange={(e) =>
-                                handleCheckboxChange("feedingType", "1-comida / dia", e.target.checked)
+                                handleCheckboxChange("mealsPerDay", "1-comida / dia", e.target.checked)
                               }
                             />
                           }
                           label="1-comida / dia"
                         />
-                       
                       </Grid>
-                       <Grid item xs={12} sm={6}>
+
+                      <Grid item xs={12} sm={6}>
                         <FormControlLabel
                           control={
                             <Checkbox
-                              checked={formData.feedingType.includes("2-comida / dia")}
+                              checked={formData.mealsPerDay.includes("2-comida / dia")}
                               onChange={(e) =>
-                                handleCheckboxChange("feedingType", "2-comida / dia", e.target.checked)
+                                handleCheckboxChange("mealsPerDay", "2-comida / dia", e.target.checked)
                               }
                             />
                           }
@@ -262,7 +552,83 @@ const DescriptionFarmSectionStep2: React.FC<Props> = ({ onNext, onBack }) => {
                         />                       
                       </Grid>
 
+                      {/* Opciones personalizadas */}
+                      {customMealsOptions.map((option, index) => (
+                        <Grid item xs={12} sm={6} key={`custom-meals-${index}`}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  checked={formData.mealsPerDay.includes(option)}
+                                  onChange={(e) =>
+                                    handleCheckboxChange("mealsPerDay", option, e.target.checked)
+                                  }
+                                />
+                              }
+                              label={option}
+                            />
+                            <Button
+                              size="small"
+                              color="error"
+                              onClick={() => handleRemoveMealsOption(option)}
+                              sx={{ minWidth: 'auto', p: 0.5 }}
+                            >
+                              ✕
+                            </Button>
+                          </Box>
+                        </Grid>
+                      ))}
 
+                      {/* Input para agregar nueva opción */}
+                      {showMealsInput && (
+                        <Grid item xs={12}>
+                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                            <TextField
+                              size="small"
+                              placeholder="Nueva opción"
+                              value={newMealsOption}
+                              onChange={(e) => setNewMealsOption(e.target.value)}
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleAddMealsOption()
+                                }
+                              }}
+                              sx={{ flex: 1 }}
+                            />
+                            <Button
+                              variant="contained"
+                              size="small"
+                              onClick={handleAddMealsOption}
+                            >
+                              Agregar
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => {
+                                setShowMealsInput(false)
+                                setNewMealsOption("")
+                              }}
+                            >
+                              Cancelar
+                            </Button>
+                          </Box>
+                        </Grid>
+                      )}
+
+                      {/* Botón para mostrar input */}
+                      {!showMealsInput && (
+                        <Grid item xs={12}>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => setShowMealsInput(true)}
+                            sx={{ mt: 1 }}
+                          >
+                            + Añadir otra opción
+                          </Button>
+                        </Grid>
+                      )}
                     </Grid>
                   </FormGroup>
 
@@ -372,9 +738,9 @@ const DescriptionFarmSectionStep2: React.FC<Props> = ({ onNext, onBack }) => {
                         <FormControlLabel
                           control={
                             <Checkbox
-                              checked={formData.feedingType.includes("mes-1-2")}
+                              checked={formData.inspectionsPerDay.includes("mes-1-2")}
                               onChange={(e) =>
-                                handleCheckboxChange("feedingType", "mes-1-2", e.target.checked)
+                                handleCheckboxChange("inspectionsPerDay", "mes-1-2", e.target.checked)
                               }
                             />
                           }
@@ -382,22 +748,97 @@ const DescriptionFarmSectionStep2: React.FC<Props> = ({ onNext, onBack }) => {
                         />
                       </Grid>
 
-                      
-
                       <Grid item xs={12} sm={6}>
                         <FormControlLabel
                           control={
                             <Checkbox
-                              checked={formData.feedingType.includes("meses-2-3-4")}
+                              checked={formData.inspectionsPerDay.includes("meses-2-3-4")}
                               onChange={(e) =>
-                                handleCheckboxChange("feedingType", "meses-2-3-4", e.target.checked)
+                                handleCheckboxChange("inspectionsPerDay", "meses-2-3-4", e.target.checked)
                               }
                             />
                           }
                           label="Meses 2, 3 y 4 - 1 vez / día"
                         />
-                       
                       </Grid>
+
+                      {/* Opciones personalizadas */}
+                      {customInspectionsOptions.map((option, index) => (
+                        <Grid item xs={12} sm={6} key={`custom-inspections-${index}`}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  checked={formData.inspectionsPerDay.includes(option)}
+                                  onChange={(e) =>
+                                    handleCheckboxChange("inspectionsPerDay", option, e.target.checked)
+                                  }
+                                />
+                              }
+                              label={option}
+                            />
+                            <Button
+                              size="small"
+                              color="error"
+                              onClick={() => handleRemoveInspectionsOption(option)}
+                              sx={{ minWidth: 'auto', p: 0.5 }}
+                            >
+                              ✕
+                            </Button>
+                          </Box>
+                        </Grid>
+                      ))}
+
+                      {/* Input para agregar nueva opción */}
+                      {showInspectionsInput && (
+                        <Grid item xs={12}>
+                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                            <TextField
+                              size="small"
+                              placeholder="Nueva opción"
+                              value={newInspectionsOption}
+                              onChange={(e) => setNewInspectionsOption(e.target.value)}
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleAddInspectionsOption()
+                                }
+                              }}
+                              sx={{ flex: 1 }}
+                            />
+                            <Button
+                              variant="contained"
+                              size="small"
+                              onClick={handleAddInspectionsOption}
+                            >
+                              Agregar
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => {
+                                setShowInspectionsInput(false)
+                                setNewInspectionsOption("")
+                              }}
+                            >
+                              Cancelar
+                            </Button>
+                          </Box>
+                        </Grid>
+                      )}
+
+                      {/* Botón para mostrar input */}
+                      {!showInspectionsInput && (
+                        <Grid item xs={12}>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => setShowInspectionsInput(true)}
+                            sx={{ mt: 1 }}
+                          >
+                            + Añadir otra opción
+                          </Button>
+                        </Grid>
+                      )}
                     </Grid>
                   </FormGroup>
 
@@ -419,9 +860,9 @@ const DescriptionFarmSectionStep2: React.FC<Props> = ({ onNext, onBack }) => {
                         <FormControlLabel
                           control={
                             <Checkbox
-                              checked={formData.feedingType.includes("equip-1")}
+                              checked={formData.automaticEquipment.includes("equip-1")}
                               onChange={(e) =>
-                                handleCheckboxChange("feedingType", "equip-1", e.target.checked)
+                                handleCheckboxChange("automaticEquipment", "equip-1", e.target.checked)
                               }
                             />
                           }
@@ -429,22 +870,97 @@ const DescriptionFarmSectionStep2: React.FC<Props> = ({ onNext, onBack }) => {
                         />
                       </Grid>
 
-                      
-
                       <Grid item xs={12} sm={6}>
                         <FormControlLabel
                           control={
                             <Checkbox
-                              checked={formData.feedingType.includes("equip-2")}
+                              checked={formData.automaticEquipment.includes("equip-2")}
                               onChange={(e) =>
-                                handleCheckboxChange("feedingType", "equip-2", e.target.checked)
+                                handleCheckboxChange("automaticEquipment", "equip-2", e.target.checked)
                               }
                             />
                           }
                           label="2"
                         />
-                       
                       </Grid>
+
+                      {/* Opciones personalizadas */}
+                      {customEquipmentOptions.map((option, index) => (
+                        <Grid item xs={12} sm={6} key={`custom-equipment-${index}`}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  checked={formData.automaticEquipment.includes(option)}
+                                  onChange={(e) =>
+                                    handleCheckboxChange("automaticEquipment", option, e.target.checked)
+                                  }
+                                />
+                              }
+                              label={option}
+                            />
+                            <Button
+                              size="small"
+                              color="error"
+                              onClick={() => handleRemoveEquipmentOption(option)}
+                              sx={{ minWidth: 'auto', p: 0.5 }}
+                            >
+                              ✕
+                            </Button>
+                          </Box>
+                        </Grid>
+                      ))}
+
+                      {/* Input para agregar nueva opción */}
+                      {showEquipmentInput && (
+                        <Grid item xs={12}>
+                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                            <TextField
+                              size="small"
+                              placeholder="Nueva opción"
+                              value={newEquipmentOption}
+                              onChange={(e) => setNewEquipmentOption(e.target.value)}
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleAddEquipmentOption()
+                                }
+                              }}
+                              sx={{ flex: 1 }}
+                            />
+                            <Button
+                              variant="contained"
+                              size="small"
+                              onClick={handleAddEquipmentOption}
+                            >
+                              Agregar
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => {
+                                setShowEquipmentInput(false)
+                                setNewEquipmentOption("")
+                              }}
+                            >
+                              Cancelar
+                            </Button>
+                          </Box>
+                        </Grid>
+                      )}
+
+                      {/* Botón para mostrar input */}
+                      {!showEquipmentInput && (
+                        <Grid item xs={12}>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => setShowEquipmentInput(true)}
+                            sx={{ mt: 1 }}
+                          >
+                            + Añadir otra opción
+                          </Button>
+                        </Grid>
+                      )}
                     </Grid>
                   </FormGroup>
 
@@ -472,11 +988,9 @@ const DescriptionFarmSectionStep2: React.FC<Props> = ({ onNext, onBack }) => {
                               }
                             />
                           }
-                          label="1"
+                          label="Sexo"
                         />
                       </Grid>
-
-                      
 
                       <Grid item xs={12} sm={6}>
                         <FormControlLabel
@@ -488,10 +1002,87 @@ const DescriptionFarmSectionStep2: React.FC<Props> = ({ onNext, onBack }) => {
                               }
                             />
                           }
-                          label="2"
+                          label="Tamaño"
                         />
-                       
                       </Grid>
+
+                      {/* Opciones personalizadas */}
+                      {customGroupingOptions.map((option, index) => (
+                        <Grid item xs={12} sm={6} key={`custom-grouping-${index}`}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  checked={formData.animalGrouping.includes(option)}
+                                  onChange={(e) =>
+                                    handleCheckboxChange("animalGrouping", option, e.target.checked)
+                                  }
+                                />
+                              }
+                              label={option}
+                            />
+                            <Button
+                              size="small"
+                              color="error"
+                              onClick={() => handleRemoveGroupingOption(option)}
+                              sx={{ minWidth: 'auto', p: 0.5 }}
+                            >
+                              ✕
+                            </Button>
+                          </Box>
+                        </Grid>
+                      ))}
+
+                      {/* Input para agregar nueva opción */}
+                      {showGroupingInput && (
+                        <Grid item xs={12}>
+                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                            <TextField
+                              size="small"
+                              placeholder="Nueva opción"
+                              value={newGroupingOption}
+                              onChange={(e) => setNewGroupingOption(e.target.value)}
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleAddGroupingOption()
+                                }
+                              }}
+                              sx={{ flex: 1 }}
+                            />
+                            <Button
+                              variant="contained"
+                              size="small"
+                              onClick={handleAddGroupingOption}
+                            >
+                              Agregar
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => {
+                                setShowGroupingInput(false)
+                                setNewGroupingOption("")
+                              }}
+                            >
+                              Cancelar
+                            </Button>
+                          </Box>
+                        </Grid>
+                      )}
+
+                      {/* Botón para mostrar input */}
+                      {!showGroupingInput && (
+                        <Grid item xs={12}>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => setShowGroupingInput(true)}
+                            sx={{ mt: 1 }}
+                          >
+                            + Añadir otra opción
+                          </Button>
+                        </Grid>
+                      )}
                     </Grid>
                   </FormGroup>
 
