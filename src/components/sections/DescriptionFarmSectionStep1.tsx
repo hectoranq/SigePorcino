@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react"
-import { fetchFarmDetails, saveFarmDetails, updateFarmDetails } from "../../data/repository"
 import {
   Box,
   Typography,
@@ -19,8 +18,12 @@ import {
 import useUserStore from "../../_store/user"
 import useFarmFormStore from "../../_store/farm"
 import { buttonStyles } from "./buttonStyles"
-
-import { FarmDetails } from "../../data/repository"; // Ajusta la ruta si es necesario
+import {
+  FarmDetails,
+  searchFarmDetailsByFarmId,
+  createFarmDetails,
+  updateFarmDetails as updateFarmDetailsAPI,
+} from "../../action/FarmsDetailsPocket"
 
 const initialForm = {
   anio_construccion: "",
@@ -52,8 +55,44 @@ const initialForm = {
   otros_carro_contenedor: false,
 }
 
-function adaptFarmDetailsToForm(data: Partial<FarmDetails>) {
+function adaptFarmDetailsToForm(data: Partial<FarmDetails>, setCustomOptions: {
+  setCustomSueloOptions: React.Dispatch<React.SetStateAction<string[]>>;
+  setCustomEmpanilladoOptions: React.Dispatch<React.SetStateAction<string[]>>;
+  setCustomDesplazamientoOptions: React.Dispatch<React.SetStateAction<string[]>>;
+  setCustomOtrosOptions: React.Dispatch<React.SetStateAction<string[]>>;
+}) {
   console.log("Adaptando datos de la granja:", data);
+  
+  // Cargar opciones personalizadas (desde JSON strings)
+  try {
+    if (data.suelo_custom) {
+      const parsed = typeof data.suelo_custom === 'string' ? JSON.parse(data.suelo_custom) : data.suelo_custom;
+      if (Array.isArray(parsed)) {
+        setCustomOptions.setCustomSueloOptions(parsed.map(item => item.name));
+      }
+    }
+    if (data.empanillado_custom) {
+      const parsed = typeof data.empanillado_custom === 'string' ? JSON.parse(data.empanillado_custom) : data.empanillado_custom;
+      if (Array.isArray(parsed)) {
+        setCustomOptions.setCustomEmpanilladoOptions(parsed.map(item => item.name));
+      }
+    }
+    if (data.desplazamiento_custom) {
+      const parsed = typeof data.desplazamiento_custom === 'string' ? JSON.parse(data.desplazamiento_custom) : data.desplazamiento_custom;
+      if (Array.isArray(parsed)) {
+        setCustomOptions.setCustomDesplazamientoOptions(parsed.map(item => item.name));
+      }
+    }
+    if (data.otros_custom) {
+      const parsed = typeof data.otros_custom === 'string' ? JSON.parse(data.otros_custom) : data.otros_custom;
+      if (Array.isArray(parsed)) {
+        setCustomOptions.setCustomOtrosOptions(parsed.map(item => item.name));
+      }
+    }
+  } catch (error) {
+    console.error('Error al parsear campos custom:', error);
+  }
+  
   return {
     anio_construccion: data.anio_construccion?.toString() ?? "",
     anio_renovacion: data.anio_renovacion?.toString() ?? "",
@@ -85,42 +124,69 @@ function adaptFarmDetailsToForm(data: Partial<FarmDetails>) {
   }
 }
 
-function adaptFormToFarmDetails(form: typeof initialForm, idfarm?: string) {
+function adaptFormToFarmDetails(
+  form: typeof initialForm,
+  customOptions: {
+    suelo: string[];
+    empanillado: string[];
+    desplazamiento: string[];
+    otros: string[];
+  },
+  idfarm: string,
+  userId: string
+): Omit<FarmDetails, 'id' | 'created' | 'updated' | 'collectionId' | 'collectionName'> {
   return {
+    frams: idfarm,
+    user: userId,
     anio_construccion: form.anio_construccion ? Number(form.anio_construccion) : undefined,
     anio_renovacion: form.anio_renovacion ? Number(form.anio_renovacion) : undefined,
     superficie_autorizada: form.superficie_autorizada ? Number(form.superficie_autorizada) : undefined,
     superficie_util: form.superficie_util ? Number(form.superficie_util) : undefined,
-    observaciones_superficie: form.observaciones_superficie,
+    observaciones_superficie: form.observaciones_superficie || undefined,
     capacidad_autorizada: form.capacidad_autorizada ? Number(form.capacidad_autorizada) : undefined,
-    orientacion_naves: form.orientacion_naves,
-    delimitacion_perimetral: form.delimitacion_perimetral,
-    observaciones_delimitacion: form.observaciones_delimitacion,
-    tipo_aislamiento: form.tipo_aislamiento,
+    orientacion_naves: form.orientacion_naves || undefined,
+    delimitacion_perimetral: form.delimitacion_perimetral || undefined,
+    observaciones_delimitacion: form.observaciones_delimitacion || undefined,
+    tipo_aislamiento: form.tipo_aislamiento || undefined,
     numero_trabajadores: form.numero_trabajadores ? Number(form.numero_trabajadores) : undefined,
-    suelo_hormigon: !!form.suelo_hormigon,
-    suelo_metalico: !!form.suelo_metalico,
-    suelo_plastico: !!form.suelo_plastico,
-    empanillado_hormigon: !!form.empanillado_hormigon,
-    empanillado_metalico: !!form.empanillado_metalico,
-    empanillado_plastico: !!form.empanillado_plastico,
-    luxometro: form.luxometro,
-    termometro: form.termometro,
-    medidores_gases: form.medidores_gases,
-    sonometro: form.sonometro,
-    higrometro: form.higrometro,
-    rampa_carga_descarga: form.rampa_carga_descarga,
-    desplazamiento_tableros: !!form.desplazamiento_tableros,
-    desplazamiento_puertas: !!form.desplazamiento_puertas,
-    sistema_eliminacion_cadaveres: form.sistema_eliminacion_cadaveres,
-    otros_carro_contenedor: !!form.otros_carro_contenedor,
-    farms: idfarm ? idfarm : undefined, // Si tienes un id de granja, lo agregas aquí
+    suelo_hormigon: form.suelo_hormigon,
+    suelo_metalico: form.suelo_metalico,
+    suelo_plastico: form.suelo_plastico,
+    suelo_custom: customOptions.suelo.length > 0 ? JSON.stringify(customOptions.suelo.map(name => ({ name, checked: false }))) : "",
+    empanillado_hormigon: form.empanillado_hormigon,
+    empanillado_metalico: form.empanillado_metalico,
+    empanillado_plastico: form.empanillado_plastico,
+    empanillado_custom: customOptions.empanillado.length > 0 ? JSON.stringify(customOptions.empanillado.map(name => ({ name, checked: false }))) : "",
+    luxometro: form.luxometro || undefined,
+    termometro: form.termometro || undefined,
+    medidores_gases: form.medidores_gases || undefined,
+    sonometro: form.sonometro || undefined,
+    higrometro: form.higrometro || undefined,
+    rampa_carga_descarga: form.rampa_carga_descarga || undefined,
+    desplazamiento_tableros: form.desplazamiento_tableros,
+    desplazamiento_puertas: form.desplazamiento_puertas,
+    desplazamiento_custom: customOptions.desplazamiento.length > 0 ? JSON.stringify(customOptions.desplazamiento.map(name => ({ name, checked: false }))) : "",
+    sistema_eliminacion_cadaveres: form.sistema_eliminacion_cadaveres || undefined,
+    otros_carro_contenedor: form.otros_carro_contenedor,
+    otros_custom: customOptions.otros.length > 0 ? JSON.stringify(customOptions.otros.map(name => ({ name, checked: false }))) : "",
   };
 }
 
 const DescriptionFarmSectionStep1 = ({ onNext }: { onNext: () => void }) => {
   const [form, setForm] = useState(initialForm);
   const [farmDetailsExists, setFarmDetailsExists] = useState<string | null>(null);
+  const [customSueloOptions, setCustomSueloOptions] = useState<string[]>([]);
+  const [showSueloInput, setShowSueloInput] = useState(false);
+  const [newSueloOption, setNewSueloOption] = useState("");
+  const [customEmpanilladoOptions, setCustomEmpanilladoOptions] = useState<string[]>([]);
+  const [showEmpanilladoInput, setShowEmpanilladoInput] = useState(false);
+  const [newEmpanilladoOption, setNewEmpanilladoOption] = useState("");
+  const [customDesplazamientoOptions, setCustomDesplazamientoOptions] = useState<string[]>([]);
+  const [showDesplazamientoInput, setShowDesplazamientoInput] = useState(false);
+  const [newDesplazamientoOption, setNewDesplazamientoOption] = useState("");
+  const [customOtrosOptions, setCustomOtrosOptions] = useState<string[]>([]);
+  const [showOtrosInput, setShowOtrosInput] = useState(false);
+  const [newOtrosOption, setNewOtrosOption] = useState("");
 
   // CAMBIO: Usar currentFarm en lugar de formData
   const token = useUserStore(state => state.token);
@@ -133,21 +199,29 @@ const DescriptionFarmSectionStep1 = ({ onNext }: { onNext: () => void }) => {
 
   useEffect(() => {
     const loadFarmDetails = async () => {
-      // Validar que tengamos un ID de granja
-      if (!farmDetailsId) {
-        console.warn("⚠️ No hay ID de granja disponible");
+      // Validar que tengamos un ID de granja y usuario
+      if (!farmDetailsId || !token) {
+        console.warn("⚠️ No hay ID de granja o token disponible");
         return;
       }
 
       try {
-        const data = await fetchFarmDetails(farmDetailsId, token);
-        if (data && data.id) {
+        const response = await searchFarmDetailsByFarmId(token, farmDetailsId, useUserStore.getState().record.id || "");
+        
+        if (response.success && response.data) {
+          const customSetters = {
+            setCustomSueloOptions,
+            setCustomEmpanilladoOptions,
+            setCustomDesplazamientoOptions,
+            setCustomOtrosOptions,
+          };
+          
           setForm(prev => ({
             ...prev,
-            ...adaptFarmDetailsToForm(data),
+            ...adaptFarmDetailsToForm(response.data, customSetters),
           }));
-          setFarmDetailsExists(data.id); // Guarda el id si existen datos
-          console.log("✅ Detalles de granja cargados:", data);
+          setFarmDetailsExists(response.data.id || null);
+          console.log("✅ Detalles de granja cargados:", response.data);
         } else {
           setFarmDetailsExists(null);
           console.log("ℹ️ No se encontraron detalles previos para esta granja");
@@ -178,30 +252,87 @@ const DescriptionFarmSectionStep1 = ({ onNext }: { onNext: () => void }) => {
     }))
   }
 
+  // Función para agregar opción personalizada de suelo
+  const handleAddSueloOption = () => {
+    if (newSueloOption.trim()) {
+      setCustomSueloOptions(prev => [...prev, newSueloOption.trim()]);
+      setNewSueloOption("");
+      setShowSueloInput(false);
+    }
+  };
+
+  // Función para agregar opción personalizada de empanillado
+  const handleAddEmpanilladoOption = () => {
+    if (newEmpanilladoOption.trim()) {
+      setCustomEmpanilladoOptions(prev => [...prev, newEmpanilladoOption.trim()]);
+      setNewEmpanilladoOption("");
+      setShowEmpanilladoInput(false);
+    }
+  };
+
+  // Función para agregar opción personalizada de desplazamiento
+  const handleAddDesplazamientoOption = () => {
+    if (newDesplazamientoOption.trim()) {
+      setCustomDesplazamientoOptions(prev => [...prev, newDesplazamientoOption.trim()]);
+      setNewDesplazamientoOption("");
+      setShowDesplazamientoInput(false);
+    }
+  };
+
+  // Función para agregar opción personalizada de Otros
+  const handleAddOtrosOption = () => {
+    if (newOtrosOption.trim()) {
+      setCustomOtrosOptions(prev => [...prev, newOtrosOption.trim()]);
+      setNewOtrosOption("");
+      setShowOtrosInput(false);
+    }
+  };
+
   // Enviar datos a PocketBase
   const handleSubmit = async () => {
-    // Validar que tengamos un ID de granja
+    // Validar que tengamos un ID de granja y usuario
+    const userId = useUserStore.getState().record.id;
+    
     if (!farmDetailsId) {
       console.error("❌ No se puede guardar: falta el ID de granja");
       alert("Error: No se encontró la granja seleccionada");
       return;
     }
 
+    if (!userId) {
+      console.error("❌ No se puede guardar: falta el ID de usuario");
+      alert("Error: Usuario no autenticado");
+      return;
+    }
+
     try {
-      const dataToSend = adaptFormToFarmDetails(form, farmDetailsId);
+      const customOptions = {
+        suelo: customSueloOptions,
+        empanillado: customEmpanilladoOptions,
+        desplazamiento: customDesplazamientoOptions,
+        otros: customOtrosOptions,
+      };
+      
+      const dataToSend = adaptFormToFarmDetails(form, customOptions, farmDetailsId, userId);
+      
+      // Log para depuración
+      console.log("📤 Datos a enviar:", JSON.stringify(dataToSend, null, 2));
       
       if (farmDetailsExists) {
-        await updateFarmDetails(farmDetailsExists, dataToSend);
-        console.log("✅ Datos actualizados correctamente en PocketBase");
+        const response = await updateFarmDetailsAPI(token, farmDetailsExists, dataToSend);
+        console.log("✅ Datos actualizados correctamente:", response.message);
+        alert(response.message);
       } else {
-        await saveFarmDetails(dataToSend, token);
-        console.log("✅ Datos guardados correctamente en PocketBase");
+        const response = await createFarmDetails(token, dataToSend);
+        console.log("✅ Datos guardados correctamente:", response.message);
+        setFarmDetailsExists(response.data.id || null);
+        alert(response.message);
       }
       
       onNext(); // Llama a la función onNext para avanzar al siguiente paso
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ Error al guardar/actualizar los detalles de la granja:", error);
-      alert("Error al guardar los datos. Por favor, intenta de nuevo.");
+      alert(error?.message || "Error al guardar los datos. Por favor, intenta de nuevo.");
     }
   };
 
@@ -379,12 +510,12 @@ const DescriptionFarmSectionStep1 = ({ onNext }: { onNext: () => void }) => {
               </Grid>
 
               {/* Soil and flooring types */}
-              <Grid container spacing={4}>
-                <Grid item xs={12} md={6}>
-                  <FormControl component="fieldset">
-                    <FormLabel component="legend" sx={{ fontWeight: 500, color: "text.primary", mb: 2 }}>
-                      Tipo de suelo disponible
-                    </FormLabel>
+              <FormControl component="fieldset" sx={{ width: "100%" }}>
+                <FormLabel component="legend" sx={{ fontWeight: 500, color: "text.primary", mb: 2 }}>
+                  Tipo de suelo disponible
+                </FormLabel>
+                <Grid container spacing={4}>
+                  <Grid item xs={12} md={6}>
                     <FormGroup>
                       <FormControlLabel
                         control={<Checkbox />}
@@ -400,11 +531,20 @@ const DescriptionFarmSectionStep1 = ({ onNext }: { onNext: () => void }) => {
                         checked={form.suelo_metalico}
                         onChange={handleChange}
                       />
+                      
+                      {/* Opciones personalizadas - primera columna */}
+                      {customSueloOptions.filter((_, index) => index % 2 === 0).map((option, index) => (
+                        <FormControlLabel
+                          key={`custom-suelo-${index * 2}`}
+                          control={<Checkbox />}
+                          label={option}
+                          name={`suelo_custom_${index * 2}`}
+                          onChange={handleChange}
+                        />
+                      ))}
                     </FormGroup>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Box sx={{ mt: 4 }}>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
                     <FormGroup>
                       <FormControlLabel
                         control={<Checkbox />}
@@ -413,10 +553,77 @@ const DescriptionFarmSectionStep1 = ({ onNext }: { onNext: () => void }) => {
                         checked={form.suelo_plastico}
                         onChange={handleChange}
                       />
+                      
+                      {/* Opciones personalizadas - segunda columna */}
+                      {customSueloOptions.filter((_, index) => index % 2 === 1).map((option, index) => (
+                        <FormControlLabel
+                          key={`custom-suelo-${index * 2 + 1}`}
+                          control={<Checkbox />}
+                          label={option}
+                          name={`suelo_custom_${index * 2 + 1}`}
+                          onChange={handleChange}
+                        />
+                      ))}
                     </FormGroup>
-                  </Box>
+                  </Grid>
+                  
+                  {/* Input para nueva opción - full width */}
+                  <Grid item xs={12}>
+                    {showSueloInput && (
+                      <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                        <TextField
+                          size="small"
+                          variant="outlined"
+                          placeholder="Nombre de la opción"
+                          value={newSueloOption}
+                          onChange={(e) => setNewSueloOption(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === "Enter") {
+                              handleAddSueloOption();
+                            }
+                          }}
+                          sx={{ flex: 1, maxWidth: "400px" }}
+                        />
+                        <Button
+                          size="small"
+                          variant="contained"
+                          onClick={handleAddSueloOption}
+                          sx={{ minWidth: "auto", px: 2 }}
+                        >
+                          ✓
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => {
+                            setShowSueloInput(false);
+                            setNewSueloOption("");
+                          }}
+                          sx={{ minWidth: "auto", px: 2 }}
+                        >
+                          ✕
+                        </Button>
+                      </Box>
+                    )}
+                    
+                    {/* Botón añadir otra opción */}
+                    {!showSueloInput && (
+                      <Button
+                        size="small"
+                        variant="text"
+                        onClick={() => setShowSueloInput(true)}
+                        sx={{ 
+                          justifyContent: "flex-start",
+                          textTransform: "none",
+                          color: "primary.main"
+                        }}
+                      >
+                        + Añadir otra opción
+                      </Button>
+                    )}
+                  </Grid>
                 </Grid>
-              </Grid>
+              </FormControl>
 
               {/* Flooring type */}
               <FormControl component="fieldset" sx={{ width: "100%" }}>
@@ -440,6 +647,17 @@ const DescriptionFarmSectionStep1 = ({ onNext }: { onNext: () => void }) => {
                         checked={form.empanillado_metalico}
                         onChange={handleChange}
                       />
+                      
+                      {/* Opciones personalizadas - primera columna */}
+                      {customEmpanilladoOptions.filter((_, index) => index % 2 === 0).map((option, index) => (
+                        <FormControlLabel
+                          key={`custom-empanillado-${index * 2}`}
+                          control={<Checkbox />}
+                          label={option}
+                          name={`empanillado_custom_${index * 2}`}
+                          onChange={handleChange}
+                        />
+                      ))}
                     </FormGroup>
                   </Grid>
                   <Grid item xs={12} md={6}>
@@ -451,7 +669,74 @@ const DescriptionFarmSectionStep1 = ({ onNext }: { onNext: () => void }) => {
                         checked={form.empanillado_plastico}
                         onChange={handleChange}
                       />
+                      
+                      {/* Opciones personalizadas - segunda columna */}
+                      {customEmpanilladoOptions.filter((_, index) => index % 2 === 1).map((option, index) => (
+                        <FormControlLabel
+                          key={`custom-empanillado-${index * 2 + 1}`}
+                          control={<Checkbox />}
+                          label={option}
+                          name={`empanillado_custom_${index * 2 + 1}`}
+                          onChange={handleChange}
+                        />
+                      ))}
                     </FormGroup>
+                  </Grid>
+                  
+                  {/* Input para nueva opción - full width */}
+                  <Grid item xs={12}>
+                    {showEmpanilladoInput && (
+                      <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                        <TextField
+                          size="small"
+                          variant="outlined"
+                          placeholder="Nombre de la opción"
+                          value={newEmpanilladoOption}
+                          onChange={(e) => setNewEmpanilladoOption(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === "Enter") {
+                              handleAddEmpanilladoOption();
+                            }
+                          }}
+                          sx={{ flex: 1, maxWidth: "400px" }}
+                        />
+                        <Button
+                          size="small"
+                          variant="contained"
+                          onClick={handleAddEmpanilladoOption}
+                          sx={{ minWidth: "auto", px: 2 }}
+                        >
+                          ✓
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => {
+                            setShowEmpanilladoInput(false);
+                            setNewEmpanilladoOption("");
+                          }}
+                          sx={{ minWidth: "auto", px: 2 }}
+                        >
+                          ✕
+                        </Button>
+                      </Box>
+                    )}
+                    
+                    {/* Botón añadir otra opción */}
+                    {!showEmpanilladoInput && (
+                      <Button
+                        size="small"
+                        variant="text"
+                        onClick={() => setShowEmpanilladoInput(true)}
+                        sx={{ 
+                          justifyContent: "flex-start",
+                          textTransform: "none",
+                          color: "primary.main"
+                        }}
+                      >
+                        + Añadir otra opción
+                      </Button>
+                    )}
                   </Grid>
                 </Grid>
               </FormControl>
@@ -630,6 +915,17 @@ const DescriptionFarmSectionStep1 = ({ onNext }: { onNext: () => void }) => {
                         checked={form.desplazamiento_tableros}
                         onChange={handleChange}
                       />
+                      
+                      {/* Opciones personalizadas - primera columna */}
+                      {customDesplazamientoOptions.filter((_, index) => index % 2 === 0).map((option, index) => (
+                        <FormControlLabel
+                          key={`custom-desplazamiento-${index * 2}`}
+                          control={<Checkbox />}
+                          label={option}
+                          name={`desplazamiento_custom_${index * 2}`}
+                          onChange={handleChange}
+                        />
+                      ))}
                     </FormGroup>
                   </Grid>
                   <Grid item xs={12} md={6}>
@@ -641,7 +937,74 @@ const DescriptionFarmSectionStep1 = ({ onNext }: { onNext: () => void }) => {
                         checked={form.desplazamiento_puertas}
                         onChange={handleChange}
                       />
+                      
+                      {/* Opciones personalizadas - segunda columna */}
+                      {customDesplazamientoOptions.filter((_, index) => index % 2 === 1).map((option, index) => (
+                        <FormControlLabel
+                          key={`custom-desplazamiento-${index * 2 + 1}`}
+                          control={<Checkbox />}
+                          label={option}
+                          name={`desplazamiento_custom_${index * 2 + 1}`}
+                          onChange={handleChange}
+                        />
+                      ))}
                     </FormGroup>
+                  </Grid>
+                  
+                  {/* Input para nueva opción - full width */}
+                  <Grid item xs={12}>
+                    {showDesplazamientoInput && (
+                      <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                        <TextField
+                          size="small"
+                          variant="outlined"
+                          placeholder="Nombre de la opción"
+                          value={newDesplazamientoOption}
+                          onChange={(e) => setNewDesplazamientoOption(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === "Enter") {
+                              handleAddDesplazamientoOption();
+                            }
+                          }}
+                          sx={{ flex: 1, maxWidth: "400px" }}
+                        />
+                        <Button
+                          size="small"
+                          variant="contained"
+                          onClick={handleAddDesplazamientoOption}
+                          sx={{ minWidth: "auto", px: 2 }}
+                        >
+                          ✓
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => {
+                            setShowDesplazamientoInput(false);
+                            setNewDesplazamientoOption("");
+                          }}
+                          sx={{ minWidth: "auto", px: 2 }}
+                        >
+                          ✕
+                        </Button>
+                      </Box>
+                    )}
+                    
+                    {/* Botón añadir otra opción */}
+                    {!showDesplazamientoInput && (
+                      <Button
+                        size="small"
+                        variant="text"
+                        onClick={() => setShowDesplazamientoInput(true)}
+                        sx={{ 
+                          justifyContent: "flex-start",
+                          textTransform: "none",
+                          color: "primary.main"
+                        }}
+                      >
+                        + Añadir otra opción
+                      </Button>
+                    )}
                   </Grid>
                 </Grid>
               </FormControl>
@@ -677,7 +1040,88 @@ const DescriptionFarmSectionStep1 = ({ onNext }: { onNext: () => void }) => {
                       checked={form.otros_carro_contenedor}
                       onChange={handleChange}
                     />
+                    
+                    {/* Opciones personalizadas - primera columna */}
+                    {customOtrosOptions.filter((_, index) => index % 2 === 0).map((option, index) => (
+                      <FormControlLabel
+                        key={`custom-otros-${index * 2}`}
+                        control={<Checkbox />}
+                        label={option}
+                        name={`otros_custom_${index * 2}`}
+                        onChange={handleChange}
+                      />
+                    ))}
                   </FormGroup>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <FormGroup>
+                    {/* Opciones personalizadas - segunda columna */}
+                    {customOtrosOptions.filter((_, index) => index % 2 === 1).map((option, index) => (
+                      <FormControlLabel
+                        key={`custom-otros-${index * 2 + 1}`}
+                        control={<Checkbox />}
+                        label={option}
+                        name={`otros_custom_${index * 2 + 1}`}
+                        onChange={handleChange}
+                      />
+                    ))}
+                  </FormGroup>
+                </Grid>
+                
+                {/* Input para nueva opción - full width */}
+                <Grid item xs={12}>
+                  {showOtrosInput && (
+                    <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                      <TextField
+                        size="small"
+                        variant="outlined"
+                        placeholder="Nombre de la opción"
+                        value={newOtrosOption}
+                        onChange={(e) => setNewOtrosOption(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === "Enter") {
+                            handleAddOtrosOption();
+                          }
+                        }}
+                        sx={{ flex: 1, maxWidth: "400px" }}
+                      />
+                      <Button
+                        size="small"
+                        variant="contained"
+                        onClick={handleAddOtrosOption}
+                        sx={{ minWidth: "auto", px: 2 }}
+                      >
+                        ✓
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => {
+                          setShowOtrosInput(false);
+                          setNewOtrosOption("");
+                        }}
+                        sx={{ minWidth: "auto", px: 2 }}
+                      >
+                        ✕
+                      </Button>
+                    </Box>
+                  )}
+                  
+                  {/* Botón añadir otra opción */}
+                  {!showOtrosInput && (
+                    <Button
+                      size="small"
+                      variant="text"
+                      onClick={() => setShowOtrosInput(true)}
+                      sx={{ 
+                        justifyContent: "flex-start",
+                        textTransform: "none",
+                        color: "primary.main"
+                      }}
+                    >
+                      + Añadir otra opción
+                    </Button>
+                  )}
                 </Grid>
               </Grid>
             </FormControl>
