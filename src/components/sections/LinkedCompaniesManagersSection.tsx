@@ -43,8 +43,8 @@ type TipoPersona = "empresa" | "persona"
 
 const POBLACIONES = ["Madrid", "Barcelona", "Valencia", "Sevilla", "Zaragoza"]
 const PROVINCIAS = ["Madrid", "Barcelona", "Valencia", "Sevilla", "Zaragoza"]
-const OPCIONES_IZQ = ["Propietario", "Arrendatario", "Gestor"]
-const OPCIONES_DER = ["Transportista", "Veterinario", "Técnico especialista"]
+const OPCIONES_IZQ = ["Integrador", "Lavado y desinfección", "Mantenimiento", "Cadáveres", "Desratización", "ADS", "Reparaciones"]
+const OPCIONES_DER = ["Particular", "Residuos LER", "Purines", "Laboratorio", "Semen", "Fitosanitarios"]
 
 interface LinkedCompaniesManagersPageProps {
   token: string;
@@ -80,6 +80,7 @@ export default function LinkedCompaniesManagersPage({ token, userId, farmId }: L
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false)
   const [empresaToDelete, setEmpresaToDelete] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState(false) // true = solo ver, false = editar/agregar
 
   // Cargar empresas vinculadas al montar el componente
   useEffect(() => {
@@ -111,6 +112,20 @@ export default function LinkedCompaniesManagersPage({ token, userId, farmId }: L
     }
   }
 
+  // Función para convertir fecha ISO a formato YYYY-MM-DD para el input date
+  const formatDateToInput = (dateString: string) => {
+    if (!dateString) return ""
+    // Si la fecha ya está en formato YYYY-MM-DD, devolverla tal cual
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString
+    // Si es ISO 8601, extraer solo la parte de fecha
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return "" // Fecha inválida
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
   const handleAgregarNuevo = () => {
     setOpen(true)
   }
@@ -118,6 +133,7 @@ export default function LinkedCompaniesManagersPage({ token, userId, farmId }: L
   const handleClose = () => {
     setOpen(false)
     setEditingId(null)
+    setViewMode(false)
     // Resetear formulario
     setTipoPersona("empresa")
     setPoblacion("")
@@ -257,8 +273,8 @@ export default function LinkedCompaniesManagersPage({ token, userId, farmId }: L
     })
     setPoblacion(empresa.poblacion)
     setProvincia(empresa.provincia)
-    setFechaInicio(empresa.fecha_inicio)
-    setFechaFin(empresa.fecha_finalizacion)
+    setFechaInicio(formatDateToInput(empresa.fecha_inicio))
+    setFechaFin(formatDateToInput(empresa.fecha_finalizacion))
     
     // Cargar checkboxes de tipo_vinculacion
     const checksObj: { [key: string]: boolean } = {}
@@ -273,7 +289,41 @@ export default function LinkedCompaniesManagersPage({ token, userId, farmId }: L
   const handleVerMas = (id: string) => {
     const empresa = empresas.find(e => e.id === id)
     console.log("Ver más de empresa:", empresa)
-    // TODO: Implementar modal de detalles si se requiere
+    
+    if (empresa) {
+      // Cargar datos de la empresa en el formulario
+      setEditingId(empresa.id || null)
+      setViewMode(true) // Activar modo solo vista
+      setTipoPersona(empresa.tipo_persona as TipoPersona || "empresa")
+      setFormData({
+        dni: empresa.dni_cif || "",
+        nombre: empresa.nombre || "",
+        apellidos: empresa.apellidos || "",
+        direccion: empresa.direccion || "",
+        telefono: empresa.telefono || "",
+        email: empresa.email || "",
+      })
+      setPoblacion(empresa.poblacion || "")
+      setProvincia(empresa.provincia || "")
+      setFechaInicio(formatDateToInput(empresa.fecha_inicio || ""))
+      setFechaFin(formatDateToInput(empresa.fecha_finalizacion || ""))
+      
+      // Cargar tipos de vinculación como checkboxes
+      const vinculaciones = empresa.tipo_vinculacion || []
+      const checksData: { [key: string]: boolean } = {}
+      vinculaciones.forEach(v => {
+        checksData[v] = true
+      })
+      setChecks(checksData)
+      
+      // Identificar opciones extra (que no están en las predeterminadas)
+      const opcionesPredeterminadas = [...OPCIONES_IZQ, ...OPCIONES_DER]
+      const extra = vinculaciones.filter(v => !opcionesPredeterminadas.includes(v))
+      setOpcionesExtra(extra)
+      
+      // Abrir el diálogo
+      setOpen(true)
+    }
   }
 
   // Funciones para eliminar
@@ -554,13 +604,13 @@ export default function LinkedCompaniesManagersPage({ token, userId, farmId }: L
           }}
         >
           <DialogContent sx={{ p: 0 }}>
-            <Paper elevation={3} sx={{ p: { xs: 2, md: 3 }, borderRadius: 3 }}>
+            <Paper elevation={3} sx={{ p: { xs: 2, sm: 2.5, md: 3 }, borderRadius: 3 }}>
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
                 Registro de empresas vinculadas y gestores autorizados
               </Typography>
 
               <Box component="form" id="form-registro" onSubmit={handleSubmit} noValidate>
-                <Grid container spacing={2}>
+                <Grid container spacing={{ xs: 1.5, sm: 2 }}>
                   {/* Identificación */}
                   <Grid item xs={12}>
                     <FormControl>
@@ -579,7 +629,7 @@ export default function LinkedCompaniesManagersPage({ token, userId, farmId }: L
                   </Grid>
 
                   {/* DNI */}
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12} sm={6} md={6}>
                     <TextField
                       name="dni"
                       label="DNI"
@@ -590,7 +640,7 @@ export default function LinkedCompaniesManagersPage({ token, userId, farmId }: L
                   </Grid>
 
                   {/* Nombre / Apellidos */}
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12} sm={6} md={6}>
                     <TextField
                       name="nombre"
                       label="Nombre"
@@ -642,7 +692,7 @@ export default function LinkedCompaniesManagersPage({ token, userId, farmId }: L
                   </Grid>
 
                   {/* Dirección */}
-                  <Grid item xs={12}>
+                  <Grid item xs={12} sm={12}>
                     <TextField
                       name="direccion"
                       label="Dirección"
@@ -779,22 +829,39 @@ export default function LinkedCompaniesManagersPage({ token, userId, farmId }: L
                   </Grid>
 
                   {/* Botones */}
-                  <Grid item xs={12} md={6}>
-                    <Button
-                      fullWidth
-                      variant="outlined"
-                      color="inherit"
-                      onClick={handleCancelar}
-                      sx={{ height: 44 }}
-                    >
-                      Cancelar
-                    </Button>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <Button fullWidth type="submit" variant="contained" sx={{ height: 44 }}>
-                      Registrar
-                    </Button>
-                  </Grid>
+                  {viewMode ? (
+                    // Modo solo vista: solo botón Cerrar
+                    <Grid item xs={12}>
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        onClick={handleClose}
+                        sx={{ height: 44 }}
+                      >
+                        Cerrar
+                      </Button>
+                    </Grid>
+                  ) : (
+                    // Modo editar/agregar: botones Cancelar y Registrar
+                    <>
+                      <Grid item xs={12} md={6}>
+                        <Button
+                          fullWidth
+                          variant="outlined"
+                          color="inherit"
+                          onClick={handleCancelar}
+                          sx={{ height: 44 }}
+                        >
+                          Cancelar
+                        </Button>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <Button fullWidth type="submit" variant="contained" sx={{ height: 44 }}>
+                          {editingId ? "Actualizar" : "Registrar"}
+                        </Button>
+                      </Grid>
+                    </>
+                  )}
                 </Grid>
               </Box>
             </Paper>

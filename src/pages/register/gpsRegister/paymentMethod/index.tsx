@@ -114,7 +114,13 @@ const PaymentMethod = () => {
           return;
         }
 
-        await registerFarm(formDataFarm, userId);
+        const farmResponse = await registerFarm(formDataFarm, userId);
+        if (!farmResponse.success) {
+          setOpenSnackbar(true);
+          setErrorMessage("Error al registrar la granja: " + (farmResponse.message || "Error desconocido"));
+          return;
+        }
+        
         const file = selectedFile;
         await registerPayment({ user_id: userId, plan_id: selectedPlanId, file });
         setSuccessMessage("¡Registro exitoso!");
@@ -174,7 +180,13 @@ const PaymentMethod = () => {
           localStorage.setItem('last_user_id', userId);
         }
         
-        await registerFarm(formDataFarm, userId);
+        const farmResponse = await registerFarm(formDataFarm, userId);
+        if (!farmResponse.success) {
+          setOpenSnackbar(true);
+          setErrorMessage("Error al registrar la granja: " + (farmResponse.message || "Error desconocido"));
+          return;
+        }
+        
         const file = selectedFile;
         await registerPayment({ user_id: userId, plan_id: selectedPlanId, file });
         setSuccessMessage("¡Registro exitoso!");
