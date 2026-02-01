@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Box,
   Button,
@@ -15,6 +15,14 @@ import {
   Grid,
 } from "@mui/material"
 import { buttonStyles } from "./buttonStyles"
+import useUserStore from "../../_store/user"
+import useFarmFormStore from "../../_store/farm"
+import {
+  searchFarmDetailsInfraestructuraByFarmId,
+  createFarmDetailsInfraestructura,
+  updateFarmDetailsInfraestructura,
+  FarmDetailsInfraestructura
+} from "../../action/FarmsDetailsInfraestructuraPocket"
 
 interface Props {
   onNext: () => void;
@@ -22,6 +30,16 @@ interface Props {
 }
 
 const DescriptionFarmSectionStep2: React.FC<Props> = ({ onNext, onBack }) => {
+  // Estados de usuario y granja
+  const token = useUserStore((state) => state.token)
+  const userId = useUserStore((state) => state.record.id)
+  const currentFarm = useFarmFormStore((state) => state.currentFarm)
+  const farmId = currentFarm?.id
+  
+  // Estado para saber si existe el registro
+  const [infraestructuraExists, setInfraestructuraExists] = useState<FarmDetailsInfraestructura | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  
   // Aquí va el contenido del paso 2
   const [formData, setFormData] = useState({
     // Alimentación y abrevado
@@ -200,6 +218,196 @@ const DescriptionFarmSectionStep2: React.FC<Props> = ({ onNext, onBack }) => {
       ...prev,
       animalGrouping: prev.animalGrouping.filter(item => item !== option)
     }))
+  }
+
+  // Función para adaptar datos de API a formulario
+  const adaptInfraestructuraToForm = (data: FarmDetailsInfraestructura) => {
+    console.log("Adaptando datos de API a formulario:", data)
+    
+    // Función auxiliar para parsear campos que pueden venir como string JSON o como array
+    const parseField = (field: any): string[] => {
+      if (!field) return []
+      if (Array.isArray(field)) return field
+      if (typeof field === 'string') {
+        try {
+          return JSON.parse(field)
+        } catch {
+          return []
+        }
+      }
+      return []
+    }
+    
+    // Parsear campos JSON a arrays (o usarlos directamente si ya son arrays)
+    const parseFeedingType = parseField(data.feeding_type)
+    const parseFeedType = parseField(data.feed_type)
+    const parseMealsPerDay = parseField(data.meals_per_day)
+    const parseInspectionsPerDay = parseField(data.inspections_per_day)
+    const parseAutomaticEquipment = parseField(data.automatic_equipment)
+    const parseAnimalGrouping = parseField(data.animal_grouping)
+    
+    // Establecer formData
+    setFormData({
+      animalesPorCorral: data.animales_por_corral?.toString() || "",
+      observacionesAnimales: data.observaciones_animales || "",
+      feedingType: parseFeedingType,
+      feedType: parseFeedType,
+      mealsPerDay: parseMealsPerDay,
+      longitudComedero: typeof data.longitud_comedero === 'number' ? data.longitud_comedero.toString() : data.longitud_comedero || "",
+      observacionesComedero: data.observaciones_comedero || "",
+      numeroBebederos: typeof data.numero_bebederos === 'number' ? data.numero_bebederos.toString() : data.numero_bebederos || "",
+      observacionesBebederos: data.observaciones_bebederos || "",
+      medicationUse: data.medication_use || "",
+      observacionesMedicacion: data.observaciones_medicacion || "",
+      inspectionsPerDay: parseInspectionsPerDay,
+      observacionesInspecciones: data.observaciones_inspecciones || "",
+      automaticEquipment: parseAutomaticEquipment,
+      observacionesEquipamiento: data.observaciones_equipamiento || "",
+      animalGrouping: parseAnimalGrouping,
+      observacionesAgrupamiento: data.observaciones_agrupamiento || "",
+      geneticMaterial: data.genetic_material || "",
+    })
+
+    // Establecer opciones personalizadas (extraer las que no son predeterminadas)
+    const defaultFeedingOptions = ["Ad-libitum", "Racionada", "Multifase"]
+    const customFeeding = parseFeedingType.filter((opt: string) => !defaultFeedingOptions.includes(opt))
+    setCustomFeedingOptions(customFeeding)
+
+    const defaultFeedTypeOptions = ["NC-1", "NC-2", "NC-3"]
+    const customFeedType = parseFeedType.filter((opt: string) => !defaultFeedTypeOptions.includes(opt))
+    setCustomFeedTypeOptions(customFeedType)
+
+    const defaultMealsOptions = ["Ad-libitum", "1 comida/día", "2 comidas/día", "3 comidas/día"]
+    const customMeals = parseMealsPerDay.filter((opt: string) => !defaultMealsOptions.includes(opt))
+    setCustomMealsOptions(customMeals)
+
+    const defaultInspectionsOptions = ["Mes 1-2", "Meses 2-3-4", "Resto"]
+    const customInspections = parseInspectionsPerDay.filter((opt: string) => !defaultInspectionsOptions.includes(opt))
+    setCustomInspectionsOptions(customInspections)
+
+    const defaultEquipmentOptions = ["Comederos automáticos", "Bebederos automáticos", "Sistema de ventilación"]
+    const customEquipment = parseAutomaticEquipment.filter((opt: string) => !defaultEquipmentOptions.includes(opt))
+    setCustomEquipmentOptions(customEquipment)
+
+    const defaultGroupingOptions = ["Por sexo", "Por tamaño", "Por edad"]
+    const customGrouping = parseAnimalGrouping.filter((opt: string) => !defaultGroupingOptions.includes(opt))
+    setCustomGroupingOptions(customGrouping)
+  }
+
+  // Función para adaptar datos del formulario a API
+  const adaptFormToInfraestructura = (): Partial<FarmDetailsInfraestructura> => {
+    console.log("Adaptando datos del formulario a API:", formData)
+    
+    return {
+      farm: farmId || "",
+      user: userId || "",
+      animales_por_corral: formData.animalesPorCorral ? parseInt(formData.animalesPorCorral) : undefined,
+      observaciones_animales: formData.observacionesAnimales || "",
+      feeding_type: JSON.stringify(formData.feedingType),
+      feed_type: JSON.stringify(formData.feedType),
+      meals_per_day: JSON.stringify(formData.mealsPerDay),
+      longitud_comedero: formData.longitudComedero ? parseFloat(formData.longitudComedero) : undefined,
+      observaciones_comedero: formData.observacionesComedero || "",
+      numero_bebederos: formData.numeroBebederos ? parseInt(formData.numeroBebederos) : undefined,
+      observaciones_bebederos: formData.observacionesBebederos || "",
+      medication_use: formData.medicationUse || "",
+      observaciones_medicacion: formData.observacionesMedicacion || "",
+      inspections_per_day: JSON.stringify(formData.inspectionsPerDay),
+      observaciones_inspecciones: formData.observacionesInspecciones || "",
+      automatic_equipment: JSON.stringify(formData.automaticEquipment),
+      observaciones_equipamiento: formData.observacionesEquipamiento || "",
+      animal_grouping: JSON.stringify(formData.animalGrouping),
+      observaciones_agrupamiento: formData.observacionesAgrupamiento || "",
+      genetic_material: formData.geneticMaterial || "",
+    }
+  }
+
+  // useEffect para cargar datos existentes
+  useEffect(() => {
+    const loadExistingData = async () => {
+      if (!farmId || !token || !userId) {
+        console.log("Faltan datos necesarios:", { farmId, token: !!token, userId })
+        setIsLoading(false)
+        return
+      }
+
+      console.log("Buscando datos de infraestructura para farmId:", farmId)
+      
+      try {
+        const response = await searchFarmDetailsInfraestructuraByFarmId(token, farmId, userId)
+        
+        if (response.success && response.data) {
+          console.log("Datos encontrados, adaptando al formulario:", response.data)
+          setInfraestructuraExists(response.data as FarmDetailsInfraestructura)
+          adaptInfraestructuraToForm(response.data as FarmDetailsInfraestructura)
+        } else {
+          console.log("No se encontraron datos previos")
+          setInfraestructuraExists(null)
+        }
+      } catch (error) {
+        console.error("Error al cargar datos:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadExistingData()
+  }, [farmId, token, userId])
+
+  // Función para guardar/actualizar datos
+  const handleSaveData = async () => {
+    if (!farmId || !token || !userId) {
+      console.error("Faltan datos necesarios:", { farmId, token: !!token, userId })
+      alert("Error: No se pudo identificar la granja o usuario")
+      return
+    }
+
+    console.log("Guardando datos...")
+    const dataToSave = adaptFormToInfraestructura()
+    console.log("Datos adaptados para guardar:", dataToSave)
+
+    try {
+      if (infraestructuraExists && infraestructuraExists.id) {
+        // Actualizar registro existente
+        console.log("Actualizando registro existente con ID:", infraestructuraExists.id)
+        const response = await updateFarmDetailsInfraestructura(
+          token, 
+          infraestructuraExists.id, 
+          dataToSave,
+          userId
+        )
+        
+        if (response.success && response.data) {
+          console.log("Registro actualizado exitosamente:", response.data)
+          setInfraestructuraExists(response.data as FarmDetailsInfraestructura)
+          alert("Datos actualizados correctamente")
+          onNext()
+        } else {
+          console.error("No se pudo actualizar el registro:", response.message)
+          alert(`Error al actualizar los datos: ${response.message}`)
+        }
+      } else {
+        // Crear nuevo registro
+        console.log("Creando nuevo registro")
+        const response = await createFarmDetailsInfraestructura(
+          token,
+          dataToSave as Omit<FarmDetailsInfraestructura, 'id' | 'created' | 'updated' | 'collectionId' | 'collectionName'>
+        )
+        
+        if (response.success && response.data) {
+          console.log("Registro creado exitosamente:", response.data)
+          setInfraestructuraExists(response.data as FarmDetailsInfraestructura)
+          alert("Datos guardados correctamente")
+          onNext()
+        } else {
+          console.error("No se pudo crear el registro:", response.message)
+          alert(`Error al guardar los datos: ${response.message}`)
+        }
+      }
+    } catch (error) {
+      console.error("Error al guardar datos:", error)
+      alert("Error al guardar los datos")
+    }
   }
 
   return (
@@ -1120,12 +1328,10 @@ const DescriptionFarmSectionStep2: React.FC<Props> = ({ onNext, onBack }) => {
         <Button
           variant="contained"
           sx={buttonStyles.next}
-          onClick={() => {
-            console.log("Datos del formulario Step 2:", formData);
-            onNext();
-          }}
+          onClick={handleSaveData}
+          disabled={isLoading}
         >
-          Siguiente
+          {isLoading ? "Cargando..." : infraestructuraExists ? "Actualizar y Continuar" : "Guardar y Continuar"}
         </Button>
       </Box>
       

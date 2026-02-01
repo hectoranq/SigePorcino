@@ -5,7 +5,7 @@ export interface FarmDetailsInfraestructura {
   id?: string;
   collectionId?: string;
   collectionName?: string;
-  frams: string; // ID de la granja relacionada
+  farm: string; // ID de la granja relacionada
   user?: string; // ID del usuario propietario
   // Alimentación y abrevado
   animales_por_corral?: number;
@@ -55,13 +55,13 @@ export async function listFarmDetailsInfraestructura(
     // Construir filtro
     let filter = `user="${userId}"`;
     if (farmId) {
-      filter += ` && frams="${farmId}"`;
+      filter += ` && farm="${farmId}"`;
     }
 
     const records = await pb.collection('farm_details_infraestructura').getList(page, perPage, {
       filter,
       sort: '-created',
-      expand: 'frams,user',
+      expand: 'farm,user',
     });
 
     console.log(`✅ Detalles de infraestructura obtenidos: ${records.items.length}`);
@@ -95,7 +95,7 @@ export async function getFarmDetailsInfraestructura(token: string, id: string, u
     pb.authStore.save(token);
 
     const record = await pb.collection('farm_details_infraestructura').getOne(id, {
-      expand: 'frams,user',
+      expand: 'farm,user',
     });
 
     // Validar que el usuario sea el propietario
@@ -136,7 +136,7 @@ export async function createFarmDetailsInfraestructura(
     pb.authStore.save(token);
 
     // Validar datos requeridos
-    if (!data.frams) {
+    if (!data.farm) {
       throw new Error('Falta el campo requerido: frams (ID de granja)');
     }
 
@@ -307,11 +307,11 @@ export async function searchFarmDetailsInfraestructuraByFarmId(
     const pb = new PocketBase('https://api.appsphere.pro');
     pb.authStore.save(token);
 
-    const filter = `frams="${farmId}" && user="${userId}"`;
+    const filter = `farm="${farmId}" && user="${userId}"`;
 
     const records = await pb.collection('farm_details_infraestructura').getList(1, 1, {
       filter,
-      expand: 'frams,user',
+      expand: 'farm,user',
     });
 
     if (records.items.length === 0) {

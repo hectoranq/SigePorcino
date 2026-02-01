@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Box,
   Button,
@@ -13,6 +13,14 @@ import {
   Grid,
 } from "@mui/material"
 import { buttonStyles } from "./buttonStyles"
+import useUserStore from "../../_store/user"
+import useFarmFormStore from "../../_store/farm"
+import {
+  searchFarmDetailsEnvironmentalByFarmId,
+  createFarmDetailsEnvironmental,
+  updateFarmDetailsEnvironmental,
+  FarmDetailsEnvironmental
+} from "../../action/FarmsDetailsEnvironmentalPocket"
 
 interface Props {
   onNext: () => void;
@@ -20,6 +28,15 @@ interface Props {
 }
 
 const DescriptionFarmSectionStep3: React.FC<Props> = ({ onNext, onBack }) => {
+  // Estados de usuario y granja
+  const token = useUserStore((state) => state.token)
+  const userId = useUserStore((state) => state.record.id)
+  const currentFarm = useFarmFormStore((state) => state.currentFarm)
+  const farmId = currentFarm?.id
+  
+  // Estado para saber si existe el registro
+  const [environmentalExists, setEnvironmentalExists] = useState<FarmDetailsEnvironmental | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
     const [formData, setFormData] = useState({
     // Temperature section
@@ -59,6 +76,147 @@ const DescriptionFarmSectionStep3: React.FC<Props> = ({ onNext, onBack }) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
+  // Función para adaptar datos de API a formulario
+  const adaptEnvironmentalToForm = (data: FarmDetailsEnvironmental) => {
+    console.log("Adaptando datos de API a formulario:", data)
+    
+    setFormData({
+      hasTemperatureSensors: data.has_temperature_sensors || "",
+      recordsTemperature: data.records_temperature || "",
+      temperatureControl: data.temperature_control || "",
+      temperatureObservations: data.temperature_observations || "",
+      hasHumiditySensors: data.has_humidity_sensors || "",
+      recordsHumidity: data.records_humidity || "",
+      humidityControl: data.humidity_control || "",
+      humidityObservations: data.humidity_observations || "",
+      extractorsVentilators: data.extractors_ventilators || "",
+      extractorsObservations: data.extractors_observations || "",
+      automaticWindowOpening: data.automatic_window_opening || "",
+      windowObservations: data.window_observations || "",
+      automaticChimneyOpening: data.automatic_chimney_opening || "",
+      chimneyObservations: data.chimney_observations || "",
+      recordsGasEmissions: data.records_gas_emissions || "",
+      gasObservations: data.gas_observations || "",
+      coolings: data.coolings || "",
+      coolingsObservations: data.coolings_observations || "",
+      artificialVentilation: data.artificial_ventilation || "",
+      ventilationObservations: data.ventilation_observations || "",
+      heatingType: data.heating_type || "",
+      heatingObservations: data.heating_observations || "",
+    })
+  }
+
+  // Función para adaptar datos del formulario a API
+  const adaptFormToEnvironmental = (): Partial<FarmDetailsEnvironmental> => {
+    console.log("Adaptando datos del formulario a API:", formData)
+    
+    return {
+      farm: farmId || "",
+      user: userId || "",
+      has_temperature_sensors: formData.hasTemperatureSensors || "",
+      records_temperature: formData.recordsTemperature || "",
+      temperature_control: formData.temperatureControl || "",
+      temperature_observations: formData.temperatureObservations || "",
+      has_humidity_sensors: formData.hasHumiditySensors || "",
+      records_humidity: formData.recordsHumidity || "",
+      humidity_control: formData.humidityControl || "",
+      humidity_observations: formData.humidityObservations || "",
+      extractors_ventilators: formData.extractorsVentilators || "",
+      extractors_observations: formData.extractorsObservations || "",
+      automatic_window_opening: formData.automaticWindowOpening || "",
+      window_observations: formData.windowObservations || "",
+      automatic_chimney_opening: formData.automaticChimneyOpening || "",
+      chimney_observations: formData.chimneyObservations || "",
+      records_gas_emissions: formData.recordsGasEmissions || "",
+      gas_observations: formData.gasObservations || "",
+      coolings: formData.coolings || "",
+      coolings_observations: formData.coolingsObservations || "",
+      artificial_ventilation: formData.artificialVentilation || "",
+      ventilation_observations: formData.ventilationObservations || "",
+      heating_type: formData.heatingType || "",
+      heating_observations: formData.heatingObservations || "",
+    }
+  }
+
+  // useEffect para cargar datos existentes
+  useEffect(() => {
+    const loadExistingData = async () => {
+      if (!farmId || !token || !userId) {
+        console.log("Faltan datos necesarios:", { farmId, token: !!token, userId })
+        setIsLoading(false)
+        return
+      }
+
+      console.log("Buscando datos ambientales para farmId:", farmId)
+      
+      try {
+        const response = await searchFarmDetailsEnvironmentalByFarmId(token, farmId, userId)
+        
+        if (response.success && response.data) {
+          console.log("Datos encontrados, adaptando al formulario:", response.data)
+          setEnvironmentalExists(response.data as FarmDetailsEnvironmental)
+          adaptEnvironmentalToForm(response.data as FarmDetailsEnvironmental)
+        } else {
+          console.log("No se encontraron datos previos")
+          setEnvironmentalExists(null)
+        }
+      } catch (error) {
+        console.error("Error al cargar datos:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadExistingData()
+  }, [farmId, token, userId])
+
+  // Función para guardar/actualizar datos
+  const handleSaveData = async () => {
+    if (!farmId || !token || !userId) {
+      console.error("Faltan datos necesarios para guardar")
+      alert("Error: No se pudo identificar la granja o el usuario")
+      return
+    }
+
+    console.log("Guardando datos ambientales...")
+    const dataToSave = adaptFormToEnvironmental()
+    console.log("Datos adaptados para guardar:", dataToSave)
+
+    try {
+      if (environmentalExists) {
+        // Actualizar registro existente
+        console.log("Actualizando registro existente con ID:", environmentalExists.id)
+        const response = await updateFarmDetailsEnvironmental(token, environmentalExists.id!, dataToSave, userId)
+        
+        if (response.success && response.data) {
+          console.log("Registro actualizado exitosamente:", response.data)
+          setEnvironmentalExists(response.data as FarmDetailsEnvironmental)
+          alert("Datos actualizados correctamente")
+          onNext()
+        } else {
+          console.error("No se pudo actualizar el registro:", response.message)
+          alert("Error al actualizar los datos: " + response.message)
+        }
+      } else {
+        // Crear nuevo registro
+        console.log("Creando nuevo registro")
+        const response = await createFarmDetailsEnvironmental(token, dataToSave as FarmDetailsEnvironmental)
+        
+        if (response.success && response.data) {
+          console.log("Registro creado exitosamente:", response.data)
+          setEnvironmentalExists(response.data as FarmDetailsEnvironmental)
+          alert("Datos guardados correctamente")
+          onNext()
+        } else {
+          console.error("No se pudo crear el registro:", response.message)
+          alert("Error al guardar los datos: " + response.message)
+        }
+      }
+    } catch (error) {
+      console.error("Error al guardar datos:", error)
+      alert("Error al guardar los datos")
+    }
+  }
 
     return (
        <Paper elevation={1} sx={{ p: 4, borderRadius: 2 }}>
@@ -449,11 +607,10 @@ const DescriptionFarmSectionStep3: React.FC<Props> = ({ onNext, onBack }) => {
         <Button
           variant="contained"
           sx={buttonStyles.next}
-          onClick={() => {
-            onNext();
-          }}
+          onClick={handleSaveData}
+          disabled={isLoading}
         >
-          Siguiente
+          {isLoading ? "Cargando..." : environmentalExists ? "Actualizar y Continuar" : "Guardar y Continuar"}
         </Button>
       </Box>
     </Paper>     
