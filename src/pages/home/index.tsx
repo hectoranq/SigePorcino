@@ -386,7 +386,7 @@ const Home = () => {
         {/* Navigation Menu */}
         <Box sx={{ flexGrow: 1, p: 2, overflowY: "auto" }}>
           <List disablePadding>
-            {/* Información de la granja */}
+            {/* 1. Información de la granja */}
             <ListItem disablePadding>
                <Paper elevation={0} sx={{ width: "100%", bgcolor: "grey.50", borderRadius: 2, mb: 0.5 }}>
               <ListItemButton onClick={() => handleToggle("granja")} sx={{ borderRadius: 2, mb: 0.5 }}>
@@ -404,76 +404,36 @@ const Home = () => {
                       sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
                     />
                   </ListItemButton>
-                  <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("datos_granja")}>
+                  <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("registro_veterinario")}>
                     <ListItemText
-                      primary="Datos de la granja"
+                      primary="Registro de veterinario de explotación"
                       sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
                     />
                   </ListItemButton>
-                  {/* <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("gestores_autorizados")}>
+                  <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("registro_personal")}>
                     <ListItemText
-                      primary="Gestores autorizados"
+                      primary="Registro de personal"
                       sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
                     />
-                  </ListItemButton> */}
-                  {/* <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => setActiveSection("gestion_rega")}>
+                  </ListItemButton>
+                  <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("cursos_formacion")}>
                     <ListItemText
-                      primary="Gestión de REGA"
+                      primary="Cursos de formación"
                       sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
                     />
-                  </ListItemButton> */}
+                  </ListItemButton>
+                  <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("empresas_vinculadas")}>
+                    <ListItemText
+                      primary="Empresas vinculadas y gestores autorizados"
+                      sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+                    />
+                  </ListItemButton>
                 </List>
               </Collapse>
               </Paper>
             </ListItem>
 
-            {/* Información del personal */}
-            <ListItem disablePadding>
-              <Paper elevation={0} sx={{ width: "100%", bgcolor: "grey.50", borderRadius: 2, mb: 0.5 }}>
-                <ListItemButton onClick={() => setOpenPersonal(!openPersonal)} sx={{ borderRadius: 2 }}>
-                  <ListItemIcon>
-                    <People sx={{ color: "primary" }} />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary="Información del personal"
-                    sx={{ "& .MuiTypography-root": { color: "primary", fontWeight: 500 } }}
-                  />
-                  {openPersonal ? <ExpandLess /> : <ExpandMore />}
-                </ListItemButton>
-                <Collapse in={openPersonal} timeout="auto" unmountOnExit>
-                  <List component="div" disablePadding sx={{ pl: 4, pb: 1 }}>
-                    <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("empresas_vinculadas")}>
-                      <ListItemText
-                        primary="Empresas vinculadas y gestores autorizados"
-                        sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
-                      />
-                    </ListItemButton>
-                    <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("registro_personal")}>
-                      <ListItemText
-                        primary="Registro de personal"
-                        sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
-                      />
-                    </ListItemButton>
-                    <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("registro_veterinario")}>
-                      <ListItemText
-                        primary="Registro de veterinario de explotación"
-                        sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
-                      />
-                    </ListItemButton>
-                    <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("cursos_formacion")}>
-                      <ListItemText
-                        primary="Cursos de formación"
-                        sx={{
-                          "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main", fontWeight: 500 },
-                        }}
-                      />
-                    </ListItemButton>
-                  </List>
-                </Collapse>
-              </Paper>
-            </ListItem>
-
-            {/* Desarrollo de planes - CON SUBMENÚS */}
+            {/* 2. Desarrollo de planes */}
             <ListItem disablePadding>
               <Paper elevation={0} sx={{ width: "100%", bgcolor: "grey.50", borderRadius: 2, mb: 0.5 }}>
                 <ListItemButton onClick={() => handleToggle("planes")} sx={{ borderRadius: 2 }}>
@@ -487,19 +447,7 @@ const Home = () => {
                   <List component="div" disablePadding sx={{ pl: 4, pb: 1 }}>
                     <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("plan_lld")}>
                       <ListItemText
-                        primary="LLD"
-                        sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
-                      />
-                    </ListItemButton>
-                    <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("plan_bioseguridad")}>
-                      <ListItemText
-                        primary="Bioseguridad"
-                        sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
-                      />
-                    </ListItemButton>
-                    <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("plan_sanitario")}>
-                      <ListItemText
-                        primary="Sanitario"
+                        primary="LDD"
                         sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
                       />
                     </ListItemButton>
@@ -533,124 +481,47 @@ const Home = () => {
                         sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
                       />
                     </ListItemButton>
+                    <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("plan_bioseguridad")}>
+                      <ListItemText
+                        primary="Bioseguridad"
+                        sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+                      />
+                    </ListItemButton>
+                    <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("plan_sanitario")}>
+                      <ListItemText
+                        primary="Sanitario"
+                        sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+                      />
+                    </ListItemButton>
                   </List>
                 </Collapse>
               </Paper>
             </ListItem>
 
-            {/* Control diario */}
+            {/* 3. Control diario */}
             <ListItem disablePadding>
-              <ListItemButton onClick={() => handleToggle("control")} sx={{ borderRadius: 2, mb: 0.5 }}>
-                <ListItemIcon>
-                  <EventNote sx={{ color: "primary" }} />
-                </ListItemIcon>
-                <ListItemText primary="Control diario" />
-                {openOtherSections.control ? <ExpandLess /> : <ExpandMore />}
-              </ListItemButton>
+              <Paper elevation={0} sx={{ width: "100%", bgcolor: "grey.50", borderRadius: 2, mb: 0.5 }}>
+                <ListItemButton onClick={() => handleToggle("control")} sx={{ borderRadius: 2 }}>
+                  <ListItemIcon>
+                    <EventNote sx={{ color: "primary" }} />
+                  </ListItemIcon>
+                  <ListItemText primary="Control diario" />
+                  {openOtherSections.control ? <ExpandLess /> : <ExpandMore />}
+                </ListItemButton>
+                <Collapse in={openOtherSections.control} timeout="auto" unmountOnExit>
+                  <List component="div" disablePadding sx={{ pl: 4, pb: 1 }}>
+                    <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("mantenimiento_equipos")}>
+                      <ListItemText
+                        primary="Mantenimiento de equipos"
+                        sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+                      />
+                    </ListItemButton>
+                  </List>
+                </Collapse>
+              </Paper>
             </ListItem>
 
-            {/* Limpieza y mantenimiento - mantener igual */}
-            <ListItem disablePadding>
-  <Paper elevation={0} sx={{ width: "100%", bgcolor: "grey.50", borderRadius: 2, mb: 0.5 }}>
-    <ListItemButton onClick={() => handleToggle("limpieza")} sx={{ borderRadius: 2 }}>
-      <ListItemIcon>
-        <CleaningServices sx={{ color: "primary" }} />
-      </ListItemIcon>
-      <ListItemText primary="Limpieza y mantenimiento" />
-      {openOtherSections.limpieza ? <ExpandLess /> : <ExpandMore />}
-    </ListItemButton>
-    <Collapse in={openOtherSections.limpieza} timeout="auto" unmountOnExit>
-      <List component="div" disablePadding sx={{ pl: 4, pb: 1 }}>
-        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("desratizacion")}>
-          <ListItemText
-            primary="Desratización"
-            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
-          />
-        </ListItemButton>
-        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("desinsectacion")}>
-          <ListItemText
-            primary="Desinsectación"
-            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
-          />
-        </ListItemButton>
-       
-        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("arco_desinfeccion")}>
-          <ListItemText
-            primary="Arco o vado de desinfección"
-            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
-          />
-        </ListItemButton>
-        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("limpieza_silos")}>
-          <ListItemText
-            primary="Limpieza de silos"
-            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
-          />
-        </ListItemButton>
-        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("limpieza_tuberias")}>
-          <ListItemText
-            primary="Limpieza de tuberías de agua"
-            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
-          />
-        </ListItemButton>
-        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("mantenimiento_equipos")}>
-          <ListItemText
-            primary="Mantenimiento de equipos"
-            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
-          />
-        </ListItemButton>
-        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("recogida_cadaveres")}>
-          <ListItemText
-            primary="Recogida de cadáveres y SANDACH"
-            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
-          />
-        </ListItemButton>
-        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("recogida_residuos")}>
-          <ListItemText
-            primary="Recogida de residuos peligrosos"
-            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
-          />
-        </ListItemButton>
-      </List>
-    </Collapse>
-  </Paper>
-</ListItem>
-
-{/* Altas y bajas con submenús */}
-<ListItem disablePadding>
-  <Paper elevation={0} sx={{ width: "100%", bgcolor: "grey.50", borderRadius: 2, mb: 0.5 }}>
-    <ListItemButton onClick={() => handleToggle("altas")} sx={{ borderRadius: 2 }}>
-      <ListItemIcon>
-        <TrendingUp sx={{ color: "primary" }} />
-      </ListItemIcon>
-      <ListItemText primary="Altas y bajas" />
-      {openOtherSections.altas ? <ExpandLess /> : <ExpandMore />}
-    </ListItemButton>
-    <Collapse in={openOtherSections.altas} timeout="auto" unmountOnExit>
-      <List component="div" disablePadding sx={{ pl: 4, pb: 1 }}>
-        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("entrada_lechones")}>
-          <ListItemText
-            primary="Entrada de lechones"
-            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
-          />
-        </ListItemButton>
-        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("salida_matadero")}>
-          <ListItemText
-            primary="Salida a matadero"
-            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
-          />
-        </ListItemButton>
-        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("baja_animales")}>
-          <ListItemText
-            primary="Baja de animales"
-            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
-          />
-        </ListItemButton>
-      </List>
-    </Collapse>
-  </Paper>
-</ListItem>
-
-{/* Alimentación y consumo with submenus */}
+            {/* 4. Alimentación y consumo */}
 <ListItem disablePadding>
   <Paper elevation={0} sx={{ width: "100%", bgcolor: "grey.50", borderRadius: 2, mb: 0.5 }}>
     <ListItemButton onClick={() => handleToggle("alimentacion")} sx={{ borderRadius: 2 }}>
@@ -662,12 +533,6 @@ const Home = () => {
     </ListItemButton>
     <Collapse in={openOtherSections.alimentacion} timeout="auto" unmountOnExit>
       <List component="div" disablePadding sx={{ pl: 4, pb: 1 }}>
-        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("etiquetas_pienso")}>
-          <ListItemText
-            primary="Etiquetas pienso"
-            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
-          />
-        </ListItemButton>
         <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("descarga_sacos_pienso")}>
           <ListItemText
             primary="Descarga de sacos pienso"
@@ -698,12 +563,59 @@ const Home = () => {
             sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
           />
         </ListItemButton>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("etiquetas_pienso")}>
+          <ListItemText
+            primary="Etiquetas pienso"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
       </List>
     </Collapse>
   </Paper>
 </ListItem>
 
-{/* Resto de menús sin submenús */}
+{/* 5. Altas y bajas */}
+<ListItem disablePadding>
+  <Paper elevation={0} sx={{ width: "100%", bgcolor: "grey.50", borderRadius: 2, mb: 0.5 }}>
+    <ListItemButton onClick={() => handleToggle("altas")} sx={{ borderRadius: 2 }}>
+      <ListItemIcon>
+        <TrendingUp sx={{ color: "primary" }} />
+      </ListItemIcon>
+      <ListItemText primary="Altas y bajas" />
+      {openOtherSections.altas ? <ExpandLess /> : <ExpandMore />}
+    </ListItemButton>
+    <Collapse in={openOtherSections.altas} timeout="auto" unmountOnExit>
+      <List component="div" disablePadding sx={{ pl: 4, pb: 1 }}>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("entrada_lechones")}>
+          <ListItemText
+            primary="Entrada de lechones"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("salida_matadero")}>
+          <ListItemText
+            primary="Salida a matadero"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("baja_animales")}>
+          <ListItemText
+            primary="Baja de animales"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("recogida_cadaveres")}>
+          <ListItemText
+            primary="Recogida de cadáveres"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+      </List>
+    </Collapse>
+  </Paper>
+</ListItem>
+
+{/* 6. Bienestar animal */}
 {[
   { key: "bienestar", icon: Pets, text: "Bienestar animal" },
 ].map(({ key, icon: Icon, text }) => (
@@ -717,6 +629,59 @@ const Home = () => {
     </ListItemButton>
   </ListItem>
 ))}
+
+{/* 7. Limpieza y Desinfección */}
+<ListItem disablePadding>
+  <Paper elevation={0} sx={{ width: "100%", bgcolor: "grey.50", borderRadius: 2, mb: 0.5 }}>
+    <ListItemButton onClick={() => handleToggle("limpieza")} sx={{ borderRadius: 2 }}>
+      <ListItemIcon>
+        <CleaningServices sx={{ color: "primary" }} />
+      </ListItemIcon>
+      <ListItemText primary="Limpieza y Desinfección" />
+      {openOtherSections.limpieza ? <ExpandLess /> : <ExpandMore />}
+    </ListItemButton>
+    <Collapse in={openOtherSections.limpieza} timeout="auto" unmountOnExit>
+      <List component="div" disablePadding sx={{ pl: 4, pb: 1 }}>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("desratizacion")}>
+          <ListItemText
+            primary="Desratización"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("desinsectacion")}>
+          <ListItemText
+            primary="Desinsectación"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("limpieza_desinfeccion")}>
+          <ListItemText
+            primary="Limpieza y desinfección"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("arco_desinfeccion")}>
+          <ListItemText
+            primary="Arco o vado de desinfección"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("limpieza_silos")}>
+          <ListItemText
+            primary="Limpieza de silos"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("limpieza_tuberias")}>
+          <ListItemText
+            primary="Limpieza de tuberías de agua"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+      </List>
+    </Collapse>
+  </Paper>
+</ListItem>
 
           </List>
         </Box>
@@ -877,16 +842,14 @@ const Home = () => {
                   activeSection === "plan_recogida_cadaveres" ||
                   activeSection === "plan_gestion_residuos" ||
                   activeSection === "plan_gestion_ambiental") && "Desarrollo de planes"}
-                {activeSection === "control" && "Control diario"}
+                {(activeSection === "control" ||
+                  activeSection === "mantenimiento_equipos") && "Control diario"}
                 {(activeSection === "desratizacion" || 
                   activeSection === "desinsectacion" || 
                   activeSection === "limpieza_desinfeccion" || 
                   activeSection === "arco_desinfeccion" || 
                   activeSection === "limpieza_silos" || 
-                  activeSection === "limpieza_tuberias" || 
-                  activeSection === "mantenimiento_equipos" ||
-                  activeSection === "recogida_cadaveres" ||
-                  activeSection === "recogida_residuos") && "Limpieza y mantenimiento"}
+                  activeSection === "limpieza_tuberias") && "Limpieza y Desinfección"}
                 {(activeSection === "etiquetas_pienso" ||
                   activeSection === "descarga_sacos_pienso" ||
                   activeSection === "descarga_pienso_granel" ||
@@ -896,7 +859,8 @@ const Home = () => {
                 {activeSection === "bienestar" && "Bienestar animal"}
                 {(activeSection === "entrada_lechones" ||
                   activeSection === "salida_matadero" ||
-                  activeSection === "baja_animales") && "Altas y bajas"}
+                  activeSection === "baja_animales" ||
+                  activeSection === "recogida_cadaveres") && "Altas y bajas"}
                 {activeSection === "reportes" && "Reportes"}
                 {activeSection === "main" && ""}
               </Link>
