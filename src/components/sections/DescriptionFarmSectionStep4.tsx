@@ -235,7 +235,7 @@ const DescriptionFarmSectionStep4: React.FC<Props> = ({ onNext, onBack }) => {
   }
 
     return (
-    <Box sx={{ maxWidth: 1000, mx: "auto", p: 3, bgcolor: "white" }}>
+    <Box sx={{ maxWidth: 1000, mx: "auto", p: { xs: 2, sm: 2, md: 3 }, bgcolor: "white" }}>
      
 
       <Box sx={{ mb: 4 }}>
@@ -252,7 +252,7 @@ const DescriptionFarmSectionStep4: React.FC<Props> = ({ onNext, onBack }) => {
           </Typography>
           
           {/* Primera fila con opciones predeterminadas */}
-          <Box sx={{ display: "flex", gap: 3, mb: 2, flexWrap: "wrap" }}>
+          <Box sx={{ display: "flex", gap: { xs: 2, md: 3 }, mb: 2, flexWrap: "wrap" }}>
             <FormControlLabel
               control={
                 <Checkbox
@@ -271,7 +271,7 @@ const DescriptionFarmSectionStep4: React.FC<Props> = ({ onNext, onBack }) => {
           </Box>
 
           {/* Segunda fila con opciones personalizadas y botón */}
-          <Box sx={{ display: "flex", gap: 3, alignItems: "center", flexWrap: "wrap" }}>
+          <Box sx={{ display: "flex", gap: { xs: 2, md: 3 }, alignItems: "center", flexWrap: "wrap" }}>
             {customLightingOptions.map((option) => (
               <Box key={option} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                 <FormControlLabel
@@ -328,7 +328,7 @@ const DescriptionFarmSectionStep4: React.FC<Props> = ({ onNext, onBack }) => {
                       handleAddLightingOption()
                     }
                   }}
-                  sx={{ width: 200 }}
+                  sx={{ width: { xs: 150, sm: 200 } }}
                 />
                 <Button
                   size="small"
@@ -370,8 +370,8 @@ const DescriptionFarmSectionStep4: React.FC<Props> = ({ onNext, onBack }) => {
           </Typography>
         </Box>
 
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
+        <Grid container spacing={{ xs: 2, md: 3 }}>
+          <Grid item xs={12} sm={12} md={6}>
             <TextField
               fullWidth
               label="Producción anual estimada de estiércoles"
@@ -381,7 +381,7 @@ const DescriptionFarmSectionStep4: React.FC<Props> = ({ onNext, onBack }) => {
               onChange={(e) => setAnnualManureProduction(e.target.value)}
             />
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} sm={12} md={6}>
             <TextField
               fullWidth
               label="Tamaño y tipo de fosa en las naves"
@@ -391,7 +391,7 @@ const DescriptionFarmSectionStep4: React.FC<Props> = ({ onNext, onBack }) => {
               onChange={(e) => setPitSizeType(e.target.value)}
             />
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} sm={12} md={6}>
             <TextField
               fullWidth
               label="Frecuencia de vaciado del purín"
@@ -563,17 +563,17 @@ const DescriptionFarmSectionStep4: React.FC<Props> = ({ onNext, onBack }) => {
         </Box>
       </Box>
 
-        <Box sx={{ display: "flex", justifyContent: "space-between", mt: 4 }}>
+        <Box sx={{ display: "flex", justifyContent: "space-between", mt: 4, flexDirection: { xs: "column", sm: "row" }, gap: { xs: 2, sm: 0 } }}>
           <Button
             variant="outlined"
-            sx={buttonStyles.back}
+            sx={{ ...buttonStyles.back, width: { xs: "100%", sm: "auto" } }}
             onClick={onBack}
           >
             Atrás
           </Button>
           <Button
             variant="contained"
-            sx={buttonStyles.next}
+            sx={{ ...buttonStyles.next, width: { xs: "100%", sm: "auto" } }}
             onClick={handleSaveData}
             disabled={isLoading}
           >

@@ -423,7 +423,7 @@ export function BajaAnimalesSection() {
           <DialogContent sx={{ p: 0 }}>
             <ThemeProvider theme={theme}>
               <Box sx={{ minHeight: "auto", bgcolor: "#f9fafb", p: 3 }}>
-                <Paper sx={{ maxWidth: 1024, mx: "auto", borderRadius: 2, overflow: "hidden" }}>
+                <Paper sx={{ maxWidth: 1024, mx: "auto", borderRadius: 2, overflow: "hidden", p: { xs: 2, sm: 2.5, md: 3 } }}>
 {/* Header dinámico según el modo */}
                   <Box sx={{ 
                     bgcolor: viewMode ? headerColors.view : editMode ? headerColors.edit : headerColors.create, 
@@ -512,8 +512,8 @@ export function BajaAnimalesSection() {
                       <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 500, color: "text.primary" }}>
                         Tipo de fallecimiento
                       </Typography>
-                      <Grid container spacing={2}>
-                        <Grid item xs={6}>
+                      <Grid container spacing={{ xs: 1.5, sm: 2 }}>
+                        <Grid item xs={6} sm={6} md={6}>
                           <Box sx={{ display: "flex", alignItems: "center" }}>
                             <Checkbox
                               checked={formData.tipoFallecimiento.muerte}
@@ -537,7 +537,7 @@ export function BajaAnimalesSection() {
                             </Typography>
                           </Box>
                         </Grid>
-                        <Grid item xs={6}>
+                        <Grid item xs={6} sm={6} md={6}>
                           <Box sx={{ display: "flex", alignItems: "center" }}>
                             <Checkbox
                               checked={formData.tipoFallecimiento.sacrificio}

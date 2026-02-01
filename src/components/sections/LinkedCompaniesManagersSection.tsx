@@ -604,13 +604,13 @@ export default function LinkedCompaniesManagersPage({ token, userId, farmId }: L
           }}
         >
           <DialogContent sx={{ p: 0 }}>
-            <Paper elevation={3} sx={{ p: { xs: 2, md: 3 }, borderRadius: 3 }}>
+            <Paper elevation={3} sx={{ p: { xs: 2, sm: 2.5, md: 3 }, borderRadius: 3 }}>
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
                 Registro de empresas vinculadas y gestores autorizados
               </Typography>
 
               <Box component="form" id="form-registro" onSubmit={handleSubmit} noValidate>
-                <Grid container spacing={2}>
+                <Grid container spacing={{ xs: 1.5, sm: 2 }}>
                   {/* Identificación */}
                   <Grid item xs={12}>
                     <FormControl>
@@ -629,7 +629,7 @@ export default function LinkedCompaniesManagersPage({ token, userId, farmId }: L
                   </Grid>
 
                   {/* DNI */}
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12} sm={6} md={6}>
                     <TextField
                       name="dni"
                       label="DNI"
@@ -640,7 +640,7 @@ export default function LinkedCompaniesManagersPage({ token, userId, farmId }: L
                   </Grid>
 
                   {/* Nombre / Apellidos */}
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12} sm={6} md={6}>
                     <TextField
                       name="nombre"
                       label="Nombre"
@@ -692,7 +692,7 @@ export default function LinkedCompaniesManagersPage({ token, userId, farmId }: L
                   </Grid>
 
                   {/* Dirección */}
-                  <Grid item xs={12}>
+                  <Grid item xs={12} sm={12}>
                     <TextField
                       name="direccion"
                       label="Dirección"

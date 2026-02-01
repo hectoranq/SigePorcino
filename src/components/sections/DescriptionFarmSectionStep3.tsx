@@ -219,17 +219,17 @@ const DescriptionFarmSectionStep3: React.FC<Props> = ({ onNext, onBack }) => {
   }
 
     return (
-       <Paper elevation={1} sx={{ p: 4, borderRadius: 2 }}>
+       <Paper elevation={1} sx={{ p: { xs: 2, sm: 3, md: 4 }, borderRadius: 2 }}>
      
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: 3, md: 4 } }}>
         {/* Temperature Section */}
         <Box sx={{ borderLeft: "4px solid #22d3ee", pl: 3 }}>
           <Typography variant="h6" sx={{ color: "#0891b2", fontWeight: 500, mb: 3 }}>
             Temperatura
           </Typography>
 
-          <Grid container spacing={3} sx={{ mb: 3 }}>
-            <Grid item xs={12} lg={6}>
+          <Grid container spacing={{ xs: 2, md: 3 }} sx={{ mb: 3 }}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <FormControl component="fieldset">
                 <FormLabel component="legend" sx={{ color: "#374151", fontSize: "0.875rem", fontWeight: 500, mb: 1 }}>
                   ¿Dispone de sensores de temperatura?
@@ -238,7 +238,7 @@ const DescriptionFarmSectionStep3: React.FC<Props> = ({ onNext, onBack }) => {
                   row
                   value={formData.hasTemperatureSensors}
                   onChange={(e) => handleRadioChange("hasTemperatureSensors", e.target.value)}
-                  sx={{ gap: 3 }}
+                  sx={{ gap: { xs: 2, md: 3 } }}
                 >
                   <FormControlLabel value="si" control={<Radio size="small" />} label="Sí" />
                   <FormControlLabel value="no" control={<Radio size="small" />} label="No" />
@@ -246,7 +246,7 @@ const DescriptionFarmSectionStep3: React.FC<Props> = ({ onNext, onBack }) => {
               </FormControl>
             </Grid>
 
-            <Grid item xs={12} lg={6}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <FormControl component="fieldset">
                 <FormLabel component="legend" sx={{ color: "#374151", fontSize: "0.875rem", fontWeight: 500, mb: 1 }}>
                   ¿Se registra la temperatura?
@@ -264,8 +264,8 @@ const DescriptionFarmSectionStep3: React.FC<Props> = ({ onNext, onBack }) => {
             </Grid>
           </Grid>
 
-          <Grid container spacing={3}>
-            <Grid item xs={12} lg={6}>
+          <Grid container spacing={{ xs: 2, md: 3 }}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <FormControl component="fieldset">
                 <FormLabel component="legend" sx={{ color: "#374151", fontSize: "0.875rem", fontWeight: 500, mb: 1 }}>
                   ¿Se realiza control de temperatura?
@@ -274,7 +274,7 @@ const DescriptionFarmSectionStep3: React.FC<Props> = ({ onNext, onBack }) => {
                   row
                   value={formData.temperatureControl}
                   onChange={(e) => handleRadioChange("temperatureControl", e.target.value)}
-                  sx={{ gap: 3 }}
+                  sx={{ gap: { xs: 2, md: 3 } }}
                 >
                   <FormControlLabel value="si" control={<Radio size="small" />} label="Sí" />
                   <FormControlLabel value="no" control={<Radio size="small" />} label="No" />
@@ -282,7 +282,7 @@ const DescriptionFarmSectionStep3: React.FC<Props> = ({ onNext, onBack }) => {
               </FormControl>
             </Grid>
 
-            <Grid item xs={12} lg={6}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <TextField
                 placeholder="Observaciones"
                 variant="filled"
@@ -301,8 +301,8 @@ const DescriptionFarmSectionStep3: React.FC<Props> = ({ onNext, onBack }) => {
             Humedad
           </Typography>
 
-          <Grid container spacing={3} sx={{ mb: 3 }}>
-            <Grid item xs={12} lg={6}>
+          <Grid container spacing={{ xs: 2, md: 3 }} sx={{ mb: 3 }}>
+            <Grid item xs={12} sm={12} md={6} lg={6}>
               <FormControl component="fieldset">
                 <FormLabel component="legend" sx={{ color: "#374151", fontSize: "0.875rem", fontWeight: 500, mb: 1 }}>
                   ¿Dispone de sensores de humedad?
@@ -311,7 +311,7 @@ const DescriptionFarmSectionStep3: React.FC<Props> = ({ onNext, onBack }) => {
                   row
                   value={formData.hasHumiditySensors}
                   onChange={(e) => handleRadioChange("hasHumiditySensors", e.target.value)}
-                  sx={{ gap: 3 }}
+                  sx={{ gap: { xs: 2, md: 3 } }}
                 >
                   <FormControlLabel value="si" control={<Radio size="small" />} label="Sí" />
                   <FormControlLabel value="no" control={<Radio size="small" />} label="No" />
@@ -374,10 +374,10 @@ const DescriptionFarmSectionStep3: React.FC<Props> = ({ onNext, onBack }) => {
             Gases
           </Typography>
 
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: 2, md: 3 } }}>
             {/* Extractores y/o ventiladores */}
-            <Grid container spacing={3}>
-              <Grid item xs={12} lg={6}>
+            <Grid container spacing={{ xs: 2, md: 3 }}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <FormControl component="fieldset">
                   <FormLabel component="legend" sx={{ color: "#374151", fontSize: "0.875rem", fontWeight: 500, mb: 1 }}>
                     Extractores y/o ventiladores
@@ -386,7 +386,7 @@ const DescriptionFarmSectionStep3: React.FC<Props> = ({ onNext, onBack }) => {
                     row
                     value={formData.extractorsVentilators}
                     onChange={(e) => handleRadioChange("extractorsVentilators", e.target.value)}
-                    sx={{ gap: 3 }}
+                    sx={{ gap: { xs: 2, md: 3 } }}
                   >
                     <FormControlLabel value="si" control={<Radio size="small" />} label="Sí" />
                     <FormControlLabel value="no" control={<Radio size="small" />} label="No" />
@@ -394,7 +394,7 @@ const DescriptionFarmSectionStep3: React.FC<Props> = ({ onNext, onBack }) => {
                 </FormControl>
               </Grid>
 
-              <Grid item xs={12} lg={6}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <TextField
                   placeholder="Observaciones"
                   variant="filled"
@@ -407,8 +407,8 @@ const DescriptionFarmSectionStep3: React.FC<Props> = ({ onNext, onBack }) => {
             </Grid>
 
             {/* Apertura automática ventanas */}
-            <Grid container spacing={3}>
-              <Grid item xs={12} lg={6}>
+            <Grid container spacing={{ xs: 2, md: 3 }}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <FormControl component="fieldset">
                   <FormLabel component="legend" sx={{ color: "#374151", fontSize: "0.875rem", fontWeight: 500, mb: 1 }}>
                     Apertura automática ventanas
@@ -417,7 +417,7 @@ const DescriptionFarmSectionStep3: React.FC<Props> = ({ onNext, onBack }) => {
                     row
                     value={formData.automaticWindowOpening}
                     onChange={(e) => handleRadioChange("automaticWindowOpening", e.target.value)}
-                    sx={{ gap: 3 }}
+                    sx={{ gap: { xs: 2, md: 3 } }}
                   >
                     <FormControlLabel value="si" control={<Radio size="small" />} label="Sí" />
                     <FormControlLabel value="no" control={<Radio size="small" />} label="No" />
@@ -425,7 +425,7 @@ const DescriptionFarmSectionStep3: React.FC<Props> = ({ onNext, onBack }) => {
                 </FormControl>
               </Grid>
 
-              <Grid item xs={12} lg={6}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <TextField
                   placeholder="Observaciones"
                   variant="filled"
@@ -500,8 +500,8 @@ const DescriptionFarmSectionStep3: React.FC<Props> = ({ onNext, onBack }) => {
             </Grid>
 
             {/* Coolings */}
-            <Grid container spacing={3}>
-              <Grid item xs={12} lg={6}>
+            <Grid container spacing={{ xs: 2, md: 3 }}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <FormControl component="fieldset">
                   <FormLabel component="legend" sx={{ color: "#374151", fontSize: "0.875rem", fontWeight: 500, mb: 1 }}>
                     Coolings
@@ -510,7 +510,7 @@ const DescriptionFarmSectionStep3: React.FC<Props> = ({ onNext, onBack }) => {
                     row
                     value={formData.coolings}
                     onChange={(e) => handleRadioChange("coolings", e.target.value)}
-                    sx={{ gap: 3 }}
+                    sx={{ gap: { xs: 2, md: 3 } }}
                   >
                     <FormControlLabel value="si" control={<Radio size="small" />} label="Sí" />
                     <FormControlLabel value="no" control={<Radio size="small" />} label="No" />
@@ -518,7 +518,7 @@ const DescriptionFarmSectionStep3: React.FC<Props> = ({ onNext, onBack }) => {
                 </FormControl>
               </Grid>
 
-              <Grid item xs={12} lg={6}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <TextField
                   placeholder="Observaciones"
                   variant="filled"
@@ -531,8 +531,8 @@ const DescriptionFarmSectionStep3: React.FC<Props> = ({ onNext, onBack }) => {
             </Grid>
 
             {/* Ventilación total artificial */}
-            <Grid container spacing={3}>
-              <Grid item xs={12} lg={6}>
+            <Grid container spacing={{ xs: 2, md: 3 }}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <FormControl component="fieldset">
                   <FormLabel component="legend" sx={{ color: "#374151", fontSize: "0.875rem", fontWeight: 500, mb: 1 }}>
                     Ventilación total artificial
@@ -541,7 +541,7 @@ const DescriptionFarmSectionStep3: React.FC<Props> = ({ onNext, onBack }) => {
                     row
                     value={formData.artificialVentilation}
                     onChange={(e) => handleRadioChange("artificialVentilation", e.target.value)}
-                    sx={{ gap: 3 }}
+                    sx={{ gap: { xs: 2, md: 3 } }}
                   >
                     <FormControlLabel value="si" control={<Radio size="small" />} label="Sí" />
                     <FormControlLabel value="no" control={<Radio size="small" />} label="No" />
@@ -549,7 +549,7 @@ const DescriptionFarmSectionStep3: React.FC<Props> = ({ onNext, onBack }) => {
                 </FormControl>
               </Grid>
 
-              <Grid item xs={12} lg={6}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <TextField
                   placeholder="Observaciones"
                   variant="filled"
@@ -580,7 +580,7 @@ const DescriptionFarmSectionStep3: React.FC<Props> = ({ onNext, onBack }) => {
                 </FormControl>
               </Grid>
 
-              <Grid item xs={12} lg={6}>
+              <Grid item xs={12} sm={12} md={6} lg={6}>
                 <TextField
                   placeholder="Observaciones"
                   variant="filled"
@@ -596,17 +596,17 @@ const DescriptionFarmSectionStep3: React.FC<Props> = ({ onNext, onBack }) => {
       </Box>
 
       {/* Navigation buttons */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", mt: 4 }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", mt: 4, flexDirection: { xs: "column", sm: "row" }, gap: { xs: 2, sm: 0 } }}>
         <Button
           variant="outlined"
-          sx={buttonStyles.back}
+          sx={{ ...buttonStyles.back, width: { xs: "100%", sm: "auto" } }}
           onClick={onBack}
         >
           Atrás
         </Button>
         <Button
           variant="contained"
-          sx={buttonStyles.next}
+          sx={{ ...buttonStyles.next, width: { xs: "100%", sm: "auto" } }}
           onClick={handleSaveData}
           disabled={isLoading}
         >
