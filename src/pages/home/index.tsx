@@ -759,19 +759,44 @@ const Home = () => {
         listFarms(token, userId)
           .then((response) => {
             if (response.success && response.data.items) {
+              console.log("📦 Datos de API recibidos:", response.data.items);
+              console.log("📦 Primera granja completa:", JSON.stringify(response.data.items[0], null, 2));
+              
               // Guardar las granjas en el store usando setFarms
               setFarms(response.data.items as FarmFormData[]);
               
-              console.log("✅ Granjas cargadas:", response.data.items.length);
+              console.log("✅ Granjas cargadas en store:", response.data.items.length);
+              
+              // Verificar que se guardaron correctamente
+              const storedFarms = useFarmFormStore.getState().farms;
+              console.log("🗄️ Granjas en store después de setFarms:", storedFarms);
+              console.log("🗄️ Primera granja en store:", storedFarms[0]);
               
               // Si hay granjas y no hay una seleccionada, seleccionar la primera
               const currentFarm = useFarmFormStore.getState().currentFarm;
               
               if (response.data.items.length > 0 && !currentFarm) {
-                console.log("📍 Estableciendo granja actual:", response.data.items[0].farm_name);
-                setCurrentFarm(response.data.items[0] as FarmFormData);
+                const firstFarm = response.data.items[0] as FarmFormData;
+                console.log("📍 Estableciendo granja actual:", {
+                  id: firstFarm.id,
+                  farm_name: firstFarm.farm_name,
+                  REGA: firstFarm.REGA
+                });
+                setCurrentFarm(firstFarm);
+                
+                // Verificar que se guardó correctamente
+                const savedCurrentFarm = useFarmFormStore.getState().currentFarm;
+                console.log("✅ CurrentFarm guardado en store:", {
+                  id: savedCurrentFarm?.id,
+                  farm_name: savedCurrentFarm?.farm_name,
+                  hasId: !!savedCurrentFarm?.id
+                });
               } else if (currentFarm) {
-                console.log("📍 Granja actual ya establecida:", currentFarm.farm_name);
+                console.log("📍 Granja actual ya establecida:", {
+                  id: currentFarm.id,
+                  farm_name: currentFarm.farm_name,
+                  hasId: !!currentFarm.id
+                });
               }
             } else {
               console.warn("⚠️ No se pudieron cargar las granjas");
@@ -971,9 +996,9 @@ const Home = () => {
                 farmId={currentFarm?.id}
               />
             )}
-            {activeSection === "registro_personal" && <PersonalRegisterSection token={token}
-                userId={userId}
-                farmId={currentFarm?.id} />}
+            {activeSection === "registro_personal" && (
+              <PersonalRegisterSection farmId={currentFarm?.id} />
+            )}
             {activeSection === "registro_veterinario" && <RegistroVeterinarioSection token={token}
                 userId={userId}
                 farmId={currentFarm?.id} />}

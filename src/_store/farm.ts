@@ -70,10 +70,18 @@ const useFarmFormStore = create<FarmFormStore>()(
       currentFarm: null,
 
       // Establecer todas las granjas (útil al cargar desde API)
-      setFarms: (farms) =>
+      setFarms: (farms) => {
+        console.log('🗄️ setFarms llamado con:', {
+          count: farms.length,
+          firstFarmId: farms[0]?.id,
+          firstFarmName: farms[0]?.farm_name,
+          hasId: !!farms[0]?.id
+        });
         set({
           farms: farms,
-        }),
+        });
+        console.log('✅ Granjas guardadas en store');
+      },
 
       // Agregar una nueva granja
       addFarm: (farm) =>
@@ -103,10 +111,24 @@ const useFarmFormStore = create<FarmFormStore>()(
         })),
 
       // Establecer la granja actual (para edición/vista)
-      setCurrentFarm: (farm) =>
+      setCurrentFarm: (farm) => {
+        console.log('🎯 setCurrentFarm llamado con:', {
+          id: farm?.id,
+          farm_name: farm?.farm_name,
+          REGA: farm?.REGA,
+          hasId: !!farm?.id,
+          isNull: farm === null
+        });
         set({
           currentFarm: farm,
-        }),
+        });
+        console.log('✅ CurrentFarm guardado. Verificando store...');
+        const state = get();
+        console.log('🔍 CurrentFarm en store:', {
+          id: state.currentFarm?.id,
+          hasId: !!state.currentFarm?.id
+        });
+      },
 
       // Actualizar datos del formulario (granja actual)
       setFormData: (data) =>
@@ -141,8 +163,30 @@ const useFarmFormStore = create<FarmFormStore>()(
     }),
     {
       name: "farm-form-storage", // clave en localStorage
+      onRehydrateStorage: () => {
+        console.log('💾 Rehydrating farm store from localStorage...');
+        return (state, error) => {
+          if (error) {
+            console.error('❌ Error al rehydratar farm store:', error);
+          } else {
+            console.log('✅ Farm store rehydrated:', {
+              farmsCount: state?.farms.length || 0,
+              hasCurrentFarm: !!state?.currentFarm,
+              currentFarmId: state?.currentFarm?.id,
+              currentFarmName: state?.currentFarm?.farm_name
+            });
+          }
+        };
+      },
     }
   )
 );
+
+// Log inicial del estado
+console.log('🏁 Farm store initialized:', {
+  farmsCount: useFarmFormStore.getState().farms.length,
+  hasCurrentFarm: !!useFarmFormStore.getState().currentFarm,
+  currentFarmId: useFarmFormStore.getState().currentFarm?.id
+});
 
 export default useFarmFormStore;

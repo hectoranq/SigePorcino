@@ -45,7 +45,19 @@ const FarmRegister = () => {
   };
   
   const handlepaymentMethod = () => {
-    setFarmFormData(formData); // Guarda en Zustand
+    // Mapear los campos del formulario al formato del store
+    const mappedData = {
+      REGA: formData.rega,
+      farm_name: formData.farm_name,
+      locality: formData.locality,
+      province: formData.province,
+      address: formData.address,
+      groups: formData.group,
+      species: formData.species,
+      zootechnical_classification: formData.zootechnical_classification,
+      health_qualification: formData.health_qualification,
+    };
+    setFarmFormData(mappedData); // Guarda en Zustand con los nombres correctos
     router.push("/register/gpsRegister/paymentMethod");
   };
 

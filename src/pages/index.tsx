@@ -135,7 +135,12 @@ const Login = () => {
           }}
         />
         <section style={{ display: 'flex', alignSelf: 'end', marginBottom: '8px' }}>
-          <Typography variant="bodySRegular" gutterBottom>
+          <Typography 
+            variant="bodySRegular" 
+            gutterBottom
+            onClick={() => router.push('/reset-password')}
+            style={{ cursor: 'pointer', color: '#00A5CF', textDecoration: 'underline' }}
+          >
             ¿Olvidaste tu contraseña?
           </Typography>
         </section>
