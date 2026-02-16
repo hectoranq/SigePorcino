@@ -47,7 +47,15 @@ export async function listFarms(
       expand: 'user',
     });
 
-    console.log(`✅ Granjas obtenidas: ${records.items.length}`);
+    console.log(`✅ Granjas obtenidas de API: ${records.items.length}`);
+    console.log('📦 Estructura de la primera granja de PocketBase:', {
+      id: records.items[0]?.id,
+      hasId: !!records.items[0]?.id,
+      farm_name: records.items[0]?.farm_name,
+      REGA: records.items[0]?.REGA,
+      allKeys: records.items[0] ? Object.keys(records.items[0]) : []
+    });
+    
     return {
       success: true,
       data: records,

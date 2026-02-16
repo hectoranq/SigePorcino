@@ -25,12 +25,17 @@ import {
   CircularProgress,
   DialogTitle,
   DialogActions,
+  Radio,
+  RadioGroup,
+  Link,
+  IconButton,
 } from "@mui/material"
 import {
   Add,
   KeyboardArrowDown,
   CalendarToday,
   Delete,
+  AttachFile,
 } from "@mui/icons-material"
 import {
   listStaff,
@@ -38,9 +43,13 @@ import {
   updateStaff,
   deleteStaff,
   Staff,
+  CreateStaffData,
+  UpdateStaffData,
 } from "../../action/PersonalRegisterPocket"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
 import { buttonStyles } from "./buttonStyles"
+import useUserStore from "../../_store/user"
+import useFarmFormStore from "../../_store/farm"
 
 const theme = createTheme({
   palette: {
@@ -55,15 +64,40 @@ const theme = createTheme({
 })
 
 interface PersonalRegisterSectionProps {
-  token: string;
-  userId: string;
   farmId?: string;
 }
 
-export function PersonalRegisterSection({ token, userId, farmId }: PersonalRegisterSectionProps) {
+export function PersonalRegisterSection({ farmId }: PersonalRegisterSectionProps) {
+  // Obtener datos de los stores de Zustand
+  const token = useUserStore(state => state.token)
+  const userId = useUserStore(state => state.record.id)
+  const currentFarm = useFarmFormStore(state => state.currentFarm)
+  const allFarms = useFarmFormStore(state => state.farms)
+  
+  // Usar farmId del currentFarm si no se proporciona
+  const activeFarmId = farmId || currentFarm?.id
+  
   const [staffData, setStaffData] = useState<Staff[]>([])
   const [loading, setLoading] = useState(false)
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" })
+  
+  // Debug: Mostrar los valores de los stores
+  useEffect(() => {
+    console.log("🔍 PersonalRegisterSection Stores:", {
+      hasToken: !!token,
+      hasUserId: !!userId,
+      userId: userId || "No disponible",
+      hasFarmId: !!activeFarmId,
+      farmId: activeFarmId || "No seleccionada",
+      farmName: currentFarm?.farm_name || "Sin nombre",
+      currentFarmComplete: currentFarm,
+      allFarmsCount: allFarms.length,
+      firstFarmId: allFarms[0]?.id || "No hay granjas"
+    })
+    
+    // Log adicional para ver todo el store de farms
+    console.log("🗄️ Estado completo del store de farms:", useFarmFormStore.getState())
+  }, [token, userId, activeFarmId, currentFarm, allFarms])
   
 
   // Estado para el popup
@@ -84,24 +118,30 @@ export function PersonalRegisterSection({ token, userId, farmId }: PersonalRegis
     fechaInicio: "",
     fechaFinalizacion: "",
     experiencia: "",
+    certificado: null as File | null,
+    certificadoNombre: "",
     titulaciones: [] as string[],
     tareas: [] as string[],
+    otraTitulacion: "",
+    otraTarea: "",
   })
 
   // Cargar personal al montar el componente
   useEffect(() => {
-    loadStaff()
-  }, [token, userId, farmId])
+    if (token && userId) {
+      loadStaff()
+    }
+  }, [token, userId, activeFarmId])
 
   const loadStaff = async () => {
     if (!token || !userId) {
-      console.error("❌ Token o userId no disponibles")
+      console.error("❌ Token o userId no disponibles en el store")
       return
     }
 
     setLoading(true)
     try {
-      const response = await listStaff(token, userId, farmId)
+      const response = await listStaff(token, userId, activeFarmId)
       if (response.success) {
         setStaffData(response.data.items as Staff[] || [])
         console.log("✅ Personal cargado:", response.data.items.length)
@@ -128,6 +168,26 @@ export function PersonalRegisterSection({ token, userId, farmId }: PersonalRegis
   }
 
   const handleOpen = () => {
+    // Validar token y userId del store
+    if (!token || !userId) {
+      setSnackbar({
+        open: true,
+        message: "No hay sesión activa. Por favor, inicia sesión nuevamente.",
+        severity: "error",
+      })
+      return
+    }
+    
+    // Validar que haya una granja seleccionada
+    if (!activeFarmId) {
+      setSnackbar({
+        open: true,
+        message: "Por favor, selecciona una granja antes de agregar personal",
+        severity: "error",
+      })
+      return
+    }
+    
     setEditMode(false)
     setEditId(null)
     setOpen(true)
@@ -149,8 +209,12 @@ export function PersonalRegisterSection({ token, userId, farmId }: PersonalRegis
       fechaInicio: person.fecha_inicio,
       fechaFinalizacion: person.fecha_finalizacion,
       experiencia: person.experiencia || "",
+      certificado: null,
+      certificadoNombre: "",
       titulaciones: person.titulaciones || [],
       tareas: person.tareas || [],
+      otraTitulacion: "",
+      otraTarea: "",
     })
     
     setEditMode(true)
@@ -189,16 +253,72 @@ export function PersonalRegisterSection({ token, userId, farmId }: PersonalRegis
       fechaInicio: "",
       fechaFinalizacion: "",
       experiencia: "",
+      certificado: null,
+      certificadoNombre: "",
       titulaciones: [],
       tareas: [],
+      otraTitulacion: "",
+      otraTarea: "",
     })
   }
 
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      setFormData(prev => ({
+        ...prev,
+        certificado: file,
+        certificadoNombre: file.name,
+      }))
+    }
+  }
+
+  const handleAddTitulacion = () => {
+    if (formData.otraTitulacion.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        titulaciones: [...prev.titulaciones, prev.otraTitulacion.trim()],
+        otraTitulacion: "",
+      }))
+    }
+  }
+
+  const handleAddTarea = () => {
+    if (formData.otraTarea.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        tareas: [...prev.tareas, prev.otraTarea.trim()],
+        otraTarea: "",
+      }))
+    }
+  }
+
   const handleSubmit = async () => {
-    if (!token || !userId || !farmId) {
+    // Validar token
+    if (!token) {
       setSnackbar({
         open: true,
-        message: "Faltan datos de sesión (token, userId o farmId)",
+        message: "No hay sesión activa. Por favor, inicia sesión nuevamente.",
+        severity: "error",
+      })
+      return
+    }
+
+    // Validar userId
+    if (!userId) {
+      setSnackbar({
+        open: true,
+        message: "Usuario no identificado. Por favor, inicia sesión nuevamente.",
+        severity: "error",
+      })
+      return
+    }
+
+    // Validar farmId
+    if (!activeFarmId) {
+      setSnackbar({
+        open: true,
+        message: "No hay granja seleccionada. Por favor, selecciona una granja.",
         severity: "error",
       })
       return
@@ -214,26 +334,30 @@ export function PersonalRegisterSection({ token, userId, farmId }: PersonalRegis
       return
     }
 
-    const data = {
-      dni: formData.dni,
-      nombre: formData.nombre,
-      apellidos: formData.apellidos,
-      telefono: formData.telefono,
-      correo: formData.correo,
-      fecha_inicio: formData.fechaInicio,
-      fecha_finalizacion: formData.fechaFinalizacion,
-      experiencia: formData.experiencia,
-      titulaciones: formData.titulaciones,
-      tareas: formData.tareas,
-      farm: farmId,
-      user: userId,
-    }
-
     setLoading(true)
     try {
       if (editMode && editId) {
         // Actualizar personal existente
-        const response = await updateStaff(token, editId, data, userId)
+        const updateData: UpdateStaffData = {
+          dni: formData.dni,
+          nombre: formData.nombre,
+          apellidos: formData.apellidos,
+          telefono: formData.telefono,
+          correo: formData.correo,
+          fecha_inicio: formData.fechaInicio,
+          fecha_finalizacion: formData.fechaFinalizacion,
+          experiencia: formData.experiencia,
+          titulaciones: formData.titulaciones,
+          tareas: formData.tareas,
+          farm: activeFarmId,
+        }
+
+        // Agregar certificado si existe
+        if (formData.certificado) {
+          updateData.certificado = formData.certificado
+        }
+
+        const response = await updateStaff(token, editId, updateData, userId)
         if (response.success) {
           setSnackbar({
             open: true,
@@ -245,7 +369,27 @@ export function PersonalRegisterSection({ token, userId, farmId }: PersonalRegis
         }
       } else {
         // Crear nuevo personal
-        const response = await createStaff(token, data)
+        const createData: CreateStaffData = {
+          dni: formData.dni,
+          nombre: formData.nombre,
+          apellidos: formData.apellidos,
+          telefono: formData.telefono,
+          correo: formData.correo,
+          fecha_inicio: formData.fechaInicio,
+          fecha_finalizacion: formData.fechaFinalizacion,
+          experiencia: formData.experiencia,
+          titulaciones: formData.titulaciones,
+          tareas: formData.tareas,
+          farm: activeFarmId,
+          user: userId,
+        }
+
+        // Agregar certificado si existe
+        if (formData.certificado) {
+          createData.certificado = formData.certificado
+        }
+
+        const response = await createStaff(token, createData)
         if (response.success) {
           setSnackbar({
             open: true,
@@ -347,10 +491,22 @@ export function PersonalRegisterSection({ token, userId, farmId }: PersonalRegis
                   startIcon={<Add />}
                   sx={buttonStyles.save}
                   onClick={handleOpen}
+                  disabled={!activeFarmId || !token || !userId}
                 >
                   Agregar nuevo
                 </Button>
               </Box>
+
+              {/* Alerta cuando no hay granja seleccionada */}
+              {!activeFarmId && (
+                <Box sx={{ p: 3, bgcolor: "#fff3cd", borderBottom: 1, borderColor: "divider" }}>
+                  <Alert severity="warning" sx={{ bgcolor: "transparent", p: 0 }}>
+                    <Typography variant="body2">
+                      <strong>No hay granja seleccionada.</strong> Por favor, selecciona una granja del menú superior para poder agregar personal.
+                    </Typography>
+                  </Alert>
+                </Box>
+              )}
 
               <TableContainer>
                 <Table>
@@ -606,14 +762,50 @@ export function PersonalRegisterSection({ token, userId, farmId }: PersonalRegis
                   </Grid>
 
                   {/* Experience */}
-                  <TextField
-                    fullWidth
-                    placeholder="Experiencia previa"
-                    variant="standard"
-                    value={formData.experiencia}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, experiencia: e.target.value }))}
-                    sx={{ mb: 3 }}
-                  />
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="body1" sx={{ mb: 2, color: "text.secondary" }}>
+                      Tiene 3 años de experiencia en trabajos relacionados con la cría de ganado porcino
+                    </Typography>
+                    <RadioGroup
+                      row
+                      value={formData.experiencia}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, experiencia: e.target.value }))}
+                      sx={{ mb: 2 }}
+                    >
+                      <FormControlLabel
+                        value="si"
+                        control={<Radio sx={{ "&.Mui-checked": { color: "#0d9488" } }} />}
+                        label="Sí"
+                      />
+                      <FormControlLabel
+                        value="no"
+                        control={<Radio sx={{ "&.Mui-checked": { color: "#0d9488" } }} />}
+                        label="No"
+                      />
+                    </RadioGroup>
+                    <Button
+                      variant="outlined"
+                      component="label"
+                      startIcon={<AttachFile />}
+                      sx={{
+                        borderColor: "#d1d5db",
+                        color: "text.secondary",
+                        textTransform: "none",
+                        "&:hover": {
+                          borderColor: "#9ca3af",
+                          bgcolor: "grey.50",
+                        },
+                      }}
+                    >
+                      {formData.certificadoNombre || "Cargar certificado"}
+                      <input
+                        type="file"
+                        hidden
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={handleFileUpload}
+                      />
+                    </Button>
+                  </Box>
 
                   {/* Qualifications and Tasks */}
                   <Grid container spacing={3} sx={{ mb: 3 }}>
@@ -625,91 +817,146 @@ export function PersonalRegisterSection({ token, userId, farmId }: PersonalRegis
                         <FormControlLabel
                           control={
                             <Checkbox
-                              checked={formData.titulaciones.includes("Bachillerato")}
-                              onChange={() => handleCheckboxChange("Bachillerato", "titulaciones")}
+                              checked={formData.titulaciones.includes("Título de técnico en producción agropecuaria")}
+                              onChange={() => handleCheckboxChange("Título de técnico en producción agropecuaria", "titulaciones")}
                               sx={{ "&.Mui-checked": { color: "#22c55e" } }}
                             />
                           }
-                          label="Bachillerato"
+                          label="Título de técnico en producción agropecuaria"
                         />
                         <FormControlLabel
                           control={
                             <Checkbox
-                              checked={formData.titulaciones.includes("FP Agraria")}
-                              onChange={() => handleCheckboxChange("FP Agraria", "titulaciones")}
+                              checked={formData.titulaciones.includes("Título de técnico superior en ganadería y asistencia en sanidad animal")}
+                              onChange={() => handleCheckboxChange("Título de técnico superior en ganadería y asistencia en sanidad animal", "titulaciones")}
                               sx={{ "&.Mui-checked": { color: "#22c55e" } }}
                             />
                           }
-                          label="FP Agraria"
+                          label="Título de técnico superior en ganadería y asistencia en sanidad animal"
                         />
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              checked={formData.titulaciones.includes("Licenciatura")}
-                              onChange={() => handleCheckboxChange("Licenciatura", "titulaciones")}
-                              sx={{ "&.Mui-checked": { color: "#22c55e" } }}
+                        {formData.titulaciones
+                          .filter(t => 
+                            t !== "Título de técnico en producción agropecuaria" && 
+                            t !== "Título de técnico superior en ganadería y asistencia en sanidad animal"
+                          )
+                          .map((titulacion, index) => (
+                            <FormControlLabel
+                              key={index}
+                              control={
+                                <Checkbox
+                                  checked={true}
+                                  onChange={() => handleCheckboxChange(titulacion, "titulaciones")}
+                                  sx={{ "&.Mui-checked": { color: "#22c55e" } }}
+                                />
+                              }
+                              label={titulacion}
                             />
-                          }
-                          label="Licenciatura"
-                        />
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              checked={formData.titulaciones.includes("Doctorado")}
-                              onChange={() => handleCheckboxChange("Doctorado", "titulaciones")}
-                              sx={{ "&.Mui-checked": { color: "#22c55e" } }}
-                            />
-                          }
-                          label="Doctorado"
-                        />
+                          ))}
                       </FormGroup>
+                      <Box sx={{ display: "flex", gap: 1, mt: 1, alignItems: "center" }}>
+                        <TextField
+                          size="small"
+                          placeholder="Nueva titulación"
+                          variant="standard"
+                          value={formData.otraTitulacion}
+                          onChange={(e) => setFormData(prev => ({ ...prev, otraTitulacion: e.target.value }))}
+                          sx={{ flexGrow: 1 }}
+                        />
+                        <Link
+                          component="button"
+                          type="button"
+                          onClick={handleAddTitulacion}
+                          sx={{
+                            color: "#22d3ee",
+                            textDecoration: "none",
+                            cursor: "pointer",
+                            fontSize: "0.875rem",
+                            "&:hover": { textDecoration: "underline" },
+                          }}
+                        >
+                          Añadir otra opción
+                        </Link>
+                      </Box>
                     </Grid>
                     <Grid item xs={6}>
                       <Typography variant="subtitle1" fontWeight={500} gutterBottom>
-                        Tareas
+                        Tareas a cargo
                       </Typography>
                       <FormGroup>
                         <FormControlLabel
                           control={
                             <Checkbox
-                              checked={formData.tareas.includes("Manejo de personal")}
-                              onChange={() => handleCheckboxChange("Manejo de personal", "tareas")}
+                              checked={formData.tareas.includes("Cuidado de animales")}
+                              onChange={() => handleCheckboxChange("Cuidado de animales", "tareas")}
                               sx={{ "&.Mui-checked": { color: "#22c55e" } }}
                             />
                           }
-                          label="Manejo de personal"
+                          label="Cuidado de animales"
                         />
                         <FormControlLabel
                           control={
                             <Checkbox
-                              checked={formData.tareas.includes("Control de calidad")}
-                              onChange={() => handleCheckboxChange("Control de calidad", "tareas")}
+                              checked={formData.tareas.includes("Manejo de animales")}
+                              onChange={() => handleCheckboxChange("Manejo de animales", "tareas")}
                               sx={{ "&.Mui-checked": { color: "#22c55e" } }}
                             />
                           }
-                          label="Control de calidad"
+                          label="Manejo de animales"
                         />
                         <FormControlLabel
                           control={
                             <Checkbox
-                              checked={formData.tareas.includes("Planificación")}
-                              onChange={() => handleCheckboxChange("Planificación", "tareas")}
+                              checked={formData.tareas.includes("Revisión de animales")}
+                              onChange={() => handleCheckboxChange("Revisión de animales", "tareas")}
                               sx={{ "&.Mui-checked": { color: "#22c55e" } }}
                             />
                           }
-                          label="Planificación"
+                          label="Revisión de animales"
                         />
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              checked={formData.tareas.includes("Gestión de recursos")}
-                              onChange={() => handleCheckboxChange("Gestión de recursos", "tareas")}
-                              sx={{ "&.Mui-checked": { color: "#22c55e" } }}
+                        {formData.tareas
+                          .filter(t => 
+                            t !== "Cuidado de animales" && 
+                            t !== "Manejo de animales" && 
+                            t !== "Revisión de animales"
+                          )
+                          .map((tarea, index) => (
+                            <FormControlLabel
+                              key={index}
+                              control={
+                                <Checkbox
+                                  checked={true}
+                                  onChange={() => handleCheckboxChange(tarea, "tareas")}
+                                  sx={{ "&.Mui-checked": { color: "#22c55e" } }}
+                                />
+                              }
+                              label={tarea}
                             />
-                          }
-                          label="Gestión de recursos"
-                        />
+                          ))}
                       </FormGroup>
+                      <Box sx={{ display: "flex", gap: 1, mt: 1, alignItems: "center" }}>
+                        <TextField
+                          size="small"
+                          placeholder="Nueva tarea"
+                          variant="standard"
+                          value={formData.otraTarea}
+                          onChange={(e) => setFormData(prev => ({ ...prev, otraTarea: e.target.value }))}
+                          sx={{ flexGrow: 1 }}
+                        />
+                        <Link
+                          component="button"
+                          type="button"
+                          onClick={handleAddTarea}
+                          sx={{
+                            color: "#22d3ee",
+                            textDecoration: "none",
+                            cursor: "pointer",
+                            fontSize: "0.875rem",
+                            "&:hover": { textDecoration: "underline" },
+                          }}
+                        >
+                          Añadir otra opción
+                        </Link>
+                      </Box>
                     </Grid>
                   </Grid>
 

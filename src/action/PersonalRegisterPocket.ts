@@ -13,12 +13,46 @@ export interface Staff {
   fecha_inicio: string; // ISO 8601 date string
   fecha_finalizacion: string; // ISO 8601 date string
   experiencia?: string;
+  certificado?: string; // URL del archivo
   titulaciones: string[]; // Array de titulaciones seleccionadas
   tareas: string[]; // Array de tareas asignadas
   farm: string; // ID de la granja relacionada
   user: string; // ID del usuario propietario
   created?: string;
   updated?: string;
+}
+
+// Interfaz para crear personal
+export interface CreateStaffData {
+  dni: string;
+  nombre: string;
+  apellidos: string;
+  telefono: string;
+  correo: string;
+  fecha_inicio: string;
+  fecha_finalizacion: string;
+  experiencia?: string;
+  certificado?: File; // Archivo para subir
+  titulaciones: string[];
+  tareas: string[];
+  farm: string;
+  user: string;
+}
+
+// Interfaz para actualizar personal
+export interface UpdateStaffData {
+  dni?: string;
+  nombre?: string;
+  apellidos?: string;
+  telefono?: string;
+  correo?: string;
+  fecha_inicio?: string;
+  fecha_finalizacion?: string;
+  experiencia?: string;
+  certificado?: File; // Archivo para subir
+  titulaciones?: string[];
+  tareas?: string[];
+  farm?: string;
 }
 
 /**
@@ -117,10 +151,11 @@ export async function getStaffMember(token: string, id: string, userId: string) 
  */
 export async function createStaff(
   token: string,
-  data: Omit<Staff, 'id' | 'created' | 'updated' | 'collectionId' | 'collectionName'>
+  data: CreateStaffData
 ) {
+  const pb = new PocketBase('https://api.appsphere.pro');
+  
   try {
-    const pb = new PocketBase('https://api.appsphere.pro');
     pb.authStore.save(token);
 
     // Validar datos requeridos
@@ -132,20 +167,55 @@ export async function createStaff(
       throw new Error('Faltan relaciones requeridas: user, farm');
     }
 
-    // Asegurar que titulaciones y tareas sean arrays
-    if (!Array.isArray(data.titulaciones)) {
-      data.titulaciones = [];
-    }
-    if (!Array.isArray(data.tareas)) {
-      data.tareas = [];
+    // Validar archivo de certificado si existe
+    if (data.certificado) {
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+      const maxSize = 5 * 1024 * 1024; // 5MB en bytes
+
+      if (!allowedTypes.includes(data.certificado.type)) {
+        throw new Error('Certificado: Tipo no válido. Solo se permiten JPG, PNG o PDF');
+      }
+      if (data.certificado.size > maxSize) {
+        throw new Error('Certificado: Tamaño máximo 5MB');
+      }
     }
 
-    const record = await pb.collection('staff').create(data);
+    // Preparar FormData para archivos
+    const formData = new FormData();
+    formData.append('dni', data.dni);
+    formData.append('nombre', data.nombre);
+    formData.append('apellidos', data.apellidos);
+    formData.append('telefono', data.telefono);
+    formData.append('correo', data.correo);
+    formData.append('fecha_inicio', data.fecha_inicio);
+    formData.append('fecha_finalizacion', data.fecha_finalizacion);
+    formData.append('farm', data.farm);
+    formData.append('user', data.user);
+    
+    if (data.experiencia) {
+      formData.append('experiencia', data.experiencia);
+    }
+
+    // Asegurar que titulaciones y tareas sean arrays
+    const titulaciones = Array.isArray(data.titulaciones) ? data.titulaciones : [];
+    const tareas = Array.isArray(data.tareas) ? data.tareas : [];
+    
+    formData.append('titulaciones', JSON.stringify(titulaciones));
+    formData.append('tareas', JSON.stringify(tareas));
+
+    // Agregar archivo si existe
+    // IMPORTANTE: El nombre del campo debe coincidir exactamente con el nombre
+    // del campo file definido en la colección 'staff' de PocketBase
+    if (data.certificado) {
+      formData.append('certificado', data.certificado);
+    }
+
+    const record = await pb.collection('staff').create(formData);
 
     console.log(`✅ Personal creado: ${record.nombre}`);
     return {
       success: true,
-      data: record,
+      data: record as Staff,
       message: 'Personal registrado exitosamente',
     };
   } catch (error: any) {
@@ -156,7 +226,7 @@ export async function createStaff(
       const pbError = error.response.data;
       throw {
         success: false,
-        message: pbError.message || 'Error al crear personal',
+        message: pbError.message || 'Error al procesar el personal en el servidor',
         errors: pbError.data || {},
       };
     }
@@ -181,11 +251,12 @@ export async function createStaff(
 export async function updateStaff(
   token: string,
   id: string,
-  data: Partial<Omit<Staff, 'id' | 'created' | 'updated' | 'collectionId' | 'collectionName'>>,
+  data: UpdateStaffData,
   userId: string
 ) {
+  const pb = new PocketBase('https://api.appsphere.pro');
+  
   try {
-    const pb = new PocketBase('https://api.appsphere.pro');
     pb.authStore.save(token);
 
     // Primero verificar que el usuario sea el propietario
@@ -195,12 +266,58 @@ export async function updateStaff(
       throw new Error('No tienes permisos para actualizar este registro');
     }
 
-    const record = await pb.collection('staff').update(id, data);
+    // Validar archivo de certificado si existe
+    if (data.certificado) {
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+      const maxSize = 5 * 1024 * 1024; // 5MB en bytes
+
+      if (!allowedTypes.includes(data.certificado.type)) {
+        throw new Error('Certificado: Tipo no válido. Solo se permiten JPG, PNG o PDF');
+      }
+      if (data.certificado.size > maxSize) {
+        throw new Error('Certificado: Tamaño máximo 5MB');
+      }
+    }
+
+    // Si hay un archivo, usar FormData
+    let updateData: any;
+    if (data.certificado) {
+      const formData = new FormData();
+      
+      // Agregar campos simples
+      if (data.dni) formData.append('dni', data.dni);
+      if (data.nombre) formData.append('nombre', data.nombre);
+      if (data.apellidos) formData.append('apellidos', data.apellidos);
+      if (data.telefono) formData.append('telefono', data.telefono);
+      if (data.correo) formData.append('correo', data.correo);
+      if (data.fecha_inicio) formData.append('fecha_inicio', data.fecha_inicio);
+      if (data.fecha_finalizacion) formData.append('fecha_finalizacion', data.fecha_finalizacion);
+      if (data.experiencia) formData.append('experiencia', data.experiencia);
+      if (data.farm) formData.append('farm', data.farm);
+      
+      // Agregar arrays si existen
+      if (data.titulaciones) {
+        formData.append('titulaciones', JSON.stringify(data.titulaciones));
+      }
+      if (data.tareas) {
+        formData.append('tareas', JSON.stringify(data.tareas));
+      }
+
+      // Agregar archivo
+      formData.append('certificado', data.certificado);
+      
+      updateData = formData;
+    } else {
+      // Sin archivo, usar objeto normal
+      updateData = { ...data };
+    }
+
+    const record = await pb.collection('staff').update(id, updateData);
 
     console.log(`✅ Personal actualizado: ${record.nombre}`);
     return {
       success: true,
-      data: record,
+      data: record as Staff,
       message: 'Personal actualizado exitosamente',
     };
   } catch (error: any) {
@@ -211,7 +328,7 @@ export async function updateStaff(
       const pbError = error.response.data;
       throw {
         success: false,
-        message: pbError.message || 'Error al actualizar personal',
+        message: pbError.message || 'Error al procesar la actualización en el servidor',
         errors: pbError.data || {},
       };
     }
