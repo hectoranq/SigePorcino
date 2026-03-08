@@ -86,6 +86,10 @@ import { PlanSanitarioSection } from "../../components/sections/PlanSanitarioSec
 import { DatosGranjaSection } from "../../components/sections/DatosGranjaSection";
 import { ExportarInformacionSection } from "../../components/sections/ExportarInformacionSection";
 import MainDescriptionFarm from "../../components/sections/MainDescriptionFarm";
+import MainPlanBienestarAnimal from "../../components/sections/MainPlanBienestarAnimal";
+import MainWelfareEvaluation from "../../components/sections/MainWelfareEvaluation";
+import DesastresEmergenciasSection from "../../components/sections/DesastresEmergenciasSection";
+import MainPlanBienestarAccion from "../../components/sections/MainPlanBienestarAccion";
 
 const drawerWidth = 320
 
@@ -616,19 +620,45 @@ const Home = () => {
 </ListItem>
 
 {/* 6. Bienestar animal */}
-{[
-  { key: "bienestar", icon: Pets, text: "Bienestar animal" },
-].map(({ key, icon: Icon, text }) => (
-  <ListItem key={key} disablePadding>
-    <ListItemButton onClick={() => handleToggle(key)} sx={{ borderRadius: 2, mb: 0.5 }}>
+<ListItem disablePadding>
+  <Paper elevation={0} sx={{ width: "100%", bgcolor: "grey.50", borderRadius: 2, mb: 0.5 }}>
+    <ListItemButton onClick={() => handleToggle("bienestar")} sx={{ borderRadius: 2 }}>
       <ListItemIcon>
-        <Icon sx={{ color: "primary" }} />
+        <Pets sx={{ color: "primary" }} />
       </ListItemIcon>
-      <ListItemText primary={text} />
-      {openOtherSections[key] ? <ExpandLess /> : <ExpandMore />}
+      <ListItemText primary="Bienestar animal" />
+      {openOtherSections.bienestar ? <ExpandLess /> : <ExpandMore />}
     </ListItemButton>
-  </ListItem>
-))}
+    <Collapse in={openOtherSections.bienestar} timeout="auto" unmountOnExit>
+      <List component="div" disablePadding sx={{ pl: 4, pb: 1 }}>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("bienestar")}>
+          <ListItemText
+            primary="Plan de Bienestar Animal"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("plan_accion")}>
+          <ListItemText
+            primary="Plan de Acción"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("raboteo")}>
+          <ListItemText
+            primary="Raboteo"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("desastres")}>
+          <ListItemText
+            primary="Desastres/Emergencias"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
+      </List>
+    </Collapse>
+  </Paper>
+</ListItem>
 
 {/* 7. Limpieza y Desinfección */}
 <ListItem disablePadding>
@@ -881,7 +911,7 @@ const Home = () => {
                   activeSection === "consumo_agua" ||
                   activeSection === "consumo_electricidad" ||
                   activeSection === "entradas_combustible") && "Alimentación y consumo"}
-                {activeSection === "bienestar" && "Bienestar animal"}
+                {(activeSection === "bienestar" || activeSection === "plan_accion" || activeSection === "raboteo" || activeSection === "desastres") && "Bienestar animal"}
                 {(activeSection === "entrada_lechones" ||
                   activeSection === "salida_matadero" ||
                   activeSection === "baja_animales" ||
@@ -958,7 +988,13 @@ const Home = () => {
                     case "entradas_combustible":
                       return "Entradas de combustible";
                     case "bienestar":
-                      return "Bienestar animal";
+                      return "Plan de Bienestar Animal";
+                    case "plan_accion":
+                      return "Plan de Acción";
+                    case "raboteo":
+                      return "Raboteo";
+                    case "desastres":
+                      return "Desastres/Emergencias";
                     case "entrada_lechones":
                       return "Entrada de lechones";
                     case "salida_matadero":
@@ -1036,6 +1072,12 @@ const Home = () => {
             {activeSection === "consumo_agua" && <ConsumoAguaSection />}
             {activeSection === "consumo_electricidad" && <ConsumoElectricidadSection />}
             {activeSection === "entradas_combustible" && <EntradasCombustibleSection />}
+
+            {/* Sección de Bienestar Animal */}
+            {activeSection === "bienestar" && <MainPlanBienestarAnimal />}
+            {activeSection === "plan_accion" && <MainPlanBienestarAccion />}
+            {activeSection === "raboteo" && <MainWelfareEvaluation />}
+            {activeSection === "desastres" && <DesastresEmergenciasSection />}
 
             {/* Sección de Configuración */}
             {activeSection === "exportar-informacion" && <ExportarInformacionSection />}
