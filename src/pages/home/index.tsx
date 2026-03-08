@@ -89,6 +89,7 @@ import MainDescriptionFarm from "../../components/sections/MainDescriptionFarm";
 import MainPlanBienestarAnimal from "../../components/sections/MainPlanBienestarAnimal";
 import MainWelfareEvaluation from "../../components/sections/MainWelfareEvaluation";
 import DesastresEmergenciasSection from "../../components/sections/DesastresEmergenciasSection";
+import MainPlanBienestarAccion from "../../components/sections/MainPlanBienestarAccion";
 
 const drawerWidth = 320
 
@@ -636,6 +637,12 @@ const Home = () => {
             sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
           />
         </ListItemButton>
+        <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("plan_accion")}>
+          <ListItemText
+            primary="Plan de Acción"
+            sx={{ "& .MuiTypography-root": { fontSize: "0.875rem", color: "secondary.main" } }}
+          />
+        </ListItemButton>
         <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("raboteo")}>
           <ListItemText
             primary="Raboteo"
@@ -904,7 +911,7 @@ const Home = () => {
                   activeSection === "consumo_agua" ||
                   activeSection === "consumo_electricidad" ||
                   activeSection === "entradas_combustible") && "Alimentación y consumo"}
-                {(activeSection === "bienestar" || activeSection === "raboteo" || activeSection === "desastres") && "Bienestar animal"}
+                {(activeSection === "bienestar" || activeSection === "plan_accion" || activeSection === "raboteo" || activeSection === "desastres") && "Bienestar animal"}
                 {(activeSection === "entrada_lechones" ||
                   activeSection === "salida_matadero" ||
                   activeSection === "baja_animales" ||
@@ -982,6 +989,8 @@ const Home = () => {
                       return "Entradas de combustible";
                     case "bienestar":
                       return "Plan de Bienestar Animal";
+                    case "plan_accion":
+                      return "Plan de Acción";
                     case "raboteo":
                       return "Raboteo";
                     case "desastres":
@@ -1066,6 +1075,7 @@ const Home = () => {
 
             {/* Sección de Bienestar Animal */}
             {activeSection === "bienestar" && <MainPlanBienestarAnimal />}
+            {activeSection === "plan_accion" && <MainPlanBienestarAccion />}
             {activeSection === "raboteo" && <MainWelfareEvaluation />}
             {activeSection === "desastres" && <DesastresEmergenciasSection />}
 
