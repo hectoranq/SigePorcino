@@ -95,9 +95,7 @@ const drawerWidth = 320
 
 const Home = () => {
     const router = useRouter();
-    const [openPersonal, setOpenPersonal] = useState(false)
-    const [openOtherSections, setOpenOtherSections] = useState<{ [key: string]: boolean }>({})
-    const [openConfig, setOpenConfig] = useState(false)
+    const [openSection, setOpenSection] = useState<string | null>(null)
     const [mobileOpen, setMobileOpen] = useState(false);
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -140,16 +138,7 @@ const Home = () => {
     }, []);
     
     const handleToggle = (section: string) => {
-      if (section === "personal") {
-        setOpenPersonal(!openPersonal)
-      } else if (section === "config") {
-        setOpenConfig(!openConfig)
-      } else {
-        setOpenOtherSections((prev) => ({
-          ...prev,
-          [section]: !prev[section],
-        }))
-      }
+      setOpenSection(prevSection => prevSection === section ? null : section)
     }
 
     const handleDrawerToggle = () => {
@@ -398,9 +387,9 @@ const Home = () => {
                   <Agriculture sx={{ color: "primary" }} />
                 </ListItemIcon>
                 <ListItemText primary="Información de la granja" />
-                {openOtherSections.granja ? <ExpandLess /> : <ExpandMore />}
+                {openSection === "granja" ? <ExpandLess /> : <ExpandMore />}
               </ListItemButton>
-              <Collapse in={openOtherSections.granja} timeout="auto" unmountOnExit>
+              <Collapse in={openSection === "granja"} timeout="auto" unmountOnExit>
                 <List component="div" disablePadding sx={{ pl: 4, pb: 1 }}>
                   <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("descripcion_granja")}>
                     <ListItemText
@@ -445,9 +434,9 @@ const Home = () => {
                     <Assignment sx={{ color: "primary" }} />
                   </ListItemIcon>
                   <ListItemText primary="Desarrollo de planes" />
-                  {openOtherSections.planes ? <ExpandLess /> : <ExpandMore />}
+                  {openSection === "planes" ? <ExpandLess /> : <ExpandMore />}
                 </ListItemButton>
-                <Collapse in={openOtherSections.planes} timeout="auto" unmountOnExit>
+                <Collapse in={openSection === "planes"} timeout="auto" unmountOnExit>
                   <List component="div" disablePadding sx={{ pl: 4, pb: 1 }}>
                     <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("plan_lld")}>
                       <ListItemText
@@ -510,9 +499,9 @@ const Home = () => {
                     <EventNote sx={{ color: "primary" }} />
                   </ListItemIcon>
                   <ListItemText primary="Control diario" />
-                  {openOtherSections.control ? <ExpandLess /> : <ExpandMore />}
+                  {openSection === "control" ? <ExpandLess /> : <ExpandMore />}
                 </ListItemButton>
-                <Collapse in={openOtherSections.control} timeout="auto" unmountOnExit>
+                <Collapse in={openSection === "control"} timeout="auto" unmountOnExit>
                   <List component="div" disablePadding sx={{ pl: 4, pb: 1 }}>
                     <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("mantenimiento_equipos")}>
                       <ListItemText
@@ -533,9 +522,9 @@ const Home = () => {
         <Restaurant sx={{ color: "primary" }} />
       </ListItemIcon>
       <ListItemText primary="Alimentación y consumo" />
-      {openOtherSections.alimentacion ? <ExpandLess /> : <ExpandMore />}
+      {openSection === "alimentacion" ? <ExpandLess /> : <ExpandMore />}
     </ListItemButton>
-    <Collapse in={openOtherSections.alimentacion} timeout="auto" unmountOnExit>
+    <Collapse in={openSection === "alimentacion"} timeout="auto" unmountOnExit>
       <List component="div" disablePadding sx={{ pl: 4, pb: 1 }}>
         <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("descarga_sacos_pienso")}>
           <ListItemText
@@ -586,9 +575,9 @@ const Home = () => {
         <TrendingUp sx={{ color: "primary" }} />
       </ListItemIcon>
       <ListItemText primary="Altas y bajas" />
-      {openOtherSections.altas ? <ExpandLess /> : <ExpandMore />}
+      {openSection === "altas" ? <ExpandLess /> : <ExpandMore />}
     </ListItemButton>
-    <Collapse in={openOtherSections.altas} timeout="auto" unmountOnExit>
+    <Collapse in={openSection === "altas"} timeout="auto" unmountOnExit>
       <List component="div" disablePadding sx={{ pl: 4, pb: 1 }}>
         <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("entrada_lechones")}>
           <ListItemText
@@ -627,9 +616,9 @@ const Home = () => {
         <Pets sx={{ color: "primary" }} />
       </ListItemIcon>
       <ListItemText primary="Bienestar animal" />
-      {openOtherSections.bienestar ? <ExpandLess /> : <ExpandMore />}
+      {openSection === "bienestar" ? <ExpandLess /> : <ExpandMore />}
     </ListItemButton>
-    <Collapse in={openOtherSections.bienestar} timeout="auto" unmountOnExit>
+    <Collapse in={openSection === "bienestar"} timeout="auto" unmountOnExit>
       <List component="div" disablePadding sx={{ pl: 4, pb: 1 }}>
         <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("bienestar")}>
           <ListItemText
@@ -668,9 +657,9 @@ const Home = () => {
         <CleaningServices sx={{ color: "primary" }} />
       </ListItemIcon>
       <ListItemText primary="Limpieza y Desinfección" />
-      {openOtherSections.limpieza ? <ExpandLess /> : <ExpandMore />}
+      {openSection === "limpieza" ? <ExpandLess /> : <ExpandMore />}
     </ListItemButton>
-    <Collapse in={openOtherSections.limpieza} timeout="auto" unmountOnExit>
+    <Collapse in={openSection === "limpieza"} timeout="auto" unmountOnExit>
       <List component="div" disablePadding sx={{ pl: 4, pb: 1 }}>
         <ListItemButton sx={{ borderRadius: 1, py: 0.5 }} onClick={() => handleSectionChange("desratizacion")}>
           <ListItemText
@@ -725,10 +714,10 @@ const Home = () => {
                   <Settings />
                 </ListItemIcon>
                 <ListItemText primary="Configuración" />
-                {openConfig ? <ExpandLess /> : <ExpandMore />}
+                {openSection === "config" ? <ExpandLess /> : <ExpandMore />}
               </ListItemButton>
             </ListItem>
-            <Collapse in={openConfig} timeout="auto" unmountOnExit>
+            <Collapse in={openSection === "config"} timeout="auto" unmountOnExit>
               <List component="div" disablePadding>
                 <ListItemButton
                   sx={{ pl: 4, borderRadius: 2, mb: 0.5 }}
