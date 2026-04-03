@@ -26,6 +26,8 @@ import { createTheme, ThemeProvider } from "@mui/material/styles"
 import { buttonStyles, headerColors, headerAccentColors, sectionHeaderStyle, headerBarStyle } from "./buttonStyles"
 import useUserStore from "../../_store/user"
 import useFarmFormStore from "../../_store/farm"
+import DateInput from "../common/DateInput"
+import { formatDateToDisplay, formatDateForInput } from "../../utils/dateHelpers"
 import {
   listBajaAnimales,
   createBajaAnimales,
@@ -117,12 +119,7 @@ export function BajaAnimalesSection() {
     }
   }
 
-  // Función para convertir fecha ISO a formato para input date (YYYY-MM-DD)
-  const formatDateForInput = (dateString: string) => {
-    if (!dateString) return ""
-    // Extraer solo la parte de la fecha (YYYY-MM-DD) del ISO string
-    return dateString.split('T')[0].split(' ')[0]
-  }
+  // Date formatting functions imported from utils/dateHelpers
 
   // Cargar datos desde la API
   useEffect(() => {
@@ -198,16 +195,7 @@ export function BajaAnimalesSection() {
 
 
 
-  // Función para convertir fecha de YYYY-MM-DD a DD/MM/YYYY
-  const formatDateToDisplay = (dateString: string) => {
-    if (!dateString) return "Sin fecha"
-    const date = new Date(dateString)
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    })
-  }
+  // Date display function imported from utils/dateHelpers
 
   const handleClose = () => {
     setOpen(false)
@@ -486,25 +474,12 @@ export function BajaAnimalesSection() {
                     />
 
                     {/* Fecha de fallecimiento */}
-                    <TextField
-                      fullWidth
+                    <DateInput
                       label="Fecha de fallecimiento"
-                      type="date"
-                      variant="standard"
                       value={formData.fechaFallecimiento}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, fechaFallecimiento: e.target.value }))}
-                      InputLabelProps={{
-                        shrink: true,
-                      }}
-                      InputProps={{
-                        readOnly: viewMode,
-                      }}
-                      sx={{
-                        mb: 3,
-                        "& .MuiInputBase-input": {
-                          color: viewMode ? "text.secondary" : "text.primary",
-                        },
-                      }}
+                      onChange={(value) => setFormData((prev) => ({ ...prev, fechaFallecimiento: value }))}
+                      readOnly={viewMode}
+                      variant="standard"
                     />
 
                     {/* Tipo de fallecimiento - Checkboxes */}

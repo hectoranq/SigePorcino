@@ -25,6 +25,8 @@ import { createTheme, ThemeProvider } from "@mui/material/styles"
 import { buttonStyles, headerColors, headerAccentColors} from "./buttonStyles"
 import useUserStore from "../../_store/user"
 import useFarmFormStore from "../../_store/farm"
+import DateInput from "../common/DateInput"
+import { formatDateToDisplay, formatDateForInput } from "../../utils/dateHelpers"
 import {
   getEntradaLechonesByFarmId,
   createEntradaLechones,
@@ -85,23 +87,7 @@ export function EntradaLechonesSection() {
   // Estado para la tabla de entrada de lechones
   const [entradaLechonesData, setEntradaLechonesData] = useState<EntradaLechonesData[]>([])
 
-  // Función para formatear fecha
-  const formatDateToDisplay = (dateString: string) => {
-    if (!dateString) return "Sin fecha"
-    const date = new Date(dateString)
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    })
-  }
-
-  // Función para formatear fecha a YYYY-MM-DD para input type="date"
-  const formatDateForInput = (dateString: string) => {
-    if (!dateString) return ""
-    // Extraer solo la parte YYYY-MM-DD del formato ISO
-    return dateString.split('T')[0].split(' ')[0]
-  }
+  // Date formatting functions imported from utils/dateHelpers
 
   // Convertir de API a formato local
   const convertAPItoLocal = (apiData: APIEntradaLechones): EntradaLechonesData => {
@@ -550,45 +536,23 @@ export function EntradaLechonesSection() {
                   {/* Fecha de entrada y Fecha de nacimiento */}
                   <Grid container spacing={3} sx={{ mb: 3 }}>
                     <Grid item xs={6}>
-                      <TextField
-                        fullWidth
+                      <DateInput
                         label="Fecha de entrada"
-                        type="date"
-                        variant="filled"
                         value={formData.fechaEntrada}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, fechaEntrada: e.target.value }))}
-                        InputLabelProps={{
-                          shrink: true,
-                        }}
-                        InputProps={{
-                          readOnly: viewMode,
-                        }}
-                        sx={{
-                          "& .MuiInputBase-input": {
-                            color: viewMode ? "text.secondary" : "text.primary",
-                          },
-                        }}
+                        onChange={(value) => setFormData((prev) => ({ ...prev, fechaEntrada: value }))}
+                        readOnly={viewMode}
+                        variant="filled"
+                        sx={{ mb: 0 }}
                       />
                     </Grid>
                     <Grid item xs={6}>
-                      <TextField
-                        fullWidth
+                      <DateInput
                         label="Fecha de nacimiento"
-                        type="date"
-                        variant="filled"
                         value={formData.fechaNacimiento}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, fechaNacimiento: e.target.value }))}
-                        InputLabelProps={{
-                          shrink: true,
-                        }}
-                        InputProps={{
-                          readOnly: viewMode,
-                        }}
-                        sx={{
-                          "& .MuiInputBase-input": {
-                            color: viewMode ? "text.secondary" : "text.primary",
-                          },
-                        }}
+                        onChange={(value) => setFormData((prev) => ({ ...prev, fechaNacimiento: value }))}
+                        readOnly={viewMode}
+                        variant="filled"
+                        sx={{ mb: 0 }}
                       />
                     </Grid>
                   </Grid>

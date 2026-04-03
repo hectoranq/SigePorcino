@@ -17,6 +17,7 @@ import {
 import useUserStore from "../../_store/user";
 import useFarmFormStore from "../../_store/farm";
 import { buttonStyles } from "./buttonStyles";
+import DateInput from "../common/DateInput";
 import {
   getPlanBienestarAnimalByFarmId,
   updatePlanBienestarAnimal,
@@ -294,16 +295,14 @@ const PlanBienestarAnimalMutilacionesStep: React.FC<MutilacionesStepProps> = ({
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                variant="filled"
-                type="date"
+              <DateInput
                 label="Fecha de última cría con rabos íntegros"
                 value={formData.fecha_ultima_cria_rabos_integros}
-                onChange={(e) =>
-                  handleInputChange("fecha_ultima_cria_rabos_integros", e.target.value)
+                onChange={(value) =>
+                  handleInputChange("fecha_ultima_cria_rabos_integros", value)
                 }
-                InputLabelProps={{ shrink: true }}
+                variant="filled"
+                sx={{ mb: 0 }}
               />
             </Grid>
 
@@ -367,17 +366,14 @@ const PlanBienestarAnimalMutilacionesStep: React.FC<MutilacionesStepProps> = ({
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                variant="filled"
-                type="date"
+              <DateInput
                 label="Fecha del documento de petición de raboteo por cliente"
                 value={formData.fecha_documento_peticion}
-                onChange={(e) =>
-                  handleInputChange("fecha_documento_peticion", e.target.value)
+                onChange={(value) =>
+                  handleInputChange("fecha_documento_peticion", value)
                 }
-                InputLabelProps={{ shrink: true }}
-                helperText="Dejar en blanco si no procede"
+                variant="filled"
+                sx={{ mb: 0 }}
               />
             </Grid>
 
@@ -416,16 +412,14 @@ const PlanBienestarAnimalMutilacionesStep: React.FC<MutilacionesStepProps> = ({
             </Grid>
 
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                variant="filled"
-                type="date"
+              <DateInput
                 label="Fecha de registro de modificación de condiciones ambientales"
                 value={formData.fecha_modificacion_condiciones}
-                onChange={(e) =>
-                  handleInputChange("fecha_modificacion_condiciones", e.target.value)
+                onChange={(value) =>
+                  handleInputChange("fecha_modificacion_condiciones", value)
                 }
-                InputLabelProps={{ shrink: true }}
+                variant="filled"
+                sx={{ mb: 0 }}
               />
             </Grid>
           </Grid>

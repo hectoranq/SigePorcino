@@ -25,6 +25,8 @@ import { createTheme, ThemeProvider } from "@mui/material/styles"
 import { buttonStyles, headerColors, headerAccentColors } from "./buttonStyles"
 import useUserStore from "../../_store/user"
 import useFarmFormStore from "../../_store/farm"
+import DateInput from "../common/DateInput"
+import { formatDateToDisplay, formatDateForInput } from "../../utils/dateHelpers"
 import {
   getMantenimientoEquiposByFarmId,
   createMantenimientoEquipos,
@@ -509,24 +511,13 @@ export function MantenimientoEquiposSection() {
                       />
                     </Grid>
                     <Grid item xs={4}>
-                      <TextField
-                        fullWidth
+                      <DateInput
                         label="Fecha"
-                        type="date"
-                        variant="filled"
                         value={formData.fecha}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, fecha: e.target.value }))}
-                        InputLabelProps={{
-                          shrink: true,
-                        }}
-                        InputProps={{
-                          readOnly: viewMode,
-                        }}
-                        sx={{
-                          "& .MuiInputBase-input": {
-                            color: viewMode ? "text.secondary" : "text.primary",
-                          },
-                        }}
+                        onChange={(value) => setFormData((prev) => ({ ...prev, fecha: value }))}
+                        readOnly={viewMode}
+                        variant="filled"
+                        sx={{ mb: 0 }}
                       />
                     </Grid>
                   </Grid>
@@ -553,25 +544,12 @@ export function MantenimientoEquiposSection() {
                   />
 
                   {/* Próxima revisión */}
-                  <TextField
-                    fullWidth
+                  <DateInput
                     label="Próxima revisión"
-                    type="date"
-                    variant="filled"
                     value={formData.proximaRevision}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, proximaRevision: e.target.value }))}
-                    InputLabelProps={{
-                      shrink: true,
-                    }}
-                    InputProps={{
-                      readOnly: viewMode,
-                    }}
-                    sx={{
-                      mb: 3,
-                      "& .MuiInputBase-input": {
-                        color: viewMode ? "text.secondary" : "text.primary",
-                      },
-                    }}
+                    onChange={(value) => setFormData((prev) => ({ ...prev, proximaRevision: value }))}
+                    readOnly={viewMode}
+                    variant="filled"
                   />
 
                   {/* Observaciones */}

@@ -31,6 +31,8 @@ import {
   CircularProgress,
 } from "@mui/material"
 import { Add, KeyboardArrowDown, Delete } from "@mui/icons-material"
+import DateInput from "../common/DateInput"
+import { formatDateToDisplay, formatDateForInput } from "../../utils/dateHelpers"
 import {
   listLinkedCompaniesManagers,
   createLinkedCompanyManager,
@@ -628,11 +630,11 @@ export default function LinkedCompaniesManagersPage({ token, userId, farmId }: L
                     </FormControl>
                   </Grid>
 
-                  {/* DNI */}
+                  {/* DNI/CIF */}
                   <Grid item xs={12} sm={6} md={6}>
                     <TextField
                       name="dni"
-                      label="DNI"
+                      label={tipoPersona === "empresa" ? "CIF" : "DNI"}
                       fullWidth
                       value={formData.dni}
                       onChange={(e) => handleInputChange("dni", e.target.value)}
@@ -725,27 +727,21 @@ export default function LinkedCompaniesManagersPage({ token, userId, farmId }: L
 
                   {/* Fechas */}
                   <Grid item xs={12} md={6}>
-                    <TextField
+                    <DateInput
                       label="Fecha de inicio"
-                      type="date"
-                      fullWidth
                       value={fechaInicio}
-                      onChange={(e) => setFechaInicio(e.target.value)}
-                      InputLabelProps={{
-                        shrink: true,
-                      }}
+                      onChange={(value) => setFechaInicio(value)}
+                      variant="standard"
+                      sx={{ mb: 0 }}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    <TextField
+                    <DateInput
                       label="Fecha de finalización"
-                      type="date"
-                      fullWidth
                       value={fechaFin}
-                      onChange={(e) => setFechaFin(e.target.value)}
-                      InputLabelProps={{
-                        shrink: true,
-                      }}
+                      onChange={(value) => setFechaFin(value)}
+                      variant="standard"
+                      sx={{ mb: 0 }}
                     />
                   </Grid>
 

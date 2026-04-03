@@ -25,6 +25,8 @@ import { createTheme, ThemeProvider } from "@mui/material/styles"
 import { buttonStyles, headerColors, headerAccentColors } from "./buttonStyles"
 import useUserStore from "../../_store/user"
 import useFarmFormStore from "../../_store/farm"
+import DateInput from "../common/DateInput"
+import { formatDateToDisplay, formatDateForInput } from "../../utils/dateHelpers"
 import {
   listSalidaMatadero,
   createSalidaMatadero,
@@ -527,25 +529,12 @@ export function SalidaMataderoSection() {
                   </Grid>
 
                   {/* Fecha de salida */}
-                  <TextField
-                    fullWidth
+                  <DateInput
                     label="Fecha de salida"
-                    type="date"
-                    variant="standard"
                     value={formData.fechaSalida}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, fechaSalida: e.target.value }))}
-                    InputLabelProps={{
-                      shrink: true,
-                    }}
-                    InputProps={{
-                      readOnly: viewMode,
-                    }}
-                    sx={{
-                      mb: 3,
-                      "& .MuiInputBase-input": {
-                        color: viewMode ? "text.secondary" : "text.primary",
-                      },
-                    }}
+                    onChange={(value) => setFormData((prev) => ({ ...prev, fechaSalida: value }))}
+                    readOnly={viewMode}
+                    variant="standard"
                   />
 
                   {/* Destino */}

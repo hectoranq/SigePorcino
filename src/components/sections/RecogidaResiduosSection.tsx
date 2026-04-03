@@ -27,6 +27,8 @@ import { buttonStyles, headerColors, headerAccentColors } from "./buttonStyles"
 import useUserStore from "../../_store/user"
 import useFarmFormStore from "../../_store/farm"
 import { listStaff, Staff } from "../../action/PersonalRegisterPocket"
+import DateInput from "../common/DateInput"
+import { formatDateToDisplay, formatDateForInput } from "../../utils/dateHelpers"
 import {
   getRecogidaResiduosByFarmId,
   createRecogidaResiduos,
@@ -180,7 +182,7 @@ export function RecogidaResiduosSection() {
     loadRecogidaResiduos()
   }, [token, record, currentFarm, staff])
 
-  // Función para formatear fecha a YYYY-MM-DD para input type="date"
+  // Date formatting functions imported from utils/dateHelpers
   const formatDateForInput = (dateString: string) => {
     if (!dateString) return ""
     // Extraer solo la parte YYYY-MM-DD del formato ISO
@@ -613,25 +615,12 @@ export function RecogidaResiduosSection() {
                   </Grid>
 
                   {/* Fecha */}
-                  <TextField
-                    fullWidth
+                  <DateInput
                     label="Fecha"
-                    type="date"
-                    variant="standard"
                     value={formData.fecha}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, fecha: e.target.value }))}
-                    InputLabelProps={{
-                      shrink: true,
-                    }}
-                    InputProps={{
-                      readOnly: viewMode,
-                    }}
-                    sx={{
-                      mb: 3,
-                      "& .MuiInputBase-input": {
-                        color: viewMode ? "text.secondary" : "text.primary",
-                      },
-                    }}
+                    onChange={(value) => setFormData((prev) => ({ ...prev, fecha: value }))}
+                    readOnly={viewMode}
+                    variant="standard"
                   />
 
                   {/* Botones dinámicos según el modo */}

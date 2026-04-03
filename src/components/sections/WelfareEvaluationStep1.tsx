@@ -28,6 +28,7 @@ import {
 import { Add, KeyboardArrowDown } from "@mui/icons-material";
 import useUserStore from "../../_store/user";
 import useFarmFormStore from "../../_store/farm";
+import DateInput from "../common/DateInput";
 import { buttonStyles, headerColors } from "./buttonStyles";
 import {
   getWelfareEvaluationByFarmId,
@@ -376,13 +377,12 @@ const WelfareEvaluationStep1: React.FC<Props> = ({ onNext, evaluationId, setEval
             />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              type="date"
+            <DateInput
               label="Fecha de Evaluación"
               value={evaluationForm.evaluation_date}
-              onChange={(e) => handleEvaluationChange("evaluation_date", e.target.value)}
-              InputLabelProps={{ shrink: true }}
+              onChange={(value) => handleEvaluationChange("evaluation_date", value)}
+              variant="standard"
+              sx={{ mb: 0 }}
             />
           </Grid>
           <Grid item xs={12} sm={4}>
