@@ -40,11 +40,10 @@ import {
   deleteLinkedCompanyManager,
   LinkedCompanyManager,
 } from "../../action/LinkedCompaniesManagerPocket"
+import { fetchParameters } from "../../data/repository"
 
 type TipoPersona = "empresa" | "persona"
 
-const POBLACIONES = ["Madrid", "Barcelona", "Valencia", "Sevilla", "Zaragoza"]
-const PROVINCIAS = ["Madrid", "Barcelona", "Valencia", "Sevilla", "Zaragoza"]
 const OPCIONES_IZQ = ["Integrador", "Lavado y desinfección", "Mantenimiento", "Cadáveres", "Desratización", "ADS", "Reparaciones"]
 const OPCIONES_DER = ["Particular", "Residuos LER", "Purines", "Laboratorio", "Semen", "Fitosanitarios"]
 
@@ -58,6 +57,7 @@ export default function LinkedCompaniesManagersPage({ token, userId, farmId }: L
   const [empresas, setEmpresas] = useState<LinkedCompanyManager[]>([])
   const [loading, setLoading] = useState(false)
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" })
+  const [provincias, setProvincias] = useState<any[]>([])
 
   // Estados para el popup
   const [open, setOpen] = useState(false)
@@ -83,6 +83,11 @@ export default function LinkedCompaniesManagersPage({ token, userId, farmId }: L
   const [empresaToDelete, setEmpresaToDelete] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState(false) // true = solo ver, false = editar/agregar
+
+  // Cargar provincias al montar el componente
+  useEffect(() => {
+    fetchParameters().then(setProvincias)
+  }, [])
 
   // Cargar empresas vinculadas al montar el componente
   useEffect(() => {
@@ -661,22 +666,7 @@ export default function LinkedCompaniesManagersPage({ token, userId, farmId }: L
                     />
                   </Grid>
 
-                  {/* Población / Provincia */}
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      select
-                      label="Población"
-                      value={poblacion}
-                      onChange={(e) => setPoblacion(e.target.value)}
-                      fullWidth
-                    >
-                      {POBLACIONES.map((p) => (
-                        <MenuItem key={p} value={p}>
-                          {p}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                  </Grid>
+                  {/* Provincia / Población (swapped order and updated field types) */}
                   <Grid item xs={12} md={6}>
                     <TextField
                       select
@@ -685,12 +675,21 @@ export default function LinkedCompaniesManagersPage({ token, userId, farmId }: L
                       onChange={(e) => setProvincia(e.target.value)}
                       fullWidth
                     >
-                      {PROVINCIAS.map((p) => (
-                        <MenuItem key={p} value={p}>
-                          {p}
+                      {provincias.map((item) => (
+                        <MenuItem key={item.country.value} value={item.country.value}>
+                          {item.country.label}
                         </MenuItem>
                       ))}
                     </TextField>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      label="Población"
+                      value={poblacion}
+                      onChange={(e) => setPoblacion(e.target.value)}
+                      fullWidth
+                      placeholder="Ej: Madrid, Barcelona, Sevilla..."
+                    />
                   </Grid>
 
                   {/* Dirección */}

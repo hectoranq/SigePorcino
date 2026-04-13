@@ -13,7 +13,8 @@ interface Productos {
 interface Instalaciones {
   paredes: boolean;
   suelos: boolean;
-  comederosSilos: boolean;
+  comederos: boolean;
+  silos: boolean;
   extras?: string[];
 }
 
