@@ -17,6 +17,7 @@ import {
 import useUserStore from "../../_store/user";
 import useFarmFormStore from "../../_store/farm";
 import { buttonStyles } from "./buttonStyles";
+import DateInput from "../common/DateInput";
 import {
   getPlanBienestarAnimalByFarmId,
   updatePlanBienestarAnimal,
@@ -51,6 +52,7 @@ const PlanBienestarAnimalMutilacionesStep: React.FC<MutilacionesStepProps> = ({
     fecha_documento_peticion: "",
     porcentaje_lesiones_grado_1: "",
     porcentaje_lesiones_grado_2: "",
+    fecha_registro_lesiones_grado_2: "",
     fecha_modificacion_condiciones: "",
   });
   const [snackbar, setSnackbar] = useState({
@@ -91,6 +93,8 @@ const PlanBienestarAnimalMutilacionesStep: React.FC<MutilacionesStepProps> = ({
               existingPlan.porcentaje_lesiones_grado_1?.toString() || "",
             porcentaje_lesiones_grado_2:
               existingPlan.porcentaje_lesiones_grado_2?.toString() || "",
+            fecha_registro_lesiones_grado_2:
+              existingPlan.fecha_registro_lesiones_grado_2 || "",
             fecha_modificacion_condiciones:
               existingPlan.fecha_modificacion_condiciones || "",
           });
@@ -149,6 +153,7 @@ const PlanBienestarAnimalMutilacionesStep: React.FC<MutilacionesStepProps> = ({
         porcentaje_lesiones_grado_2: formData.porcentaje_lesiones_grado_2
           ? Number(formData.porcentaje_lesiones_grado_2)
           : undefined,
+        fecha_registro_lesiones_grado_2: formData.fecha_registro_lesiones_grado_2,
         fecha_modificacion_condiciones: formData.fecha_modificacion_condiciones,
       };
 
@@ -294,16 +299,14 @@ const PlanBienestarAnimalMutilacionesStep: React.FC<MutilacionesStepProps> = ({
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                variant="filled"
-                type="date"
+              <DateInput
                 label="Fecha de última cría con rabos íntegros"
                 value={formData.fecha_ultima_cria_rabos_integros}
-                onChange={(e) =>
-                  handleInputChange("fecha_ultima_cria_rabos_integros", e.target.value)
+                onChange={(value) =>
+                  handleInputChange("fecha_ultima_cria_rabos_integros", value)
                 }
-                InputLabelProps={{ shrink: true }}
+                variant="filled"
+                sx={{ mb: 0 }}
               />
             </Grid>
 
@@ -367,17 +370,14 @@ const PlanBienestarAnimalMutilacionesStep: React.FC<MutilacionesStepProps> = ({
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                variant="filled"
-                type="date"
+              <DateInput
                 label="Fecha del documento de petición de raboteo por cliente"
                 value={formData.fecha_documento_peticion}
-                onChange={(e) =>
-                  handleInputChange("fecha_documento_peticion", e.target.value)
+                onChange={(value) =>
+                  handleInputChange("fecha_documento_peticion", value)
                 }
-                InputLabelProps={{ shrink: true }}
-                helperText="Dejar en blanco si no procede"
+                variant="filled"
+                sx={{ mb: 0 }}
               />
             </Grid>
 
@@ -415,17 +415,27 @@ const PlanBienestarAnimalMutilacionesStep: React.FC<MutilacionesStepProps> = ({
               />
             </Grid>
 
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
+            <Grid item xs={12} md={6}>
+              <DateInput
+                label="Fecha de registro de lesiones de grado 2"
+                value={formData.fecha_registro_lesiones_grado_2}
+                onChange={(value) =>
+                  handleInputChange("fecha_registro_lesiones_grado_2", value)
+                }
                 variant="filled"
-                type="date"
+                sx={{ mb: 0 }}
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <DateInput
                 label="Fecha de registro de modificación de condiciones ambientales"
                 value={formData.fecha_modificacion_condiciones}
-                onChange={(e) =>
-                  handleInputChange("fecha_modificacion_condiciones", e.target.value)
+                onChange={(value) =>
+                  handleInputChange("fecha_modificacion_condiciones", value)
                 }
-                InputLabelProps={{ shrink: true }}
+                variant="filled"
+                sx={{ mb: 0 }}
               />
             </Grid>
           </Grid>

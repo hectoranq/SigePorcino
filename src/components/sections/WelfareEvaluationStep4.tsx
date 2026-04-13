@@ -24,6 +24,7 @@ import {
 import { Add, ExpandMore, KeyboardArrowDown } from "@mui/icons-material";
 import useUserStore from "../../_store/user";
 import { buttonStyles, headerColors } from "./buttonStyles";
+import DateInput from "../common/DateInput";
 import {
   getActionPlanByEvaluationId,
   ActionPlan,
@@ -358,33 +359,30 @@ const WelfareEvaluationStep4: React.FC<Props> = ({ onNext, onBack, evaluationId 
 
           <Grid container spacing={2}>
             <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                type="date"
+              <DateInput
                 label="Fecha de Seguimiento"
                 value={followupForm.followup_date}
-                onChange={(e) => handleFollowupChange("followup_date", e.target.value)}
-                InputLabelProps={{ shrink: true }}
+                onChange={(value) => handleFollowupChange("followup_date", value)}
+                variant="standard"
+                sx={{ mb: 0 }}
               />
             </Grid>
             <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                type="date"
+              <DateInput
                 label="Fecha Inicio Periodo"
                 value={followupForm.start_date}
-                onChange={(e) => handleFollowupChange("start_date", e.target.value)}
-                InputLabelProps={{ shrink: true }}
+                onChange={(value) => handleFollowupChange("start_date", value)}
+                variant="standard"
+                sx={{ mb: 0 }}
               />
             </Grid>
             <Grid item xs={12} sm={4}>
-              <TextField
-                fullWidth
-                type="date"
+              <DateInput
                 label="Fecha Fin Periodo"
                 value={followupForm.end_date}
-                onChange={(e) => handleFollowupChange("end_date", e.target.value)}
-                InputLabelProps={{ shrink: true }}
+                onChange={(value) => handleFollowupChange("end_date", value)}
+                variant="standard"
+                sx={{ mb: 0 }}
               />
             </Grid>
 

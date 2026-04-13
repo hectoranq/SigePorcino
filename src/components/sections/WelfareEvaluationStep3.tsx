@@ -22,6 +22,7 @@ import {
 import { Add, KeyboardArrowDown } from "@mui/icons-material";
 import useUserStore from "../../_store/user";
 import { buttonStyles, headerColors } from "./buttonStyles";
+import DateInput from "../common/DateInput";
 import {
   getActionPlanByEvaluationId,
   createActionPlan,
@@ -288,13 +289,12 @@ const WelfareEvaluationStep3: React.FC<Props> = ({ onNext, onBack, evaluationId 
             />
           </Grid>
           <Grid item xs={12} sm={4}>
-            <TextField
-              fullWidth
-              type="date"
+            <DateInput
               label="Fecha del Plan"
               value={planForm.plan_date}
-              onChange={(e) => handlePlanChange("plan_date", e.target.value)}
-              InputLabelProps={{ shrink: true }}
+              onChange={(value) => handlePlanChange("plan_date", value)}
+              variant="standard"
+              sx={{ mb: 0 }}
             />
           </Grid>
         </Grid>
@@ -444,23 +444,21 @@ const WelfareEvaluationStep3: React.FC<Props> = ({ onNext, onBack, evaluationId 
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                type="date"
+              <DateInput
                 label="Fecha de Inicio"
                 value={measureForm.start_date}
-                onChange={(e) => handleMeasureChange("start_date", e.target.value)}
-                InputLabelProps={{ shrink: true }}
+                onChange={(value) => handleMeasureChange("start_date", value)}
+                variant="standard"
+                sx={{ mb: 0 }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                type="date"
+              <DateInput
                 label="Fecha de Fin"
                 value={measureForm.end_date}
-                onChange={(e) => handleMeasureChange("end_date", e.target.value)}
-                InputLabelProps={{ shrink: true }}
+                onChange={(value) => handleMeasureChange("end_date", value)}
+                variant="standard"
+                sx={{ mb: 0 }}
               />
             </Grid>
           </Grid>

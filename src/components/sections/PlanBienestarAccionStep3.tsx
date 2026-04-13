@@ -186,7 +186,7 @@ const PlanBienestarAccionStep3: React.FC<Props> = ({ onNext, onBack }) => {
                 <TableCell><strong>Fase</strong></TableCell>
                 <TableCell align="center"><strong>Ad Libitum</strong></TableCell>
                 <TableCell><strong>Tipo Comedero</strong></TableCell>
-                <TableCell align="center"><strong>Long. Comedero (m)</strong></TableCell>
+                <TableCell align="center"><strong>Sup. Comedero (cm2)</strong></TableCell>
                 <TableCell><strong>Tipo Bebedero</strong></TableCell>
                 <TableCell align="center"><strong>Nº Bebederos</strong></TableCell>
               </TableRow>

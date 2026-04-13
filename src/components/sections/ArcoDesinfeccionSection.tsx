@@ -28,6 +28,8 @@ import { buttonStyles, headerColors, headerAccentColors, sectionHeaderStyle, hea
 import useUserStore from "../../_store/user"
 import useFarmFormStore from "../../_store/farm"
 import { listStaff, Staff } from "../../action/PersonalRegisterPocket"
+import DateInput from "../common/DateInput"
+import { formatDateToDisplay } from "../../utils/dateHelpers"
 import {
   getArcoDesinfeccionByFarmId,
   createArcoDesinfeccion,
@@ -231,16 +233,7 @@ export function ArcoDesinfeccionSection() {
     setOpen(true)
   }
 
-  // Función para convertir fecha de YYYY-MM-DD a DD/MM/YYYY
-  const formatDateToDisplay = (dateString: string) => {
-    if (!dateString) return "Sin fecha"
-    const date = new Date(dateString)
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    })
-  }
+  // Date formatting functions imported from utils/dateHelpers
 
   const handleClose = () => {
     setOpen(false)
@@ -569,24 +562,12 @@ export function ArcoDesinfeccionSection() {
                         )}
                       </Grid>
                       <Grid item xs={6}>
-                        <TextField
-                          fullWidth
+                        <DateInput
                           label="Fecha"
-                          type="date"
-                          variant="standard"
                           value={formData.fecha}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, fecha: e.target.value }))}
-                          InputLabelProps={{
-                            shrink: true,
-                          }}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
+                          onChange={(value) => setFormData((prev) => ({ ...prev, fecha: value }))}
+                          readOnly={viewMode}
+                          variant="standard"
                         />
                       </Grid>
                     </Grid>

@@ -45,6 +45,7 @@ import {
 } from "../../action/DesastresEmergenciasPocket";
 import { buttonStyles } from "./buttonStyles";
 import EmergencyContactsTable from "./EmergencyContactsTable";
+import { formatDateToDisplay } from "../../utils/dateHelpers";
 
 const DesastresEmergenciasSection = () => {
   const { token, record } = useUserStore();
@@ -300,7 +301,7 @@ const DesastresEmergenciasSection = () => {
                 plans.map((plan) => (
                   <TableRow key={plan.id}>
                     <TableCell>
-                      {plan.created ? new Date(plan.created).toLocaleDateString("es-ES") : "N/A"}
+                      {plan.created ? formatDateToDisplay(plan.created) : "N/A"}
                     </TableCell>
                     <TableCell>
                       <Box

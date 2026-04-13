@@ -26,6 +26,8 @@ import {
   CircularProgress,
 } from "@mui/material"
 import { Add, KeyboardArrowDown, Delete } from "@mui/icons-material"
+import DateInput from "../common/DateInput"
+import { formatDateToDisplay, formatDateForInput } from "../../utils/dateHelpers"
 import {
   listVeterinarians,
   createVeterinarian,
@@ -150,16 +152,7 @@ export function RegistroVeterinarioSection({ token, userId, farmId }: RegistroVe
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  // Función para convertir fecha YYYY-MM-DD a DD/MM/YYYY
-  const formatDateToDisplay = (dateString: string) => {
-    if (!dateString) return "Sin fecha"
-    const date = new Date(dateString)
-    return date.toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    })
-  }
+  // Date formatting functions imported from utils/dateHelpers
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -379,7 +372,7 @@ export function RegistroVeterinarioSection({ token, userId, farmId }: RegistroVe
                   </TableCell>
                   <TableCell sx={{ fontWeight: 600, color: "text.primary" }}>
                     <TableSortLabel IconComponent={KeyboardArrowDown}>
-                      Nombres
+                      Nombre
                     </TableSortLabel>
                   </TableCell>
                   <TableCell sx={{ fontWeight: 600, color: "text.primary" }}>
@@ -582,7 +575,7 @@ export function RegistroVeterinarioSection({ token, userId, farmId }: RegistroVe
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <Typography variant="subtitle2" color="text.secondary">
-                    Nombres
+                    Nombre
                   </Typography>
                   <Typography variant="body1" sx={{ mb: 2 }}>
                     {selectedVeterinario.nombres}
@@ -728,7 +721,7 @@ export function RegistroVeterinarioSection({ token, userId, farmId }: RegistroVe
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
-                    label="Nombres"
+                    label="Nombre"
                     variant="filled"
                     value={formData.nombres}
                     onChange={(e) => handleInputChange("nombres", e.target.value)}
@@ -766,7 +759,6 @@ export function RegistroVeterinarioSection({ token, userId, farmId }: RegistroVe
                     type="email"
                     value={formData.correo}
                     onChange={(e) => handleInputChange("correo", e.target.value)}
-                    required
                   />
                 </Grid>
 
@@ -778,28 +770,24 @@ export function RegistroVeterinarioSection({ token, userId, farmId }: RegistroVe
                 </Grid>
 
                 <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
+                  <DateInput
                     label="Fecha de Inicio"
-                    variant="filled"
-                    type="date"
                     value={formData.fechaInicio}
-                    onChange={(e) => handleInputChange("fechaInicio", e.target.value)}
-                    InputLabelProps={{ shrink: true }}
+                    onChange={(value) => handleInputChange("fechaInicio", value)}
+                    variant="filled"
                     required
+                    sx={{ mb: 0 }}
                   />
                 </Grid>
 
                 <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
+                  <DateInput
                     label="Fecha de Finalización"
-                    variant="filled"
-                    type="date"
                     value={formData.fechaFinalizacion}
-                    onChange={(e) => handleInputChange("fechaFinalizacion", e.target.value)}
-                    InputLabelProps={{ shrink: true }}
+                    onChange={(value) => handleInputChange("fechaFinalizacion", value)}
+                    variant="filled"
                     required
+                    sx={{ mb: 0 }}
                   />
                 </Grid>
 

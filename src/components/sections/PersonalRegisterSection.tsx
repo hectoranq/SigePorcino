@@ -30,6 +30,8 @@ import {
   Link,
   IconButton,
 } from "@mui/material"
+import DateInput from "../common/DateInput"
+import { formatDateToDisplay, formatDateForInput } from "../../utils/dateHelpers"
 import {
   Add,
   KeyboardArrowDown,
@@ -726,37 +728,21 @@ export function PersonalRegisterSection({ farmId }: PersonalRegisterSectionProps
                   {/* Dates */}
                   <Grid container spacing={3} sx={{ mb: 3 }}>
                     <Grid item xs={6}>
-                      <TextField
-                        fullWidth
-                        placeholder="Fecha de inicio"
-                        type="date"
-                        variant="standard"
+                      <DateInput
+                        label="Fecha de inicio"
                         value={formData.fechaInicio}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, fechaInicio: e.target.value }))}
-                        InputProps={{
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <CalendarToday sx={{ color: "#6b7280", fontSize: 20 }} />
-                            </InputAdornment>
-                          ),
-                        }}
+                        onChange={(value) => setFormData((prev) => ({ ...prev, fechaInicio: value }))}
+                        variant="standard"
+                        sx={{ mb: 0 }}
                       />
                     </Grid>
                     <Grid item xs={6}>
-                      <TextField
-                        fullWidth
-                        placeholder="Fecha de finalización"
-                        type="date"
-                        variant="standard"
+                      <DateInput
+                        label="Fecha de finalización"
                         value={formData.fechaFinalizacion}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, fechaFinalizacion: e.target.value }))}
-                        InputProps={{
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <CalendarToday sx={{ color: "#6b7280", fontSize: 20 }} />
-                            </InputAdornment>
-                          ),
-                        }}
+                        onChange={(value) => setFormData((prev) => ({ ...prev, fechaFinalizacion: value }))}
+                        variant="standard"
+                        sx={{ mb: 0 }}
                       />
                     </Grid>
                   </Grid>

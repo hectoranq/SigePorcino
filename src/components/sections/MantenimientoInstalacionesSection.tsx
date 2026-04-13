@@ -28,6 +28,8 @@ import {
   Snackbar,
   Alert,
 } from "@mui/material"
+import DateInput from "../common/DateInput"
+import { formatDateToDisplay, formatDateForInput } from "../../utils/dateHelpers"
 import { Add, KeyboardArrowDown, Delete } from "@mui/icons-material"
 import { listStaff, getStaffMember, type Staff } from "../../action/PersonalRegisterPocket"
 import  useUserStore  from "../../_store/user"
@@ -260,16 +262,6 @@ export function MantenimientoInstalacionesSection() {
       ...prev,
       [field]: value,
     }))
-  }
-
-  const formatDateToDisplay = (dateString: string) => {
-    if (!dateString) return "Sin fecha"
-    const date = new Date(dateString)
-    return date.toLocaleDateString("es-ES", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -509,7 +501,7 @@ export function MantenimientoInstalacionesSection() {
                       {registro.regasAplicables.length} REGAs
                     </TableCell>
                     <TableCell sx={{ color: "text.primary" }}>
-                      {registro.fechaRegistro}
+                      {formatDateToDisplay(registro.fechaRegistro)}
                     </TableCell>
                     <TableCell>
                       <Box sx={{ display: "flex", gap: 1 }}>
@@ -657,7 +649,7 @@ export function MantenimientoInstalacionesSection() {
                     Fecha de Registro
                   </Typography>
                   <Typography variant="body1" sx={{ mb: 2 }}>
-                    {selectedRegistro.fechaRegistro}
+                    {formatDateToDisplay(selectedRegistro.fechaRegistro)}
                   </Typography>
                 </Grid>
               </Grid>
@@ -902,15 +894,13 @@ export function MantenimientoInstalacionesSection() {
 
                 {/* Fecha de Registro */}
                 <Grid item xs={12}>
-                  <TextField
-                    fullWidth
+                  <DateInput
                     label="Fecha de Registro"
-                    variant="filled"
-                    type="date"
                     value={formData.fechaRegistro}
-                    onChange={(e) => handleInputChange("fechaRegistro", e.target.value)}
-                    InputLabelProps={{ shrink: true }}
+                    onChange={(value) => handleInputChange("fechaRegistro", value)}
+                    variant="filled"
                     required
+                    sx={{ mb: 0 }}
                   />
                 </Grid>
               </Grid>

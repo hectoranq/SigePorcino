@@ -23,6 +23,7 @@ import {
   PlanLDD,
   updatePlanLDD
 } from "../../action/PlanLDDPocket"
+import { listStaff, Staff } from "../../action/PersonalRegisterPocket"
 import useUserStore from "../../_store/user"
 import useFarmFormStore from "../../_store/farm"
 
@@ -36,7 +37,8 @@ interface PlanLLDFormData {
   instalaciones: {
     paredes: boolean
     suelos: boolean
-    comederosSilos: boolean
+    comederos: boolean
+    silos: boolean
   }
   aparatos: {
     maquinasLavado: boolean
@@ -64,16 +66,39 @@ export function PlanLLDSection() {
   const [planesLDD, setPlanesLDD] = useState<PlanLDD[]>([])
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [staffList, setStaffList] = useState<Staff[]>([])
   const [snackbar, setSnackbar] = useState({ 
     open: false, 
     message: "", 
     severity: "success" as "success" | "error" 
   })
 
+  // Cargar staff al montar el componente o cambiar de granja
+  useEffect(() => {
+    loadStaff()
+  }, [token, record.id, currentFarm?.id])
+
   // Cargar planes LDD al montar el componente o cambiar de granja
   useEffect(() => {
     loadPlanesLDD()
   }, [token, record.id, currentFarm?.id])
+
+  const loadStaff = async () => {
+    if (!token || !record.id || !currentFarm?.id) {
+      console.log("⚠️ Esperando token, userId o farmId para cargar staff...")
+      return
+    }
+
+    try {
+      const response = await listStaff(token, record.id, currentFarm.id)
+      if (response.success) {
+        setStaffList(response.data.items as Staff[] || [])
+        console.log("✅ Staff cargado:", response.data.items.length)
+      }
+    } catch (error: any) {
+      console.error("❌ Error al cargar staff:", error)
+    }
+  }
 
   const loadPlanesLDD = async () => {
     if (!token || !record.id || !currentFarm?.id) {
@@ -115,7 +140,8 @@ export function PlanLLDSection() {
       instalaciones: {
         paredes: plan.instalaciones.paredes,
         suelos: plan.instalaciones.suelos,
-        comederosSilos: plan.instalaciones.comederosSilos,
+        comederos: plan.instalaciones.comederos,
+        silos: plan.instalaciones.silos,
       },
       aparatos: {
         maquinasLavado: plan.aparatos.maquinasLavado,
@@ -158,7 +184,8 @@ export function PlanLLDSection() {
     instalaciones: {
       paredes: false,
       suelos: false,
-      comederosSilos: false,
+      comederos: false,
+      silos: false,
     },
     aparatos: {
       maquinasLavado: false,
@@ -344,7 +371,8 @@ export function PlanLLDSection() {
       instalaciones: {
         paredes: false,
         suelos: false,
-        comederosSilos: false,
+        comederos: false,
+        silos: false,
       },
       aparatos: {
         maquinasLavado: false,
@@ -471,11 +499,20 @@ export function PlanLLDSection() {
               <FormControlLabel
                 control={
                   <Checkbox
-                    checked={formData.instalaciones.comederosSilos}
-                    onChange={() => handleCheckboxChange("instalaciones", "comederosSilos")}
+                    checked={formData.instalaciones.comederos}
+                    onChange={() => handleCheckboxChange("instalaciones", "comederos")}
                   />
                 }
-                label="Comederos y silos"
+                label="Comederos"
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={formData.instalaciones.silos}
+                    onChange={() => handleCheckboxChange("instalaciones", "silos")}
+                  />
+                }
+                label="Silos"
               />
               {instalacionesExtra.map((instalacion, index) => (
                 <FormControlLabel
@@ -512,9 +549,11 @@ export function PlanLLDSection() {
                 <MenuItem value="">
                   <em>Seleccione gestor o empleado</em>
                 </MenuItem>
-                <MenuItem value="trabajador1">Juan Pérez</MenuItem>
-                <MenuItem value="trabajador2">María García</MenuItem>
-                <MenuItem value="trabajador3">Carlos López</MenuItem>
+                {staffList.map((staff) => (
+                  <MenuItem key={staff.id} value={staff.id}>
+                    {staff.nombre} {staff.apellidos}
+                  </MenuItem>
+                ))}
               </Select>
               <TextField
                 fullWidth
@@ -675,9 +714,11 @@ export function PlanLLDSection() {
                 <MenuItem value="">
                   <em>Seleccione gestor o empleado</em>
                 </MenuItem>
-                <MenuItem value="analista1">Dr. Pedro Martínez</MenuItem>
-                <MenuItem value="analista2">Dra. Ana Rodríguez</MenuItem>
-                <MenuItem value="analista3">Dr. Luis Fernández</MenuItem>
+                {staffList.map((staff) => (
+                  <MenuItem key={staff.id} value={staff.id}>
+                    {staff.nombre} {staff.apellidos}
+                  </MenuItem>
+                ))}
               </Select>
               <TextField
                 fullWidth

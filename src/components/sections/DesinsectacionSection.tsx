@@ -28,6 +28,8 @@ import { buttonStyles, headerColors, headerAccentColors, sectionHeaderStyle, hea
 import useUserStore from "../../_store/user"
 import useFarmFormStore from "../../_store/farm"
 import { listStaff, Staff } from "../../action/PersonalRegisterPocket"
+import DateInput from "../common/DateInput"
+import { formatDateToDisplay, formatDateForInput } from "../../utils/dateHelpers"
 import {
   createDesinsectacion,
   updateDesinsectacion,
@@ -531,24 +533,13 @@ export function DesinsectacionSection() {
                     {/* Fecha y Supervisado */}
                     <Grid container spacing={3} sx={{ mb: 3 }}>
                       <Grid item xs={6}>
-                        <TextField
-                          fullWidth
+                        <DateInput
                           label="Fecha"
-                          type="date"
-                          variant="filled"
                           value={formData.fecha}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, fecha: e.target.value }))}
-                          InputLabelProps={{
-                            shrink: true,
-                          }}
-                          InputProps={{
-                            readOnly: viewMode,
-                          }}
-                          sx={{
-                            "& .MuiInputBase-input": {
-                              color: viewMode ? "text.secondary" : "text.primary",
-                            },
-                          }}
+                          onChange={(value) => setFormData((prev) => ({ ...prev, fecha: value }))}
+                          readOnly={viewMode}
+                          variant="filled"
+                          sx={{ mb: 0 }}
                         />
                       </Grid>
                       <Grid item xs={6}>
