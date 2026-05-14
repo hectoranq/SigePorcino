@@ -53,8 +53,11 @@ export async function listTrainingCourses(
     const pb = new PocketBase('https://api.appsphere.pro');
     pb.authStore.save(token);
 
-    // Construir filtro
-    let filter = `farm="${farmId}"`;
+    // Construir filtro: siempre filtrar por usuario y opcionalmente por granja
+    let filter = `createdBy="${userId}"`;
+    if (farmId) {
+      filter += ` && farm="${farmId}"`;
+    }
 
     const result = await pb.collection('training_courses').getList(page, perPage, {
       filter: filter,
