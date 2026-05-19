@@ -27,6 +27,11 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
+  FormControl,
+  InputLabel,
+  OutlinedInput,
+  Chip,
+  SelectChangeEvent,
 } from "@mui/material"
 import DateInput from "../common/DateInput"
 import { formatDateToDisplay, formatDateForInput } from "../../utils/dateHelpers"
@@ -678,30 +683,53 @@ export function MantenimientoInstalacionesSection() {
                       Personal encargado
                     </Typography>
                   </Box>
-                  <FormGroup sx={{ pl: 2 }}>
-                    {loading ? (
-                      <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}>
-                        <CircularProgress size={24} />
-                      </Box>
-                    ) : staffList.length === 0 ? (
-                      <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
-                        No hay personal registrado
-                      </Typography>
-                    ) : (
-                      staffList.map((person) => (
-                        <FormControlLabel
-                          key={person.id}
-                          control={
-                            <Checkbox
-                              checked={formData.personalEncargado.includes(person.id!)}
-                              onChange={(e) => handlePersonnelChange("personalEncargado", person.id!, e.target.checked)}
-                            />
-                          }
-                          label={`${person.nombre} ${person.apellidos}`}
-                        />
-                      ))
-                    )}
-                  </FormGroup>
+                  <FormControl fullWidth>
+                    <InputLabel id="personal-encargado-label">Seleccionar personal encargado</InputLabel>
+                    <Select
+                      labelId="personal-encargado-label"
+                      multiple
+                      value={formData.personalEncargado}
+                      onChange={(e: SelectChangeEvent<string[]>) =>
+                        setFormData(prev => ({
+                          ...prev,
+                          personalEncargado: typeof e.target.value === "string"
+                            ? e.target.value.split(",")
+                            : e.target.value,
+                        }))
+                      }
+                      input={<OutlinedInput label="Seleccionar personal encargado" />}
+                      renderValue={(selected) => (
+                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                          {(selected as string[]).map((id) => {
+                            const person = staffList.find(s => s.id === id)
+                            return (
+                              <Chip
+                                key={id}
+                                label={person ? `${person.nombre} ${person.apellidos}` : id}
+                                size="small"
+                              />
+                            )
+                          })}
+                        </Box>
+                      )}
+                      disabled={staffList.length === 0}
+                    >
+                      {staffList.length === 0 ? (
+                        <MenuItem disabled>
+                          <Typography variant="body2" color="text.secondary">
+                            No hay personal registrado
+                          </Typography>
+                        </MenuItem>
+                      ) : (
+                        staffList.map((person) => (
+                          <MenuItem key={person.id} value={person.id}>
+                            <Checkbox checked={formData.personalEncargado.includes(person.id!)} />
+                            {person.nombre} {person.apellidos}
+                          </MenuItem>
+                        ))
+                      )}
+                    </Select>
+                  </FormControl>
                 </Grid>
 
                 <Grid item xs={12}>
@@ -716,30 +744,53 @@ export function MantenimientoInstalacionesSection() {
                       Lista de trabajadores
                     </Typography>
                   </Box>
-                  <FormGroup sx={{ pl: 2 }}>
-                    {loading ? (
-                      <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}>
-                        <CircularProgress size={24} />
-                      </Box>
-                    ) : staffList.length === 0 ? (
-                      <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
-                        No hay personal registrado
-                      </Typography>
-                    ) : (
-                      staffList.map((person) => (
-                        <FormControlLabel
-                          key={person.id}
-                          control={
-                            <Checkbox
-                              checked={formData.trabajadores.includes(person.id!)}
-                              onChange={(e) => handlePersonnelChange("trabajadores", person.id!, e.target.checked)}
-                            />
-                          }
-                          label={`${person.nombre} ${person.apellidos}`}
-                        />
-                      ))
-                    )}
-                  </FormGroup>
+                  <FormControl fullWidth>
+                    <InputLabel id="trabajadores-label">Seleccionar trabajadores</InputLabel>
+                    <Select
+                      labelId="trabajadores-label"
+                      multiple
+                      value={formData.trabajadores}
+                      onChange={(e: SelectChangeEvent<string[]>) =>
+                        setFormData(prev => ({
+                          ...prev,
+                          trabajadores: typeof e.target.value === "string"
+                            ? e.target.value.split(",")
+                            : e.target.value,
+                        }))
+                      }
+                      input={<OutlinedInput label="Seleccionar trabajadores" />}
+                      renderValue={(selected) => (
+                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                          {(selected as string[]).map((id) => {
+                            const person = staffList.find(s => s.id === id)
+                            return (
+                              <Chip
+                                key={id}
+                                label={person ? `${person.nombre} ${person.apellidos}` : id}
+                                size="small"
+                              />
+                            )
+                          })}
+                        </Box>
+                      )}
+                      disabled={staffList.length === 0}
+                    >
+                      {staffList.length === 0 ? (
+                        <MenuItem disabled>
+                          <Typography variant="body2" color="text.secondary">
+                            No hay personal registrado
+                          </Typography>
+                        </MenuItem>
+                      ) : (
+                        staffList.map((person) => (
+                          <MenuItem key={person.id} value={person.id}>
+                            <Checkbox checked={formData.trabajadores.includes(person.id!)} />
+                            {person.nombre} {person.apellidos}
+                          </MenuItem>
+                        ))
+                      )}
+                    </Select>
+                  </FormControl>
                 </Grid>
 
                 <Grid item xs={12}>
@@ -754,30 +805,53 @@ export function MantenimientoInstalacionesSection() {
                       Lista de gestores autorizados
                     </Typography>
                   </Box>
-                  <FormGroup sx={{ pl: 2 }}>
-                    {loading ? (
-                      <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}>
-                        <CircularProgress size={24} />
-                      </Box>
-                    ) : staffList.length === 0 ? (
-                      <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
-                        No hay personal registrado
-                      </Typography>
-                    ) : (
-                      staffList.map((person) => (
-                        <FormControlLabel
-                          key={person.id}
-                          control={
-                            <Checkbox
-                              checked={formData.gestoresAutorizados.includes(person.id!)}
-                              onChange={(e) => handlePersonnelChange("gestoresAutorizados", person.id!, e.target.checked)}
-                            />
-                          }
-                          label={`${person.nombre} ${person.apellidos}`}
-                        />
-                      ))
-                    )}
-                  </FormGroup>
+                  <FormControl fullWidth>
+                    <InputLabel id="gestores-autorizados-label">Seleccionar gestores autorizados</InputLabel>
+                    <Select
+                      labelId="gestores-autorizados-label"
+                      multiple
+                      value={formData.gestoresAutorizados}
+                      onChange={(e: SelectChangeEvent<string[]>) =>
+                        setFormData(prev => ({
+                          ...prev,
+                          gestoresAutorizados: typeof e.target.value === "string"
+                            ? e.target.value.split(",")
+                            : e.target.value,
+                        }))
+                      }
+                      input={<OutlinedInput label="Seleccionar gestores autorizados" />}
+                      renderValue={(selected) => (
+                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                          {(selected as string[]).map((id) => {
+                            const person = staffList.find(s => s.id === id)
+                            return (
+                              <Chip
+                                key={id}
+                                label={person ? `${person.nombre} ${person.apellidos}` : id}
+                                size="small"
+                              />
+                            )
+                          })}
+                        </Box>
+                      )}
+                      disabled={staffList.length === 0}
+                    >
+                      {staffList.length === 0 ? (
+                        <MenuItem disabled>
+                          <Typography variant="body2" color="text.secondary">
+                            No hay personal registrado
+                          </Typography>
+                        </MenuItem>
+                      ) : (
+                        staffList.map((person) => (
+                          <MenuItem key={person.id} value={person.id}>
+                            <Checkbox checked={formData.gestoresAutorizados.includes(person.id!)} />
+                            {person.nombre} {person.apellidos}
+                          </MenuItem>
+                        ))
+                      )}
+                    </Select>
+                  </FormControl>
                 </Grid>
 
                 <Grid item xs={12}>
@@ -794,7 +868,7 @@ export function MantenimientoInstalacionesSection() {
                   </Box>
                 </Grid>
 
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12} md={12}>
                   <TextField
                     fullWidth
                     label="Procedimiento de revisión de las instalaciones"
@@ -807,7 +881,7 @@ export function MantenimientoInstalacionesSection() {
                   />
                 </Grid>
 
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12} md={12}>
                   <Select
                     fullWidth
                     variant="filled"
@@ -849,43 +923,6 @@ export function MantenimientoInstalacionesSection() {
                     value={formData.proveedoresServicios}
                     onChange={(e) => handleInputChange("proveedoresServicios", e.target.value)}
                   />
-                </Grid>
-
-                <Grid item xs={12}>
-                  <Divider />
-                </Grid>
-
-                {/* REGAs */}
-                <Grid item xs={12}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-                    <Box sx={{ width: 8, height: 8, bgcolor: "#00bcd4", borderRadius: "50%" }} />
-                    <Typography variant="h6" sx={{ fontWeight: 600, color: "#00bcd4" }}>
-                      ¿A qué REGAs aplicará el plan?
-                    </Typography>
-                  </Box>
-                  <FormGroup sx={{ pl: 2 }}>
-                    {currentFarm?.REGA && currentFarm.REGA.trim() ? (
-                      currentFarm.REGA.split(',').map((rega) => {
-                        const regaTrimmed = rega.trim();
-                        return (
-                          <FormControlLabel
-                            key={regaTrimmed}
-                            control={
-                              <Checkbox
-                                checked={formData.regasAplicables.includes(regaTrimmed)}
-                                onChange={(e) => handleRegaChange(regaTrimmed, e.target.checked)}
-                              />
-                            }
-                            label={regaTrimmed}
-                          />
-                        );
-                      })
-                    ) : (
-                      <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
-                        No hay REGAs disponibles en esta granja
-                      </Typography>
-                    )}
-                  </FormGroup>
                 </Grid>
 
                 <Grid item xs={12}>

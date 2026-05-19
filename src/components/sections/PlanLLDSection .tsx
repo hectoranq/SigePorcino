@@ -24,6 +24,7 @@ import {
   updatePlanLDD
 } from "../../action/PlanLDDPocket"
 import { listStaff, Staff } from "../../action/PersonalRegisterPocket"
+import { listLinkedCompaniesManagers, LinkedCompanyManager } from "../../action/LinkedCompaniesManagerPocket"
 import useUserStore from "../../_store/user"
 import useFarmFormStore from "../../_store/farm"
 
@@ -67,6 +68,7 @@ export function PlanLLDSection() {
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [staffList, setStaffList] = useState<Staff[]>([])
+  const [linkedCompaniesList, setLinkedCompaniesList] = useState<LinkedCompanyManager[]>([])
   const [snackbar, setSnackbar] = useState({ 
     open: false, 
     message: "", 
@@ -76,6 +78,19 @@ export function PlanLLDSection() {
   // Cargar staff al montar el componente o cambiar de granja
   useEffect(() => {
     loadStaff()
+  }, [token, record.id, currentFarm?.id])
+
+  // Cargar empresas vinculadas al montar el componente o cambiar de granja
+  useEffect(() => {
+    if (token && record.id && currentFarm?.id) {
+      listLinkedCompaniesManagers(token, record.id, currentFarm.id)
+        .then(res => {
+          if (res.success) setLinkedCompaniesList(res.data.items as LinkedCompanyManager[])
+        })
+        .catch(() => {})
+    } else {
+      setLinkedCompaniesList([])
+    }
   }, [token, record.id, currentFarm?.id])
 
   // Cargar planes LDD al montar el componente o cambiar de granja
@@ -554,6 +569,16 @@ export function PlanLLDSection() {
                     {staff.nombre} {staff.apellidos}
                   </MenuItem>
                 ))}
+                {linkedCompaniesList.length > 0 && [
+                  <MenuItem key="__divider_ldd" disabled sx={{ opacity: 0.5, fontSize: "0.75rem" }}>
+                    ── Empresas / Gestores vinculados ──
+                  </MenuItem>,
+                  ...linkedCompaniesList.map((company) => (
+                    <MenuItem key={company.id} value={company.id}>
+                      {company.nombre}{company.apellidos ? ` ${company.apellidos}` : ""}
+                    </MenuItem>
+                  ))
+                ]}
               </Select>
               <TextField
                 fullWidth
@@ -719,6 +744,16 @@ export function PlanLLDSection() {
                     {staff.nombre} {staff.apellidos}
                   </MenuItem>
                 ))}
+                {linkedCompaniesList.length > 0 && [
+                  <MenuItem key="__divider_analisis" disabled sx={{ opacity: 0.5, fontSize: "0.75rem" }}>
+                    ── Empresas / Gestores vinculados ──
+                  </MenuItem>,
+                  ...linkedCompaniesList.map((company) => (
+                    <MenuItem key={company.id} value={company.id}>
+                      {company.nombre}{company.apellidos ? ` ${company.apellidos}` : ""}
+                    </MenuItem>
+                  ))
+                ]}
               </Select>
               <TextField
                 fullWidth

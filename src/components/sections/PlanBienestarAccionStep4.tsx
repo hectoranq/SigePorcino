@@ -29,6 +29,7 @@ import {
   createPlanBienestarStep4,
   updatePlanBienestarStep4,
 } from "../../action/PlanBienestarStep4Pocket";
+import { getPlanBienestarStep1ByFarmId } from "../../action/PlanBienestarStep1Pocket";
 
 interface Props {
   onNext: () => void;
@@ -82,33 +83,63 @@ const PlanBienestarAccionStep4: React.FC<Props> = ({ onNext, onBack }) => {
 
   const loadExistingData = async () => {
     if (!token || !record.id || !currentFarm?.id) return;
-    
+
     setLoading(true);
+
+    // Get active phases from Step 1
+    const step1Response = await getPlanBienestarStep1ByFarmId(token, record.id, currentFarm.id);
+    let activePhaseNames: string[] = [...FASES_PRODUCTIVAS];
+    if (step1Response.success && step1Response.data?.fases_productivas) {
+      try {
+        const rawPhases = JSON.parse(step1Response.data.fases_productivas);
+        activePhaseNames = rawPhases
+          .filter((p: any) => p.active !== false)
+          .map((p: any) => p.fase);
+      } catch { /* use all phases */ }
+    }
+
+    const defaultPhase = (fase: string): PhaseMaterial => ({
+      fase,
+      tipo_material: "Cadenas",
+      localizacion: "Centro del corral",
+      num_puntos_acceso: 1,
+      animales_activos: 80,
+      animales_interaccionando: 20,
+    });
+
     const response = await getPlanBienestarStep4ByFarmId(token, record.id, currentFarm.id);
     setLoading(false);
-    
+
     if (response.success && response.data) {
       const data = response.data;
       setExistingPlanId(data.id || null);
-      
-      // Parse phases
+
+      // Parse phases, filtered to active only
       if (data.fases_material) {
         try {
           const parsed = typeof data.fases_material === 'string'
             ? JSON.parse(data.fases_material)
             : data.fases_material;
-          setPhases(parsed);
+          setPhases(activePhaseNames.map(faseName => {
+            const existing = parsed.find((p: any) => p.fase === faseName);
+            return existing || defaultPhase(faseName);
+          }));
         } catch (e) {
           console.error("Error parsing fases_material:", e);
+          setPhases(activePhaseNames.map(defaultPhase));
         }
+      } else {
+        setPhases(activePhaseNames.map(defaultPhase));
       }
-      
+
       // Set form data
       setFormData({
         num_tipos_diferentes: data.num_tipos_diferentes || 0,
         consideracion_material: (data.consideracion_material as any) || "optimo",
         periodicidad_renovacion: data.periodicidad_renovacion || 0,
       });
+    } else {
+      setPhases(activePhaseNames.map(defaultPhase));
     }
   };
 

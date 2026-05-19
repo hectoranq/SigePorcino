@@ -26,6 +26,7 @@ import {
   createPlanBienestarStep5,
   updatePlanBienestarStep5,
 } from "../../action/PlanBienestarStep5Pocket";
+import { getPlanBienestarStep1ByFarmId } from "../../action/PlanBienestarStep1Pocket";
 
 interface Props {
   onNext: () => void;
@@ -90,27 +91,58 @@ const PlanBienestarAccionStep5: React.FC<Props> = ({ onNext, onBack }) => {
 
   const loadExistingData = async () => {
     if (!token || !record.id || !currentFarm?.id) return;
-    
+
     setLoading(true);
+
+    // Get active phases from Step 1
+    const step1Response = await getPlanBienestarStep1ByFarmId(token, record.id, currentFarm.id);
+    let activePhaseNames: string[] = [...FASES_PRODUCTIVAS];
+    if (step1Response.success && step1Response.data?.fases_productivas) {
+      try {
+        const rawPhases = JSON.parse(step1Response.data.fases_productivas);
+        activePhaseNames = rawPhases
+          .filter((p: any) => p.active !== false)
+          .map((p: any) => p.fase);
+      } catch { /* use all phases */ }
+    }
+
+    const defaultPhase = (fase: string): PhaseEnvironmental => ({
+      fase,
+      sensores_temperatura: true,
+      sensores_temp_altura_animales: true,
+      control_temperatura: true,
+      registro_temperatura: true,
+      sensores_humedad: false,
+      sensores_hum_altura_animales: false,
+      control_humedad: false,
+      registro_humedad: false,
+    });
+
     const response = await getPlanBienestarStep5ByFarmId(token, record.id, currentFarm.id);
     setLoading(false);
-    
+
     if (response.success && response.data) {
       const data = response.data;
       setExistingPlanId(data.id || null);
-      
-      // Parse phases
+
+      // Parse phases, filtered to active only
       if (data.fases_ambiental) {
         try {
           const parsed = typeof data.fases_ambiental === 'string'
             ? JSON.parse(data.fases_ambiental)
             : data.fases_ambiental;
-          setPhases(parsed);
+          setPhases(activePhaseNames.map(faseName => {
+            const existing = parsed.find((p: any) => p.fase === faseName);
+            return existing || defaultPhase(faseName);
+          }));
         } catch (e) {
           console.error("Error parsing fases_ambiental:", e);
+          setPhases(activePhaseNames.map(defaultPhase));
         }
+      } else {
+        setPhases(activePhaseNames.map(defaultPhase));
       }
-      
+
       // Set form data
       setFormData({
         gases_indicados: data.gases_indicados || "",
@@ -125,6 +157,8 @@ const PlanBienestarAccionStep5: React.FC<Props> = ({ onNext, onBack }) => {
         calefaccion: data.calefaccion || false,
         iluminacion: data.iluminacion || "",
       });
+    } else {
+      setPhases(activePhaseNames.map(defaultPhase));
     }
   };
 

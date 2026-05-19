@@ -52,6 +52,7 @@ const PlanBienestarAnimalMutilacionesStep: React.FC<MutilacionesStepProps> = ({
     fecha_documento_peticion: "",
     porcentaje_lesiones_grado_1: "",
     porcentaje_lesiones_grado_2: "",
+    fecha_registro_lesiones_grado_1: "",
     fecha_registro_lesiones_grado_2: "",
     fecha_modificacion_condiciones: "",
   });
@@ -93,6 +94,8 @@ const PlanBienestarAnimalMutilacionesStep: React.FC<MutilacionesStepProps> = ({
               existingPlan.porcentaje_lesiones_grado_1?.toString() || "",
             porcentaje_lesiones_grado_2:
               existingPlan.porcentaje_lesiones_grado_2?.toString() || "",
+            fecha_registro_lesiones_grado_1:
+              existingPlan.fecha_registro_lesiones_grado_1 || "",
             fecha_registro_lesiones_grado_2:
               existingPlan.fecha_registro_lesiones_grado_2 || "",
             fecha_modificacion_condiciones:
@@ -153,6 +156,7 @@ const PlanBienestarAnimalMutilacionesStep: React.FC<MutilacionesStepProps> = ({
         porcentaje_lesiones_grado_2: formData.porcentaje_lesiones_grado_2
           ? Number(formData.porcentaje_lesiones_grado_2)
           : undefined,
+        fecha_registro_lesiones_grado_1: formData.fecha_registro_lesiones_grado_1,
         fecha_registro_lesiones_grado_2: formData.fecha_registro_lesiones_grado_2,
         fecha_modificacion_condiciones: formData.fecha_modificacion_condiciones,
       };
@@ -412,6 +416,18 @@ const PlanBienestarAnimalMutilacionesStep: React.FC<MutilacionesStepProps> = ({
                   handleInputChange("porcentaje_lesiones_grado_2", e.target.value)
                 }
                 inputProps={{ min: 0, max: 100, step: 0.1 }}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <DateInput
+                label="Fecha de registro de lesiones de grado 1"
+                value={formData.fecha_registro_lesiones_grado_1}
+                onChange={(value) =>
+                  handleInputChange("fecha_registro_lesiones_grado_1", value)
+                }
+                variant="filled"
+                sx={{ mb: 0 }}
               />
             </Grid>
 

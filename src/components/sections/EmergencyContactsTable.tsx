@@ -189,7 +189,7 @@ const EmergencyContactsTable: React.FC<EmergencyContactsTableProps> = ({
           <TableHead>
             <TableRow sx={{ bgcolor: "grey.100" }}>
               <TableCell><strong>Nombre</strong></TableCell>
-              <TableCell><strong>Cargo</strong></TableCell>
+             
               <TableCell><strong>Teléfono</strong></TableCell>
               <TableCell><strong>Email</strong></TableCell>
               <TableCell align="center"><strong>Acciones</strong></TableCell>
@@ -219,15 +219,7 @@ const EmergencyContactsTable: React.FC<EmergencyContactsTableProps> = ({
                         variant="standard"
                       />
                     </TableCell>
-                    <TableCell>
-                      <TextField
-                        size="small"
-                        value={contact.cargo}
-                        onChange={(e) => handleFieldChange(index, "cargo", e.target.value)}
-                        fullWidth
-                        variant="standard"
-                      />
-                    </TableCell>
+                    
                     <TableCell>
                       <TextField
                         size="small"
@@ -266,7 +258,7 @@ const EmergencyContactsTable: React.FC<EmergencyContactsTableProps> = ({
                 ) : (
                   <>
                     <TableCell>{contact.nombre}</TableCell>
-                    <TableCell>{contact.cargo}</TableCell>
+                  
                     <TableCell>{contact.telefono}</TableCell>
                     <TableCell>{contact.email || "-"}</TableCell>
                     <TableCell align="center">
@@ -302,16 +294,7 @@ const EmergencyContactsTable: React.FC<EmergencyContactsTableProps> = ({
                     variant="standard"
                   />
                 </TableCell>
-                <TableCell>
-                  <TextField
-                    size="small"
-                    placeholder="Cargo *"
-                    value={newContact.cargo}
-                    onChange={(e) => handleNewContactChange("cargo", e.target.value)}
-                    fullWidth
-                    variant="standard"
-                  />
-                </TableCell>
+               
                 <TableCell>
                   <TextField
                     size="small"

@@ -27,6 +27,7 @@ import {
   createPlanBienestarStep2,
   updatePlanBienestarStep2,
 } from "../../action/PlanBienestarStep2Pocket";
+import { getPlanBienestarStep1ByFarmId } from "../../action/PlanBienestarStep1Pocket";
 
 interface Props {
   onNext: () => void;
@@ -56,7 +57,7 @@ const PlanBienestarAccionStep2: React.FC<Props> = ({ onNext, onBack }) => {
   const [phases, setPhases] = useState<PhaseManagement[]>(
     FASES_PRODUCTIVAS.map(fase => ({
       fase,
-      num_inspecciones_dia: 3,
+      num_inspecciones_dia: 1,
       num_inspecciones_equipamiento_dia: 2,
     }))
   );
@@ -80,27 +81,48 @@ const PlanBienestarAccionStep2: React.FC<Props> = ({ onNext, onBack }) => {
 
   const loadExistingData = async () => {
     if (!token || !record.id || !currentFarm?.id) return;
-    
+
     setLoading(true);
+
+    // Get active phases from Step 1
+    const step1Response = await getPlanBienestarStep1ByFarmId(token, record.id, currentFarm.id);
+    let activePhaseNames: string[] = [...FASES_PRODUCTIVAS];
+    if (step1Response.success && step1Response.data?.fases_productivas) {
+      try {
+        const rawPhases = JSON.parse(step1Response.data.fases_productivas);
+        activePhaseNames = rawPhases
+          .filter((p: any) => p.active !== false)
+          .map((p: any) => p.fase);
+      } catch { /* use all phases */ }
+    }
+
+    const defaultPhase = (fase: string) => ({ fase, num_inspecciones_dia: 1, num_inspecciones_equipamiento_dia: 2 });
+
     const response = await getPlanBienestarStep2ByFarmId(token, record.id, currentFarm.id);
     setLoading(false);
-    
+
     if (response.success && response.data) {
       const data = response.data;
       setExistingPlanId(data.id || null);
-      
-      // Parse phases
+
+      // Parse phases, filtered to active only
       if (data.fases_manejo) {
         try {
           const parsed = typeof data.fases_manejo === 'string'
             ? JSON.parse(data.fases_manejo)
             : data.fases_manejo;
-          setPhases(parsed);
+          setPhases(activePhaseNames.map(faseName => {
+            const existing = parsed.find((p: any) => p.fase === faseName);
+            return existing || defaultPhase(faseName);
+          }));
         } catch (e) {
           console.error("Error parsing fases_manejo:", e);
+          setPhases(activePhaseNames.map(defaultPhase));
         }
+      } else {
+        setPhases(activePhaseNames.map(defaultPhase));
       }
-      
+
       // Set form data
       setFormData({
         frecuencia_limpieza: data.frecuencia_limpieza || "",
@@ -110,6 +132,8 @@ const PlanBienestarAccionStep2: React.FC<Props> = ({ onNext, onBack }) => {
         separacion_enfermos_heridos: data.separacion_enfermos_heridos || false,
         separacion_otros: data.separacion_otros || "",
       });
+    } else {
+      setPhases(activePhaseNames.map(defaultPhase));
     }
   };
 

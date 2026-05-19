@@ -27,6 +27,7 @@ import {
   createPlanBienestarStep3,
   updatePlanBienestarStep3,
 } from "../../action/PlanBienestarStep3Pocket";
+import { getPlanBienestarStep1ByFarmId } from "../../action/PlanBienestarStep1Pocket";
 
 interface Props {
   onNext: () => void;
@@ -82,27 +83,55 @@ const PlanBienestarAccionStep3: React.FC<Props> = ({ onNext, onBack }) => {
 
   const loadExistingData = async () => {
     if (!token || !record.id || !currentFarm?.id) return;
-    
+
     setLoading(true);
+
+    // Get active phases from Step 1
+    const step1Response = await getPlanBienestarStep1ByFarmId(token, record.id, currentFarm.id);
+    let activePhaseNames: string[] = [...FASES_PRODUCTIVAS];
+    if (step1Response.success && step1Response.data?.fases_productivas) {
+      try {
+        const rawPhases = JSON.parse(step1Response.data.fases_productivas);
+        activePhaseNames = rawPhases
+          .filter((p: any) => p.active !== false)
+          .map((p: any) => p.fase);
+      } catch { /* use all phases */ }
+    }
+
+    const defaultPhase = (fase: string): PhaseFeeding => ({
+      fase,
+      alimentacion_ad_libitum: true,
+      tipo_comedero: "Tolva",
+      longitud_comedero: "0.30",
+      tipo_bebederos: "Chupete",
+      num_bebederos: "1",
+    });
+
     const response = await getPlanBienestarStep3ByFarmId(token, record.id, currentFarm.id);
     setLoading(false);
-    
+
     if (response.success && response.data) {
       const data = response.data;
       setExistingPlanId(data.id || null);
-      
-      // Parse phases
+
+      // Parse phases, filtered to active only
       if (data.fases_alimentacion) {
         try {
           const parsed = typeof data.fases_alimentacion === 'string'
             ? JSON.parse(data.fases_alimentacion)
             : data.fases_alimentacion;
-          setPhases(parsed);
+          setPhases(activePhaseNames.map(faseName => {
+            const existing = parsed.find((p: any) => p.fase === faseName);
+            return existing || defaultPhase(faseName);
+          }));
         } catch (e) {
           console.error("Error parsing fases_alimentacion:", e);
+          setPhases(activePhaseNames.map(defaultPhase));
         }
+      } else {
+        setPhases(activePhaseNames.map(defaultPhase));
       }
-      
+
       // Set form data
       setFormData({
         alimentacion_racionada: data.alimentacion_racionada || false,
@@ -111,6 +140,8 @@ const PlanBienestarAccionStep3: React.FC<Props> = ({ onNext, onBack }) => {
         origen_agua_bebida: data.origen_agua_bebida || "",
         control_calidad_agua: data.control_calidad_agua || false,
       });
+    } else {
+      setPhases(activePhaseNames.map(defaultPhase));
     }
   };
 

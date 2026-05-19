@@ -23,6 +23,7 @@ import { Add, KeyboardArrowDown } from "@mui/icons-material";
 import useUserStore from "../../_store/user";
 import { buttonStyles, headerColors } from "./buttonStyles";
 import DateInput from "../common/DateInput";
+import { formatDateForInput } from "../../utils/dateHelpers";
 import {
   getActionPlanByEvaluationId,
   createActionPlan,
@@ -103,7 +104,7 @@ const WelfareEvaluationStep3: React.FC<Props> = ({ onNext, onBack, evaluationId 
           setActionPlan(plan);
           setPlanForm({
             plan_name: plan.plan_name,
-            plan_date: plan.plan_date,
+            plan_date: formatDateForInput(plan.plan_date),
           });
 
           // Cargar medidas
