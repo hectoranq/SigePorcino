@@ -29,6 +29,13 @@ import {
   RadioGroup,
   Link,
   IconButton,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  OutlinedInput,
+  Chip,
+  SelectChangeEvent,
 } from "@mui/material"
 import DateInput from "../common/DateInput"
 import { formatDateToDisplay, formatDateForInput } from "../../utils/dateHelpers"
@@ -48,6 +55,10 @@ import {
   CreateStaffData,
   UpdateStaffData,
 } from "../../action/PersonalRegisterPocket"
+import {
+  listTrainingCourses,
+  TrainingCourse,
+} from "../../action/TrainingCoursesPocket"
 import { createTheme, ThemeProvider } from "@mui/material/styles"
 import { buttonStyles } from "./buttonStyles"
 import useUserStore from "../../_store/user"
@@ -80,6 +91,7 @@ export function PersonalRegisterSection({ farmId }: PersonalRegisterSectionProps
   const activeFarmId = farmId || currentFarm?.id
   
   const [staffData, setStaffData] = useState<Staff[]>([])
+  const [trainingCourses, setTrainingCourses] = useState<TrainingCourse[]>([])
   const [loading, setLoading] = useState(false)
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" as "success" | "error" })
   
@@ -124,6 +136,7 @@ export function PersonalRegisterSection({ farmId }: PersonalRegisterSectionProps
     certificadoNombre: "",
     titulaciones: [] as string[],
     tareas: [] as string[],
+    cursos_cubiertos: [] as string[],
     otraTitulacion: "",
     otraTarea: "",
   })
@@ -132,6 +145,17 @@ export function PersonalRegisterSection({ farmId }: PersonalRegisterSectionProps
   useEffect(() => {
     if (token && userId) {
       loadStaff()
+    }
+  }, [token, userId, activeFarmId])
+
+  // Cargar cursos de formación cuando cambia la granja
+  useEffect(() => {
+    if (token && userId && activeFarmId) {
+      listTrainingCourses(token, userId, activeFarmId).then(result => {
+        if (result) setTrainingCourses(result.items)
+      }).catch(() => {})
+    } else {
+      setTrainingCourses([])
     }
   }, [token, userId, activeFarmId])
 
@@ -208,13 +232,14 @@ export function PersonalRegisterSection({ farmId }: PersonalRegisterSectionProps
       apellidos: person.apellidos,
       telefono: person.telefono,
       correo: person.correo,
-      fechaInicio: person.fecha_inicio,
-      fechaFinalizacion: person.fecha_finalizacion,
+      fechaInicio: formatDateForInput(person.fecha_inicio),
+      fechaFinalizacion: formatDateForInput(person.fecha_finalizacion),
       experiencia: person.experiencia || "",
       certificado: null,
       certificadoNombre: "",
       titulaciones: person.titulaciones || [],
       tareas: person.tareas || [],
+      cursos_cubiertos: (person as any).cursos_cubiertos || [],
       otraTitulacion: "",
       otraTarea: "",
     })
@@ -259,6 +284,7 @@ export function PersonalRegisterSection({ farmId }: PersonalRegisterSectionProps
       certificadoNombre: "",
       titulaciones: [],
       tareas: [],
+      cursos_cubiertos: [],
       otraTitulacion: "",
       otraTarea: "",
     })
@@ -351,6 +377,7 @@ export function PersonalRegisterSection({ farmId }: PersonalRegisterSectionProps
           experiencia: formData.experiencia,
           titulaciones: formData.titulaciones,
           tareas: formData.tareas,
+          cursos_cubiertos: formData.cursos_cubiertos,
           farm: activeFarmId,
         }
 
@@ -382,6 +409,7 @@ export function PersonalRegisterSection({ farmId }: PersonalRegisterSectionProps
           experiencia: formData.experiencia,
           titulaciones: formData.titulaciones,
           tareas: formData.tareas,
+          cursos_cubiertos: formData.cursos_cubiertos,
           farm: activeFarmId,
           user: userId,
         }
@@ -945,6 +973,69 @@ export function PersonalRegisterSection({ farmId }: PersonalRegisterSectionProps
                       </Box>
                     </Grid>
                   </Grid>
+
+                  {/* Cursos de formación cubiertos */}
+                  <Box sx={{ mb: 3 }}>
+                    <Typography variant="subtitle1" fontWeight={500} gutterBottom>
+                      Cursos de formación cubiertos
+                    </Typography>
+                    <FormControl fullWidth>
+                      <InputLabel id="cursos-cubiertos-label">Seleccionar cursos</InputLabel>
+                      <Select
+                        labelId="cursos-cubiertos-label"
+                        multiple
+                        value={formData.cursos_cubiertos}
+                        onChange={(e: SelectChangeEvent<string[]>) =>
+                          setFormData(prev => ({
+                            ...prev,
+                            cursos_cubiertos: typeof e.target.value === "string"
+                              ? e.target.value.split(",")
+                              : e.target.value,
+                          }))
+                        }
+                        input={<OutlinedInput label="Seleccionar cursos" />}
+                        renderValue={(selected) => (
+                          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                            {(selected as string[]).map((id) => {
+                              const course = trainingCourses.find(c => c.id === id)
+                              return (
+                                <Chip
+                                  key={id}
+                                  label={course ? course.nombreCurso : id}
+                                  size="small"
+                                  sx={{ bgcolor: "#f0fdfa", color: "#0d9488" }}
+                                />
+                              )
+                            })}
+                          </Box>
+                        )}
+                        disabled={trainingCourses.length === 0}
+                      >
+                        {trainingCourses.length === 0 ? (
+                          <MenuItem disabled>
+                            <Typography variant="body2" color="text.secondary">
+                              No hay cursos disponibles para esta granja
+                            </Typography>
+                          </MenuItem>
+                        ) : (
+                          trainingCourses.map((course) => (
+                            <MenuItem key={course.id} value={course.id}>
+                              <Checkbox
+                                checked={formData.cursos_cubiertos.includes(course.id)}
+                                sx={{ "&.Mui-checked": { color: "#0d9488" } }}
+                              />
+                              <Box>
+                                <Typography variant="body2">{course.nombreCurso}</Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {course.horasLectivas}h lectivas
+                                </Typography>
+                              </Box>
+                            </MenuItem>
+                          ))
+                        )}
+                      </Select>
+                    </FormControl>
+                  </Box>
 
                   {/* Buttons */}
                   <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>

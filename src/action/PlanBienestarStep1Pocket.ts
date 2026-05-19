@@ -9,6 +9,7 @@ const pb = new PocketBase('https://api.appsphere.pro' );
 export interface ProductionPhase {
   fase: string;
   num_naves: number;
+  active?: boolean;
 }
 
 export interface PlanBienestarStep1 {

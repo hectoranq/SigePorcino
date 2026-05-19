@@ -1118,7 +1118,169 @@ const WelfareEvaluationStep2: React.FC<Props> = ({ onNext, onBack, evaluationId 
               </AccordionDetails>
             </Accordion>
 
-            {/* ─── Sección 6: Lazareto ─── */}
+            {/* ─── Sección 6: Concentración de Gases y Humedad ─── */}
+            <Accordion defaultExpanded>
+              <AccordionSummary expandIcon={<ExpandMore />}>
+                <Typography variant="subtitle2" fontWeight={600}>6 · Concentración de Gases y Humedad</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <TableContainer>
+                  <Table size="small">
+                    <TableBody>
+                      {/* CO2 – Valoración */}
+                      <TableRow>
+                        <TableCell rowSpan={8} sx={{ fontWeight: 600, bgcolor: "grey.50", verticalAlign: "middle", width: 160 }}>
+                          Concentración<br />Gases
+                        </TableCell>
+                        <TableCell rowSpan={2} sx={{ fontWeight: 500, verticalAlign: "middle", width: 220 }}>
+                          GAS: CO2 – Dióxido de carbono
+                        </TableCell>
+                        <TableCell sx={{ width: 90 }}>Valoración</TableCell>
+                        <TableCell>
+                          <TextField
+                            fullWidth size="small" placeholder="Ingrese valoración cualitativa"
+                            value={form.co2_valoracion}
+                            onChange={(e) => handleChange(facilityId, "co2_valoracion", e.target.value)}
+                          />
+                        </TableCell>
+                      </TableRow>
+                      {/* CO2 – Medición */}
+                      <TableRow>
+                        <TableCell>Medición</TableCell>
+                        <TableCell>
+                          <TextField
+                            fullWidth size="small" type="number" placeholder="0.00"
+                            value={form.co2_medicion}
+                            onChange={(e) => handleChange(facilityId, "co2_medicion", e.target.value)}
+                          />
+                        </TableCell>
+                      </TableRow>
+                      {/* NH3 – Valoración */}
+                      <TableRow>
+                        <TableCell rowSpan={2} sx={{ fontWeight: 500, verticalAlign: "middle" }}>
+                          GAS: NH3 – Amoníaco
+                        </TableCell>
+                        <TableCell>Valoración</TableCell>
+                        <TableCell>
+                          <TextField
+                            fullWidth size="small" placeholder="Ingrese valoración cualitativa"
+                            value={form.nh3_valoracion}
+                            onChange={(e) => handleChange(facilityId, "nh3_valoracion", e.target.value)}
+                          />
+                        </TableCell>
+                      </TableRow>
+                      {/* NH3 – Medición */}
+                      <TableRow>
+                        <TableCell>Medición</TableCell>
+                        <TableCell>
+                          <TextField
+                            fullWidth size="small" type="number" placeholder="0.00"
+                            value={form.nh3_medicion}
+                            onChange={(e) => handleChange(facilityId, "nh3_medicion", e.target.value)}
+                          />
+                        </TableCell>
+                      </TableRow>
+                      {/* Otro gas – Valoración */}
+                      <TableRow>
+                        <TableCell rowSpan={2} sx={{ fontWeight: 500, verticalAlign: "middle" }}>
+                          GAS: Otro
+                        </TableCell>
+                        <TableCell>Valoración</TableCell>
+                        <TableCell>
+                          <TextField
+                            fullWidth size="small" placeholder="Ingrese valoración cualitativa"
+                            value={form.otro_gas_valoracion}
+                            onChange={(e) => handleChange(facilityId, "otro_gas_valoracion", e.target.value)}
+                          />
+                        </TableCell>
+                      </TableRow>
+                      {/* Otro gas – Medición */}
+                      <TableRow>
+                        <TableCell>Medición</TableCell>
+                        <TableCell>
+                          <TextField
+                            fullWidth size="small" type="number" placeholder="0.00"
+                            value={form.otro_gas_medicion}
+                            onChange={(e) => handleChange(facilityId, "otro_gas_medicion", e.target.value)}
+                          />
+                        </TableCell>
+                      </TableRow>
+                      {/* Gas personalizado – Valoración */}
+                      <TableRow>
+                        <TableCell rowSpan={2} sx={{ verticalAlign: "middle" }}>
+                          <TextField
+                            fullWidth size="small" placeholder="Escriba el nombre del gas..."
+                            inputProps={{ style: { fontWeight: 600 } }}
+                            value={form.otro_gas_2_nombre}
+                            onChange={(e) => handleChange(facilityId, "otro_gas_2_nombre", e.target.value)}
+                          />
+                        </TableCell>
+                        <TableCell>Valoración</TableCell>
+                        <TableCell>
+                          <TextField
+                            fullWidth size="small" placeholder="Ingrese valoración cualitativa"
+                            value={form.otro_gas_2_valoracion}
+                            onChange={(e) => handleChange(facilityId, "otro_gas_2_valoracion", e.target.value)}
+                          />
+                        </TableCell>
+                      </TableRow>
+                      {/* Gas personalizado – Medición */}
+                      <TableRow>
+                        <TableCell>Medición</TableCell>
+                        <TableCell>
+                          <TextField
+                            fullWidth size="small" type="number" placeholder="0.00"
+                            value={form.otro_gas_2_medicion}
+                            onChange={(e) => handleChange(facilityId, "otro_gas_2_medicion", e.target.value)}
+                          />
+                        </TableCell>
+                      </TableRow>
+                      {/* Humedad – Valoración */}
+                      <TableRow sx={{ borderTop: "3px solid #cbd5e1" }}>
+                        <TableCell rowSpan={2} sx={{ fontWeight: 600, bgcolor: "grey.50", verticalAlign: "middle" }}>
+                          Humedad %
+                        </TableCell>
+                        <TableCell colSpan={2}>Valoración</TableCell>
+                        <TableCell>
+                          <TextField
+                            fullWidth size="small" placeholder="Ej: Alta, Óptima, Baja"
+                            value={form.humedad_valoracion}
+                            onChange={(e) => handleChange(facilityId, "humedad_valoracion", e.target.value)}
+                          />
+                        </TableCell>
+                      </TableRow>
+                      {/* Humedad – Medición */}
+                      <TableRow>
+                        <TableCell colSpan={2}>Medición</TableCell>
+                        <TableCell>
+                          <TextField
+                            fullWidth size="small" type="number" placeholder="0.0"
+                            inputProps={{ min: 0, max: 100, step: 0.1 }}
+                            value={form.humedad_medicion}
+                            onChange={(e) => handleChange(facilityId, "humedad_medicion", e.target.value)}
+                          />
+                        </TableCell>
+                      </TableRow>
+                      {/* Caudal / Velocidad Aire */}
+                      <TableRow sx={{ borderTop: "3px solid #cbd5e1" }}>
+                        <TableCell colSpan={3} sx={{ fontWeight: 600, bgcolor: "grey.50" }}>
+                          Medición Caudal / Velocidad Aire
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            fullWidth size="small" type="number" placeholder="Ingrese la medición o descripción del caudal"
+                            value={form.medicion_caudal_aire}
+                            onChange={(e) => handleChange(facilityId, "medicion_caudal_aire", e.target.value)}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </AccordionDetails>
+            </Accordion>
+
+            {/* ─── Sección 7: Lazareto ─── */}
             <Accordion defaultExpanded>
               <AccordionSummary expandIcon={<ExpandMore />}>
                 <Typography variant="subtitle2" fontWeight={600}>6 · Lazareto</Typography>

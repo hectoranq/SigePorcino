@@ -16,6 +16,7 @@ export interface Staff {
   certificado?: string; // URL del archivo
   titulaciones: string[]; // Array de titulaciones seleccionadas
   tareas: string[]; // Array de tareas asignadas
+  cursos_cubiertos: string[]; // Array de IDs de cursos de formación relacionados
   farm: string; // ID de la granja relacionada
   user: string; // ID del usuario propietario
   created?: string;
@@ -35,6 +36,7 @@ export interface CreateStaffData {
   certificado?: File; // Archivo para subir
   titulaciones: string[];
   tareas: string[];
+  cursos_cubiertos?: string[];
   farm: string;
   user: string;
 }
@@ -52,6 +54,7 @@ export interface UpdateStaffData {
   certificado?: File; // Archivo para subir
   titulaciones?: string[];
   tareas?: string[];
+  cursos_cubiertos?: string[];
   farm?: string;
 }
 
@@ -196,12 +199,14 @@ export async function createStaff(
       formData.append('experiencia', data.experiencia);
     }
 
-    // Asegurar que titulaciones y tareas sean arrays
+    // Asegurar que titulaciones, tareas y cursos_cubiertos sean arrays
     const titulaciones = Array.isArray(data.titulaciones) ? data.titulaciones : [];
     const tareas = Array.isArray(data.tareas) ? data.tareas : [];
+    const cursos_cubiertos = Array.isArray(data.cursos_cubiertos) ? data.cursos_cubiertos : [];
     
     formData.append('titulaciones', JSON.stringify(titulaciones));
     formData.append('tareas', JSON.stringify(tareas));
+    formData.append('cursos_cubiertos', JSON.stringify(cursos_cubiertos));
 
     // Agregar archivo si existe
     // IMPORTANTE: El nombre del campo debe coincidir exactamente con el nombre
@@ -302,6 +307,9 @@ export async function updateStaff(
       if (data.tareas) {
         formData.append('tareas', JSON.stringify(data.tareas));
       }
+      if (data.cursos_cubiertos) {
+        formData.append('cursos_cubiertos', JSON.stringify(data.cursos_cubiertos));
+      }
 
       // Agregar archivo
       formData.append('certificado', data.certificado);
@@ -310,6 +318,10 @@ export async function updateStaff(
     } else {
       // Sin archivo, usar objeto normal
       updateData = { ...data };
+      // Asegurar arrays para cursos_cubiertos
+      if (data.cursos_cubiertos !== undefined) {
+        updateData.cursos_cubiertos = data.cursos_cubiertos;
+      }
     }
 
     const record = await pb.collection('staff').update(id, updateData);

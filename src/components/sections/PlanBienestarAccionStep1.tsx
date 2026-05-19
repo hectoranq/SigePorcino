@@ -12,6 +12,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Checkbox,
   Alert,
   Snackbar,
 } from "@mui/material";
@@ -51,7 +52,7 @@ const PlanBienestarAccionStep1: React.FC<Props> = ({ onNext }) => {
   
   // Phase data
   const [phases, setPhases] = useState<ProductionPhase[]>(
-    FASES_PRODUCTIVAS.map(fase => ({ fase, num_naves: 2 }))
+    FASES_PRODUCTIVAS.map(fase => ({ fase, num_naves: 2, active: true }))
   );
   
   // Form data
@@ -88,7 +89,7 @@ const PlanBienestarAccionStep1: React.FC<Props> = ({ onNext }) => {
           const parsed = typeof data.fases_productivas === 'string'
             ? JSON.parse(data.fases_productivas)
             : data.fases_productivas;
-          setPhases(parsed);
+          setPhases(parsed.map((p: any) => ({ ...p, active: p.active ?? true })));
         } catch (e) {
           console.error("Error parsing fases_productivas:", e);
         }
@@ -109,6 +110,12 @@ const PlanBienestarAccionStep1: React.FC<Props> = ({ onNext }) => {
   const handlePhaseChange = (index: number, value: number) => {
     const newPhases = [...phases];
     newPhases[index].num_naves = value;
+    setPhases(newPhases);
+  };
+
+  const handlePhaseActiveChange = (index: number, checked: boolean) => {
+    const newPhases = [...phases];
+    newPhases[index].active = checked;
     setPhases(newPhases);
   };
 
@@ -176,6 +183,7 @@ const PlanBienestarAccionStep1: React.FC<Props> = ({ onNext }) => {
             <TableHead>
               <TableRow sx={{ bgcolor: "grey.100" }}>
                 <TableCell><strong>Fase Productiva</strong></TableCell>
+                <TableCell align="center"><strong>Activa</strong></TableCell>
                 <TableCell align="center"><strong>Nº de Naves</strong></TableCell>
               </TableRow>
             </TableHead>
@@ -183,6 +191,13 @@ const PlanBienestarAccionStep1: React.FC<Props> = ({ onNext }) => {
               {phases.map((phase, index) => (
                 <TableRow key={index}>
                   <TableCell>{phase.fase}</TableCell>
+                  <TableCell align="center">
+                    <Checkbox
+                      checked={phase.active !== false}
+                      onChange={(e) => handlePhaseActiveChange(index, e.target.checked)}
+                      color="primary"
+                    />
+                  </TableCell>
                   <TableCell align="center">
                     <TextField
                       type="number"

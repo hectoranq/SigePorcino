@@ -25,6 +25,7 @@ export interface PlanBienestarAnimal {
   fecha_documento_peticion?: string;
   porcentaje_lesiones_grado_1?: number;
   porcentaje_lesiones_grado_2?: number;
+  fecha_registro_lesiones_grado_1?: string;
   fecha_registro_lesiones_grado_2?: string;
   fecha_modificacion_condiciones?: string;
   // Relaciones
@@ -52,6 +53,7 @@ export interface CreatePlanBienestarAnimalData {
   fecha_documento_peticion?: string;
   porcentaje_lesiones_grado_1?: number;
   porcentaje_lesiones_grado_2?: number;
+  fecha_registro_lesiones_grado_1?: string;
   fecha_registro_lesiones_grado_2?: string;
   fecha_modificacion_condiciones?: string;
   farm: string;
@@ -75,6 +77,7 @@ export interface UpdatePlanBienestarAnimalData {
   fecha_documento_peticion?: string;
   porcentaje_lesiones_grado_1?: number;
   porcentaje_lesiones_grado_2?: number;
+  fecha_registro_lesiones_grado_1?: string;
   fecha_registro_lesiones_grado_2?: string;
   fecha_modificacion_condiciones?: string;
 }
