@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import {
   Box,
   Typography,
@@ -14,7 +14,6 @@ import {
   Dialog,
   DialogContent,
   Grid,
-  TextField,
   DialogTitle,
   DialogActions,
   FormControlLabel,
@@ -25,6 +24,14 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
+  Select,
+  MenuItem,
+  Checkbox,
+  ListItemText,
+  FormControl,
+  InputLabel,
+  OutlinedInput,
+  FormHelperText,
 } from "@mui/material"
 import { Add, Edit, Visibility, Delete } from "@mui/icons-material"
 import useUserStore from "../../_store/user"
@@ -35,8 +42,8 @@ import {
   deletePlanFormacion,
   getPlanFormacionByFarmId,
   type PlanFormacion as PlanFormacionAPI,
-  type CursoFormacion as CursoFormacionAPI,
 } from "../../action/PlanFormacionPocket"
+import { listTrainingCourses, type TrainingCourse } from "../../action/TrainingCoursesPocket"
 
 interface CursoFormacion {
   descripcion: string
@@ -91,15 +98,62 @@ export function PlanFormacionSection() {
   const [openViewDialog, setOpenViewDialog] = useState(false)
   const [selectedRegistro, setSelectedRegistro] = useState<PlanFormacion | null>(null)
 
-  // Estados para agregar cursos
-  const [nuevoCursoDescripcion, setNuevoCursoDescripcion] = useState("")
-  const [nuevoCursoHoras, setNuevoCursoHoras] = useState("")
-  const [mostrarInputCurso, setMostrarInputCurso] = useState(false)
+  // Estados para el multiselect de cursos
+  const [availableCourses, setAvailableCourses] = useState<TrainingCourse[]>([])
+  const [loadingCourses, setLoadingCourses] = useState(false)
+  const [coursesError, setCoursesError] = useState<string | null>(null)
+
+  // IDs de cursos seleccionados en el multiselect (derived from formData)
+  const selectedCourseIds = useMemo(
+    () =>
+      availableCourses
+        .filter((course) =>
+          formData.cursosFormacion.some(
+            (c) =>
+              c.descripcion === course.nombreCurso &&
+              c.horasLectivas === String(course.horasLectivas)
+          )
+        )
+        .map((course) => course.id),
+    [availableCourses, formData.cursosFormacion]
+  )
 
   // Cargar planes al montar el componente
   useEffect(() => {
     loadPlanesFormacion()
   }, [currentFarm, token, record])
+
+  // Cargar cursos disponibles cuando se abre el modal
+  useEffect(() => {
+    if (!open) return
+    if (!token || !record?.id) return
+
+    const loadCourses = async () => {
+      setLoadingCourses(true)
+      setCoursesError(null)
+      try {
+        const result = await listTrainingCourses(
+          token,
+          record.id,
+          currentFarm?.id
+        )
+        if (result) {
+          setAvailableCourses(result.items)
+        } else {
+          setAvailableCourses([])
+          setCoursesError("No se pudieron cargar los cursos disponibles")
+        }
+      } catch (error) {
+        console.error("❌ Error al cargar cursos de formación:", error)
+        setAvailableCourses([])
+        setCoursesError("Error al cargar los cursos disponibles")
+      } finally {
+        setLoadingCourses(false)
+      }
+    }
+
+    loadCourses()
+  }, [open, token, record, currentFarm])
 
   const loadPlanesFormacion = async () => {
     if (!currentFarm || !record?.id || !token) {
@@ -181,9 +235,8 @@ export function PlanFormacionSection() {
       personalConExperiencia: "",
       personalConTitulacion: "",
     })
-    setMostrarInputCurso(false)
-    setNuevoCursoDescripcion("")
-    setNuevoCursoHoras("")
+    setAvailableCourses([])
+    setCoursesError(null)
   }
 
   const handleInputChange = (field: keyof PlanFormacion, value: string) => {
@@ -193,28 +246,17 @@ export function PlanFormacionSection() {
     }))
   }
 
-  const handleAgregarCurso = () => {
-    if (nuevoCursoDescripcion.trim() && nuevoCursoHoras.trim()) {
-      setFormData((prev) => ({
-        ...prev,
-        cursosFormacion: [
-          ...prev.cursosFormacion,
-          {
-            descripcion: nuevoCursoDescripcion.trim(),
-            horasLectivas: nuevoCursoHoras.trim(),
-          },
-        ],
+  const handleCoursesChange = (selectedIds: string[]) => {
+    const selectedCourses = availableCourses
+      .filter((course) => selectedIds.includes(course.id))
+      .map((course) => ({
+        descripcion: course.nombreCurso,
+        horasLectivas: String(course.horasLectivas),
       }))
-      setNuevoCursoDescripcion("")
-      setNuevoCursoHoras("")
-      setMostrarInputCurso(false)
-    }
-  }
 
-  const handleEliminarCurso = (index: number) => {
     setFormData((prev) => ({
       ...prev,
-      cursosFormacion: prev.cursosFormacion.filter((_, i) => i !== index),
+      cursosFormacion: selectedCourses,
     }))
   }
 
@@ -600,111 +642,65 @@ export function PlanFormacionSection() {
                   </Typography>
                 </Grid>
 
-                {/* Lista de cursos agregados */}
-                {formData.cursosFormacion.length > 0 && (
-                  <Grid item xs={12}>
-                    <TableContainer component={Paper} variant="outlined">
-                      <Table size="small">
-                        <TableHead>
-                          <TableRow sx={{ bgcolor: "#f5f5f5" }}>
-                            <TableCell sx={{ fontWeight: 600 }}>Descripción del curso</TableCell>
-                            <TableCell sx={{ fontWeight: 600 }} align="center">
-                              Horas lectivas
-                            </TableCell>
-                            <TableCell sx={{ fontWeight: 600 }} align="center">
-                              Acciones
-                            </TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {formData.cursosFormacion.map((curso, index) => (
-                            <TableRow key={index}>
-                              <TableCell>{curso.descripcion}</TableCell>
-                              <TableCell align="center">{curso.horasLectivas}h</TableCell>
-                              <TableCell align="center">
-                                <IconButton size="small" onClick={() => handleEliminarCurso(index)} color="error">
-                                  <Delete fontSize="small" />
-                                </IconButton>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  </Grid>
-                )}
-
-                {/* Formulario para agregar curso */}
+                {/* Multiselect de cursos disponibles */}
                 <Grid item xs={12}>
-                  {!mostrarInputCurso ? (
-                    <Button
-                      startIcon={<Add />}
-                      onClick={() => setMostrarInputCurso(true)}
-                      variant="outlined"
-                      sx={{
-                        color: "#00bcd4",
-                        borderColor: "#00bcd4",
-                        "&:hover": {
-                          borderColor: "#00acc1",
-                          bgcolor: "#f0f9fa",
-                        },
-                      }}
-                    >
-                      Agregar curso de formación
-                    </Button>
+                  {loadingCourses ? (
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <CircularProgress size={20} />
+                      <Typography variant="body2" color="text.secondary">
+                        Cargando cursos disponibles…
+                      </Typography>
+                    </Box>
                   ) : (
-                    <Paper elevation={0} sx={{ p: 2, border: "1px solid #e0e0e0", borderRadius: 2 }}>
-                      <Grid container spacing={2}>
-                        <Grid item xs={12} md={8}>
-                          <TextField
-                            fullWidth
-                            label="Descripción del curso"
-                            variant="outlined"
-                            size="small"
-                            placeholder="Ej: Bienestar animal en explotaciones porcinas"
-                            value={nuevoCursoDescripcion}
-                            onChange={(e) => setNuevoCursoDescripcion(e.target.value)}
-                            required
-                          />
-                        </Grid>
-                        <Grid item xs={12} md={4}>
-                          <TextField
-                            fullWidth
-                            label="Horas lectivas"
-                            variant="outlined"
-                            size="small"
-                            type="number"
-                            placeholder="20"
-                            value={nuevoCursoHoras}
-                            onChange={(e) => setNuevoCursoHoras(e.target.value)}
-                            required
-                          />
-                        </Grid>
-                        <Grid item xs={12}>
-                          <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              onClick={() => {
-                                setMostrarInputCurso(false)
-                                setNuevoCursoDescripcion("")
-                                setNuevoCursoHoras("")
-                              }}
-                            >
-                              Cancelar
-                            </Button>
-                            <Button
-                              size="small"
-                              variant="contained"
-                              onClick={handleAgregarCurso}
-                              disabled={!nuevoCursoDescripcion.trim() || !nuevoCursoHoras.trim()}
-                            >
-                              Agregar curso
-                            </Button>
-                          </Box>
-                        </Grid>
-                      </Grid>
-                    </Paper>
+                    <FormControl fullWidth error={!!coursesError}>
+                      <InputLabel id="cursos-multiselect-label">
+                        Seleccionar cursos de formación
+                      </InputLabel>
+                      <Select
+                        labelId="cursos-multiselect-label"
+                        multiple
+                        value={selectedCourseIds}
+                        onChange={(e) => {
+                          const val = e.target.value
+                          handleCoursesChange(typeof val === "string" ? val.split(",") : val)
+                        }}
+                        input={<OutlinedInput label="Seleccionar cursos de formación" />}
+                        renderValue={(selected) => {
+                          if ((selected as string[]).length === 0) return ""
+                          return availableCourses
+                            .filter((c) => (selected as string[]).includes(c.id))
+                            .map((c) => `${c.nombreCurso} (${c.horasLectivas}h)`)
+                            .join(", ")
+                        }}
+                        disabled={availableCourses.length === 0}
+                      >
+                        {availableCourses.length === 0 ? (
+                          <MenuItem disabled>
+                            <Typography variant="body2" color="text.secondary">
+                              No hay cursos disponibles para esta granja
+                            </Typography>
+                          </MenuItem>
+                        ) : (
+                          availableCourses.map((course) => (
+                            <MenuItem key={course.id} value={course.id}>
+                              <Checkbox checked={selectedCourseIds.includes(course.id)} />
+                              <ListItemText
+                                primary={course.nombreCurso}
+                                secondary={`${course.horasLectivas} horas lectivas`}
+                              />
+                            </MenuItem>
+                          ))
+                        )}
+                      </Select>
+                      {coursesError && (
+                        <FormHelperText>{coursesError}</FormHelperText>
+                      )}
+                      {!coursesError && availableCourses.length === 0 && (
+                        <FormHelperText>
+                          Registre cursos en "Cursos de Formación" antes de crear un plan
+                        </FormHelperText>
+                      )}
+                    </FormControl>
                   )}
                 </Grid>
 
